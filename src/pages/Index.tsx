@@ -1,8 +1,11 @@
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
+import CollectionsSection from "@/components/CollectionsSection";
+import BenefitsSection from "@/components/BenefitsSection";
 import FeaturedProducts from "@/components/FeaturedProducts";
 import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
+import AIConcierge from "@/components/AIConcierge";
 
 const Index = () => {
   return (
@@ -10,10 +13,13 @@ const Index = () => {
       <Navbar />
       <main>
         <HeroSection />
+        <BenefitsSection />
         <FeaturedProducts />
+        <CollectionsSection />
       </main>
       <Footer />
       <WhatsAppButton />
+      <AIConcierge />
     </div>
   );
 };
