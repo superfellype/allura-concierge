@@ -74,9 +74,9 @@ const Footer = () => {
 
               {/* Contact Info */}
               <div className="mt-8 space-y-3">
-                <a href="tel:+5511999999999" className="flex items-center gap-3 text-sm text-primary-foreground/70 hover:text-primary transition-colors">
+                <a className="flex items-center gap-3 text-sm text-primary-foreground/70 hover:text-primary transition-colors" href="tel:+5534999281320">
                   <Phone className="w-4 h-4" />
-                  +55 (11) 99999-9999
+                  +55 (34) 99928-1320    
                 </a>
                 <a href="mailto:contato@allura.com.br" className="flex items-center gap-3 text-sm text-primary-foreground/70 hover:text-primary transition-colors">
                   <Mail className="w-4 h-4" />
