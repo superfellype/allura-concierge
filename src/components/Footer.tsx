@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Heart, Instagram, Mail, MapPin, Phone } from "lucide-react";
-import logoAllura from "@/assets/logo-allura.png";
+import logoAllura from "@/assets/logo-allura-text.png";
+import logoBadge from "@/assets/logo-allura-badge.png";
 
 const footerLinks = {
   shop: [
@@ -39,11 +40,18 @@ const Footer = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
             >
-              <img 
-                src={logoAllura} 
-                alt="Allura" 
-                className="h-16 w-auto mb-4 brightness-0 invert"
-              />
+              <div className="flex items-center gap-3 mb-4">
+                <img 
+                  src={logoBadge} 
+                  alt="" 
+                  className="h-12 w-auto brightness-0 invert opacity-80"
+                />
+                <img 
+                  src={logoAllura} 
+                  alt="Allura" 
+                  className="h-10 w-auto brightness-0 invert"
+                />
+              </div>
               <p className="font-body text-primary-foreground/70 max-w-sm">
                 Desde 2012, transformamos couro brasileiro premium em peças atemporais que contam histórias de elegância e sofisticação.
               </p>
@@ -69,7 +77,7 @@ const Footer = () => {
                 <motion.a
                   whileHover={{ scale: 1.1, y: -2 }}
                   href="#"
-                  className="w-10 h-10 rounded-full bg-primary-foreground/10 flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-colors"
+                  className="w-10 h-10 rounded-full bg-primary-foreground/10 flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all duration-300"
                 >
                   <Instagram className="w-5 h-5" />
                 </motion.a>
@@ -153,7 +161,7 @@ const Footer = () => {
               <input
                 type="email"
                 placeholder="Seu melhor e-mail"
-                className="flex-1 md:w-64 px-5 py-3 bg-primary-foreground/10 border border-primary-foreground/20 rounded-l-full font-body text-sm placeholder:text-primary-foreground/40 focus:outline-none focus:border-primary"
+                className="flex-1 md:w-64 px-5 py-3 bg-primary-foreground/10 border border-primary-foreground/20 rounded-l-full font-body text-sm placeholder:text-primary-foreground/40 focus:outline-none focus:border-primary transition-colors"
               />
               <button className="px-6 py-3 bg-primary text-primary-foreground font-body font-medium text-sm rounded-r-full hover:bg-primary/90 transition-colors">
                 Inscrever

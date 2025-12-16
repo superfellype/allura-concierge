@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Heart } from "lucide-react";
+import logoFlower from "@/assets/logo-allura-flower.png";
 
 const products = [
   {
@@ -60,6 +61,10 @@ const FeaturedProducts = () => {
     <section className="relative py-24 overflow-hidden">
       {/* Background */}
       <div className="absolute inset-0 bg-gradient-to-b from-background via-cream-100/50 to-background" />
+      
+      {/* Decorative Blobs */}
+      <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-accent/10 rounded-full blur-3xl" />
 
       <div className="relative z-10 container mx-auto px-6">
         <motion.div
@@ -69,6 +74,9 @@ const FeaturedProducts = () => {
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
+          <div className="flex justify-center mb-4">
+            <img src={logoFlower} alt="" className="w-8 h-8 object-contain opacity-60" />
+          </div>
           <span className="font-body text-xs uppercase tracking-[0.3em] text-primary">
             Seleção Exclusiva
           </span>
@@ -94,20 +102,32 @@ const FeaturedProducts = () => {
               whileHover={{ y: -8 }}
               className="group cursor-pointer"
             >
-              <div className="relative aspect-[3/4] rounded-3xl overflow-hidden mb-4">
-                <div className="absolute inset-0 bg-gradient-to-t from-foreground/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10" />
-                <img
-                  src={product.image}
-                  alt={product.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                />
-                <motion.button
-                  initial={{ opacity: 0, y: 20 }}
-                  whileHover={{ scale: 1.05 }}
-                  className="absolute bottom-4 left-4 right-4 py-3 glass text-center font-body text-sm font-medium rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 z-20"
-                >
-                  Ver Detalhes
-                </motion.button>
+              <div className="relative aspect-[3/4] rounded-3xl overflow-hidden mb-4 liquid-glass p-1">
+                <div className="absolute inset-1 rounded-[1.4rem] overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-t from-foreground/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10" />
+                  <img
+                    src={product.image}
+                    alt={product.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                  />
+                  
+                  {/* Wishlist Button */}
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    className="absolute top-3 right-3 p-2 liquid-glass rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 z-20"
+                  >
+                    <Heart className="w-4 h-4 text-foreground" />
+                  </motion.button>
+
+                  <motion.button
+                    initial={{ opacity: 0, y: 20 }}
+                    whileHover={{ scale: 1.02 }}
+                    className="absolute bottom-4 left-4 right-4 py-3 liquid-glass text-center font-body text-sm font-medium rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 z-20"
+                  >
+                    Ver Detalhes
+                  </motion.button>
+                </div>
               </div>
               <div className="px-2">
                 <span className="font-body text-xs uppercase tracking-wider text-muted-foreground">
@@ -134,7 +154,7 @@ const FeaturedProducts = () => {
           <motion.button
             whileHover={{ scale: 1.03, x: 5 }}
             whileTap={{ scale: 0.98 }}
-            className="group flex items-center gap-3 font-body font-medium text-primary"
+            className="group flex items-center gap-3 px-6 py-3 liquid-glass rounded-full font-body font-medium text-foreground"
           >
             Ver toda coleção
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
