@@ -1,5 +1,7 @@
 import { motion } from "framer-motion";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import logoFlower from "@/assets/logo-allura-flower.png";
+import logoBadge from "@/assets/logo-allura-badge.png";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -26,18 +28,18 @@ const itemVariants = {
 
 const HeroSection = () => {
   return (
-    <section className="relative min-h-screen overflow-hidden noise-overlay">
+    <section className="relative min-h-screen overflow-hidden">
       {/* Gradient Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-cream-100 via-background to-cream-200" />
       
-      {/* Floating Orbs */}
+      {/* Morphing Blob Background */}
       <motion.div
         animate={{ 
           x: [0, 30, 0],
           y: [0, -20, 0],
         }}
         transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute top-20 right-[20%] w-96 h-96 bg-primary/10 rounded-full blur-3xl"
+        className="absolute top-20 right-[20%] w-[500px] h-[500px] bg-gradient-to-br from-primary/15 to-accent/20 rounded-full blur-3xl animate-morph"
       />
       <motion.div
         animate={{ 
@@ -45,7 +47,17 @@ const HeroSection = () => {
           y: [0, 30, 0],
         }}
         transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute bottom-20 left-[10%] w-80 h-80 bg-accent/20 rounded-full blur-3xl"
+        className="absolute bottom-20 left-[10%] w-96 h-96 bg-gradient-to-tr from-accent/20 to-primary/10 rounded-full blur-3xl animate-morph"
+        style={{ animationDelay: "-4s" }}
+      />
+
+      {/* Subtle Grid Pattern */}
+      <div 
+        className="absolute inset-0 opacity-[0.015]"
+        style={{
+          backgroundImage: `linear-gradient(hsl(var(--foreground)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--foreground)) 1px, transparent 1px)`,
+          backgroundSize: '60px 60px'
+        }}
       />
 
       <div className="relative z-10 container mx-auto px-6 pt-32 pb-20">
@@ -55,10 +67,10 @@ const HeroSection = () => {
           animate="visible"
           className="max-w-6xl mx-auto"
         >
-          {/* Badge */}
+          {/* Floating Badge with Logo */}
           <motion.div variants={itemVariants} className="flex justify-center mb-8">
-            <div className="glass inline-flex items-center gap-2 px-4 py-2 rounded-full">
-              <Sparkles className="w-4 h-4 text-primary" />
+            <div className="floating-badge">
+              <img src={logoFlower} alt="" className="w-5 h-5 object-contain" />
               <span className="text-sm font-body font-medium text-foreground/80">
                 Nova Coleção Primavera 2024
               </span>
@@ -72,7 +84,7 @@ const HeroSection = () => {
           >
             Elegância que
             <br />
-            <span className="text-primary italic">transcende</span> o tempo
+            <span className="text-gradient italic">transcende</span> o tempo
           </motion.h1>
 
           <motion.p
@@ -91,7 +103,7 @@ const HeroSection = () => {
             <motion.button
               whileHover={{ scale: 1.03, y: -2 }}
               whileTap={{ scale: 0.98 }}
-              className="group flex items-center gap-3 px-8 py-4 bg-primary text-primary-foreground font-body font-medium rounded-full shadow-elegant hover:shadow-glow transition-all duration-300"
+              className="liquid-button group flex items-center gap-3 px-8 py-4 text-primary-foreground"
             >
               Explorar Coleção
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -99,7 +111,7 @@ const HeroSection = () => {
             <motion.button
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.98 }}
-              className="px-8 py-4 glass font-body font-medium text-foreground rounded-full hover:bg-secondary/50 transition-all duration-300"
+              className="px-8 py-4 liquid-glass font-body font-medium text-foreground rounded-full transition-all duration-300"
             >
               Nossa História
             </motion.button>
@@ -114,9 +126,9 @@ const HeroSection = () => {
             <motion.div
               variants={itemVariants}
               whileHover={{ y: -5, scale: 1.01 }}
-              className="col-span-2 row-span-2 bento-card relative overflow-hidden group cursor-pointer"
+              className="col-span-2 row-span-2 liquid-card relative overflow-hidden group cursor-pointer p-0"
             >
-              <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 via-foreground/20 to-transparent z-10" />
+              <div className="absolute inset-0 bg-gradient-to-t from-foreground/70 via-foreground/20 to-transparent z-10" />
               <img
                 src="https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=800&q=80"
                 alt="Bolsa de couro caramelo"
@@ -135,13 +147,14 @@ const HeroSection = () => {
               </div>
             </motion.div>
 
-            {/* Stats Card */}
+            {/* Stats Card with Badge */}
             <motion.div
               variants={itemVariants}
               whileHover={{ y: -5 }}
-              className="bento-card flex flex-col justify-center items-center text-center"
+              className="liquid-card flex flex-col justify-center items-center text-center"
             >
-              <span className="font-display text-4xl md:text-5xl font-semibold text-primary">
+              <img src={logoBadge} alt="" className="w-16 h-16 object-contain mb-2 opacity-80" />
+              <span className="font-display text-3xl md:text-4xl font-semibold text-primary">
                 12
               </span>
               <span className="font-body text-sm text-muted-foreground mt-1">
@@ -153,10 +166,10 @@ const HeroSection = () => {
             <motion.div
               variants={itemVariants}
               whileHover={{ y: -5 }}
-              className="bento-card bg-primary/5"
+              className="liquid-card bg-primary/5"
             >
               <div className="flex flex-col h-full justify-between">
-                <Sparkles className="w-8 h-8 text-primary" />
+                <img src={logoFlower} alt="" className="w-10 h-10 object-contain" />
                 <div>
                   <h4 className="font-display text-lg font-medium">Feito à Mão</h4>
                   <p className="font-body text-xs text-muted-foreground mt-1">
@@ -170,7 +183,7 @@ const HeroSection = () => {
             <motion.div
               variants={itemVariants}
               whileHover={{ y: -5 }}
-              className="bento-card col-span-2 flex items-center"
+              className="liquid-card col-span-2 flex items-center"
             >
               <blockquote className="font-display text-lg md:text-xl italic text-foreground/80">
                 "O luxo está nos detalhes que poucos percebem, mas todos sentem."
@@ -181,12 +194,18 @@ const HeroSection = () => {
           {/* Trust Badges */}
           <motion.div
             variants={itemVariants}
-            className="flex flex-wrap items-center justify-center gap-8 mt-16 opacity-60"
+            className="flex flex-wrap items-center justify-center gap-8 mt-16"
           >
-            {["Couro Premium", "Entrega Segura", "Garantia Vitalícia", "Pagamento Facilitado"].map((badge) => (
-              <span key={badge} className="font-body text-xs uppercase tracking-widest text-foreground/60">
+            {["Couro Premium", "Entrega Segura", "Garantia Vitalícia", "Pagamento Facilitado"].map((badge, i) => (
+              <motion.span 
+                key={badge} 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 0.6, y: 0 }}
+                transition={{ delay: 1 + i * 0.1 }}
+                className="font-body text-xs uppercase tracking-widest text-foreground/60"
+              >
                 {badge}
-              </span>
+              </motion.span>
             ))}
           </motion.div>
         </motion.div>
