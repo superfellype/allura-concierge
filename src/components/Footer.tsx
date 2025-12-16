@@ -65,7 +65,7 @@ const Footer = () => {
             once: true
           }}>
               <div className="flex items-center gap-3 mb-4">
-                <img src={logoBadge} alt="" className="h-12 w-auto brightness-0 invert opacity-100" />
+                <img src={logoBadge} alt="" className="h-12 w-auto brightness-0 invert opacity-80" />
                 
               </div>
               <p className="font-body text-primary-foreground/70 max-w-sm">
