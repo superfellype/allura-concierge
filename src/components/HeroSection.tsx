@@ -143,7 +143,7 @@ const HeroSection = () => {
             y: -5
           }} className="liquid-card bg-primary/5">
               <div className="flex flex-col h-full justify-between">
-                <img alt="" src="/lovable-uploads/bf5246a6-5ff7-4215-8182-bf6af4e3daab.png" className="w-10 h-10 object-cover" />
+                <img alt="" className="w-10 h-10 object-cover" src="/lovable-uploads/96f619d3-30d6-469f-bf6d-7e85f648ef43.png" />
                 <div>
                   <h4 className="font-display text-lg font-medium">Feito à Mão</h4>
                   <p className="font-body text-xs text-muted-foreground mt-1">
