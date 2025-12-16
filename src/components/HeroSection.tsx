@@ -1,7 +1,9 @@
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 import logoFlower from "@/assets/logo-allura-flower.png";
 import logoBadge from "@/assets/logo-allura-badge.png";
+
 const containerVariants = {
   hidden: {
     opacity: 0
@@ -14,6 +16,7 @@ const containerVariants = {
     }
   }
 };
+
 const itemVariants = {
   hidden: {
     opacity: 0,
@@ -28,6 +31,7 @@ const itemVariants = {
     }
   }
 };
+
 const HeroSection = () => {
   return <section className="relative min-h-screen overflow-hidden">
       {/* Gradient Background */}
@@ -75,32 +79,35 @@ const HeroSection = () => {
           <motion.h1 variants={itemVariants} className="font-display text-5xl md:text-7xl lg:text-8xl font-medium text-center leading-[1.1] tracking-tight text-balance">
             Elegância que
             <br />
-            <span className="text-gradient italic">transcende</span> o tempo
+            <span className="text-gradient italic">se sente</span>
           </motion.h1>
 
           <motion.p variants={itemVariants} className="font-body text-lg md:text-xl text-muted-foreground text-center max-w-2xl mx-auto mt-8">
-            Bolsas e acessórios artesanais, confeccionados com couro premium brasileiro. 
-            Cada peça conta uma história de sofisticação.
+            Bolsas e acessórios em couro premium, pensados para acompanhar momentos reais.
           </motion.p>
 
           {/* CTA Buttons */}
           <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-12">
-            <motion.button whileHover={{
-            scale: 1.03,
-            y: -2
-          }} whileTap={{
-            scale: 0.98
-          }} className="liquid-button group flex items-center gap-3 px-8 py-4 text-primary-foreground">
-              Explorar Coleção
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </motion.button>
-            <motion.button whileHover={{
-            scale: 1.03
-          }} whileTap={{
-            scale: 0.98
-          }} className="px-8 py-4 liquid-glass font-body font-medium text-foreground rounded-full transition-all duration-300">
-              Nossa História
-            </motion.button>
+            <Link to="/produtos">
+              <motion.button whileHover={{
+                scale: 1.03,
+                y: -2
+              }} whileTap={{
+                scale: 0.98
+              }} className="liquid-button group flex items-center gap-3 px-8 py-4 text-primary-foreground">
+                Explorar Coleção
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </motion.button>
+            </Link>
+            <Link to="/sobre">
+              <motion.button whileHover={{
+                scale: 1.03
+              }} whileTap={{
+                scale: 0.98
+              }} className="px-8 py-4 liquid-glass font-body font-medium text-foreground rounded-full transition-all duration-300">
+                Conhecer a Allura
+              </motion.button>
+            </Link>
           </motion.div>
 
           {/* Bento Grid */}
@@ -110,19 +117,21 @@ const HeroSection = () => {
             y: -5,
             scale: 1.01
           }} className="col-span-2 row-span-2 liquid-card relative overflow-hidden group cursor-pointer p-0">
-              <div className="absolute inset-0 bg-gradient-to-t from-foreground/70 via-foreground/20 to-transparent z-10" />
-              <img src="https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=800&q=80" alt="Bolsa de couro caramelo" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-              <div className="absolute bottom-6 left-6 right-6 z-20">
-                <span className="text-xs font-body uppercase tracking-widest text-primary-foreground/80">
-                  Em Destaque
-                </span>
-                <h3 className="font-display text-2xl md:text-3xl font-medium text-primary-foreground mt-1">
-                  Tote Bag Essencial
-                </h3>
-                <p className="font-body text-sm text-primary-foreground/80 mt-2">
-                  A partir de R$ 1.890,00
-                </p>
-              </div>
+              <Link to="/produtos" className="block h-full">
+                <div className="absolute inset-0 bg-gradient-to-t from-foreground/70 via-foreground/20 to-transparent z-10" />
+                <img src="https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=800&q=80" alt="Bolsa de couro caramelo" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                <div className="absolute bottom-6 left-6 right-6 z-20">
+                  <span className="text-xs font-body uppercase tracking-widest text-primary-foreground/80">
+                    Em Destaque
+                  </span>
+                  <h3 className="font-display text-2xl md:text-3xl font-medium text-primary-foreground mt-1">
+                    Tote Bag Essencial
+                  </h3>
+                  <p className="font-body text-sm text-primary-foreground/80 mt-2">
+                    A partir de R$ 1.890,00
+                  </p>
+                </div>
+              </Link>
             </motion.div>
 
             {/* Stats Card with Badge */}

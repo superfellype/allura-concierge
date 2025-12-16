@@ -1,4 +1,4 @@
 project_id = "vocpdmxmsqiypopzowsz"
 
-[functions.create-admin-users]
+[functions.ai-concierge]
 verify_jwt = false
