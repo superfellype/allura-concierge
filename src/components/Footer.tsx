@@ -69,7 +69,7 @@ const Footer = () => {
                 
               </div>
               <p className="font-body text-primary-foreground/70 max-w-sm">
-                Desde 2012, transformamos couro brasileiro premium em peças atemporais que contam histórias de elegância e sofisticação.
+                Escolhas pensadas para você, do primeiro clique ao último detalhe.
               </p>
 
               {/* Contact Info */}
@@ -84,7 +84,7 @@ const Footer = () => {
                 </a>
                 <div className="flex items-center gap-3 text-sm text-primary-foreground/70">
                   <MapPin className="w-4 h-4" />
-                  São Paulo, Brasil
+                  Uberlândia -  MG, Brasil
                 </div>
               </div>
 
