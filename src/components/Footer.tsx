@@ -65,8 +65,8 @@ const Footer = () => {
             once: true
           }}>
               <div className="flex items-center gap-3 mb-4">
-                <img src={logoBadge} alt="" className="h-12 w-auto brightness-0 invert opacity-80" />
-                <img src={logoAllura} alt="Allura" className="h-10 w-auto brightness-0 invert" />
+                <img src={logoBadge} alt="" className="h-12 w-auto brightness-0 invert opacity-100" />
+                
               </div>
               <p className="font-body text-primary-foreground/70 max-w-sm">
                 Desde 2012, transformamos couro brasileiro premium em peças atemporais que contam histórias de elegância e sofisticação.
