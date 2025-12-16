@@ -2,32 +2,52 @@ import { motion } from "framer-motion";
 import { Heart, Instagram, Mail, MapPin, Phone } from "lucide-react";
 import logoAllura from "@/assets/logo-allura-text.png";
 import logoBadge from "@/assets/logo-allura-badge.png";
-
 const footerLinks = {
-  shop: [
-    { name: "Todas as Bolsas", href: "#" },
-    { name: "Totes", href: "#" },
-    { name: "Clutches", href: "#" },
-    { name: "Acessórios", href: "#" },
-    { name: "Novidades", href: "#" },
-  ],
-  about: [
-    { name: "Nossa História", href: "#" },
-    { name: "Artesanato", href: "#" },
-    { name: "Sustentabilidade", href: "#" },
-    { name: "Imprensa", href: "#" },
-  ],
-  help: [
-    { name: "FAQ", href: "#" },
-    { name: "Envio e Entregas", href: "#" },
-    { name: "Trocas e Devoluções", href: "#" },
-    { name: "Cuidados com Couro", href: "#" },
-  ],
+  shop: [{
+    name: "Todas as Bolsas",
+    href: "#"
+  }, {
+    name: "Totes",
+    href: "#"
+  }, {
+    name: "Clutches",
+    href: "#"
+  }, {
+    name: "Acessórios",
+    href: "#"
+  }, {
+    name: "Novidades",
+    href: "#"
+  }],
+  about: [{
+    name: "Nossa História",
+    href: "#"
+  }, {
+    name: "Artesanato",
+    href: "#"
+  }, {
+    name: "Sustentabilidade",
+    href: "#"
+  }, {
+    name: "Imprensa",
+    href: "#"
+  }],
+  help: [{
+    name: "FAQ",
+    href: "#"
+  }, {
+    name: "Envio e Entregas",
+    href: "#"
+  }, {
+    name: "Trocas e Devoluções",
+    href: "#"
+  }, {
+    name: "Cuidados com Couro",
+    href: "#"
+  }]
 };
-
 const Footer = () => {
-  return (
-    <footer className="relative bg-foreground text-primary-foreground overflow-hidden">
+  return <footer className="relative bg-foreground text-primary-foreground overflow-hidden">
       {/* Accent Line */}
       <div className="h-1 w-full bg-gradient-to-r from-primary via-accent to-primary" />
 
@@ -35,22 +55,18 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12">
           {/* Brand Column */}
           <div className="lg:col-span-2">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-            >
+            <motion.div initial={{
+            opacity: 0,
+            y: 20
+          }} whileInView={{
+            opacity: 1,
+            y: 0
+          }} viewport={{
+            once: true
+          }}>
               <div className="flex items-center gap-3 mb-4">
-                <img 
-                  src={logoBadge} 
-                  alt="" 
-                  className="h-12 w-auto brightness-0 invert opacity-80"
-                />
-                <img 
-                  src={logoAllura} 
-                  alt="Allura" 
-                  className="h-10 w-auto brightness-0 invert"
-                />
+                <img src={logoBadge} alt="" className="h-12 w-auto brightness-0 invert opacity-80" />
+                <img src={logoAllura} alt="Allura" className="h-10 w-auto brightness-0 invert" />
               </div>
               <p className="font-body text-primary-foreground/70 max-w-sm">
                 Desde 2012, transformamos couro brasileiro premium em peças atemporais que contam histórias de elegância e sofisticação.
@@ -74,11 +90,10 @@ const Footer = () => {
 
               {/* Social */}
               <div className="flex gap-4 mt-8">
-                <motion.a
-                  whileHover={{ scale: 1.1, y: -2 }}
-                  href="#"
-                  className="w-10 h-10 rounded-full bg-primary-foreground/10 flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all duration-300"
-                >
+                <motion.a whileHover={{
+                scale: 1.1,
+                y: -2
+              }} href="#" className="w-10 h-10 rounded-full bg-primary-foreground/10 flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all duration-300">
                   <Instagram className="w-5 h-5" />
                 </motion.a>
               </div>
@@ -91,16 +106,11 @@ const Footer = () => {
               Comprar
             </h3>
             <ul className="space-y-3">
-              {footerLinks.shop.map((link) => (
-                <li key={link.name}>
-                  <a
-                    href={link.href}
-                    className="font-body text-sm text-primary-foreground/70 hover:text-primary transition-colors"
-                  >
+              {footerLinks.shop.map(link => <li key={link.name}>
+                  <a href={link.href} className="font-body text-sm text-primary-foreground/70 hover:text-primary transition-colors">
                     {link.name}
                   </a>
-                </li>
-              ))}
+                </li>)}
             </ul>
           </div>
 
@@ -109,16 +119,11 @@ const Footer = () => {
               Sobre
             </h3>
             <ul className="space-y-3">
-              {footerLinks.about.map((link) => (
-                <li key={link.name}>
-                  <a
-                    href={link.href}
-                    className="font-body text-sm text-primary-foreground/70 hover:text-primary transition-colors"
-                  >
+              {footerLinks.about.map(link => <li key={link.name}>
+                  <a href={link.href} className="font-body text-sm text-primary-foreground/70 hover:text-primary transition-colors">
                     {link.name}
                   </a>
-                </li>
-              ))}
+                </li>)}
             </ul>
           </div>
 
@@ -127,27 +132,25 @@ const Footer = () => {
               Ajuda
             </h3>
             <ul className="space-y-3">
-              {footerLinks.help.map((link) => (
-                <li key={link.name}>
-                  <a
-                    href={link.href}
-                    className="font-body text-sm text-primary-foreground/70 hover:text-primary transition-colors"
-                  >
+              {footerLinks.help.map(link => <li key={link.name}>
+                  <a href={link.href} className="font-body text-sm text-primary-foreground/70 hover:text-primary transition-colors">
                     {link.name}
                   </a>
-                </li>
-              ))}
+                </li>)}
             </ul>
           </div>
         </div>
 
         {/* Newsletter */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mt-16 pt-12 border-t border-primary-foreground/10"
-        >
+        <motion.div initial={{
+        opacity: 0,
+        y: 20
+      }} whileInView={{
+        opacity: 1,
+        y: 0
+      }} viewport={{
+        once: true
+      }} className="mt-16 pt-12 border-t border-primary-foreground/10">
           <div className="flex flex-col md:flex-row items-center justify-between gap-8">
             <div>
               <h3 className="font-display text-xl font-medium">
@@ -158,11 +161,7 @@ const Footer = () => {
               </p>
             </div>
             <div className="flex w-full md:w-auto">
-              <input
-                type="email"
-                placeholder="Seu melhor e-mail"
-                className="flex-1 md:w-64 px-5 py-3 bg-primary-foreground/10 border border-primary-foreground/20 rounded-l-full font-body text-sm placeholder:text-primary-foreground/40 focus:outline-none focus:border-primary transition-colors"
-              />
+              <input type="email" placeholder="Seu melhor e-mail" className="flex-1 md:w-64 px-5 py-3 bg-primary-foreground/10 border border-primary-foreground/20 rounded-l-full font-body text-sm placeholder:text-primary-foreground/40 focus:outline-none focus:border-primary transition-colors" />
               <button className="px-6 py-3 bg-primary text-primary-foreground font-body font-medium text-sm rounded-r-full hover:bg-primary/90 transition-colors">
                 Inscrever
               </button>
@@ -176,12 +175,10 @@ const Footer = () => {
             © 2024 Allura. Todos os direitos reservados.
           </p>
           <p className="font-body text-xs text-primary-foreground/50 flex items-center gap-1">
-            Feito com <Heart className="w-3 h-3 text-primary" /> em São Paulo
+            Feito com <Heart className="w-3 h-3 text-primary" /> em Uberlândia.
           </p>
         </div>
       </div>
-    </footer>
-  );
+    </footer>;
 };
-
 export default Footer;
