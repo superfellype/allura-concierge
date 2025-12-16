@@ -23,6 +23,7 @@ import NotFound from "./pages/NotFound";
 // Admin Pages
 import Dashboard from "./pages/admin/Dashboard";
 import AdminProdutos from "./pages/admin/Produtos";
+import Estoque from "./pages/admin/Estoque";
 import Pedidos from "./pages/admin/Pedidos";
 import Clientes from "./pages/admin/Clientes";
 import Configuracoes from "./pages/admin/Configuracoes";
@@ -49,64 +50,16 @@ const App = () => (
             <Route path="/pedido/sucesso" element={<PedidoSucesso />} />
 
             {/* Protected User Routes */}
-            <Route
-              path="/minha-conta"
-              element={
-                <ProtectedRoute>
-                  <MinhaConta />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/checkout"
-              element={
-                <ProtectedRoute>
-                  <Checkout />
-                </ProtectedRoute>
-              }
-            />
+            <Route path="/minha-conta" element={<ProtectedRoute><MinhaConta /></ProtectedRoute>} />
+            <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
 
             {/* Admin Routes */}
-            <Route
-              path="/admin"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/produtos"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <AdminProdutos />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/pedidos"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <Pedidos />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/clientes"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <Clientes />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/configuracoes"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <Configuracoes />
-                </ProtectedRoute>
-              }
-            />
+            <Route path="/admin" element={<ProtectedRoute requireAdmin><Dashboard /></ProtectedRoute>} />
+            <Route path="/admin/produtos" element={<ProtectedRoute requireAdmin><AdminProdutos /></ProtectedRoute>} />
+            <Route path="/admin/estoque" element={<ProtectedRoute requireAdmin><Estoque /></ProtectedRoute>} />
+            <Route path="/admin/pedidos" element={<ProtectedRoute requireAdmin><Pedidos /></ProtectedRoute>} />
+            <Route path="/admin/clientes" element={<ProtectedRoute requireAdmin><Clientes /></ProtectedRoute>} />
+            <Route path="/admin/configuracoes" element={<ProtectedRoute requireAdmin><Configuracoes /></ProtectedRoute>} />
 
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
