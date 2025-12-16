@@ -2,6 +2,7 @@ import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
 import FeaturedProducts from "@/components/FeaturedProducts";
 import Footer from "@/components/Footer";
+import WhatsAppButton from "@/components/WhatsAppButton";
 
 const Index = () => {
   return (
@@ -12,6 +13,7 @@ const Index = () => {
         <FeaturedProducts />
       </main>
       <Footer />
+      <WhatsAppButton />
     </div>
   );
 };
