@@ -52,12 +52,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const checkAdminRole = async (userId: string) => {
-    const { data } = await supabase.rpc('has_role', {
+const checkAdminRole = async (userId: string) => {
+    // Check for admin OR superadmin role
+    const { data: isAdminRole } = await supabase.rpc('has_role', {
       _user_id: userId,
       _role: 'admin'
     });
-    setIsAdmin(!!data);
+    const { data: isSuperadminRole } = await supabase.rpc('has_role', {
+      _user_id: userId,
+      _role: 'superadmin'
+    });
+    setIsAdmin(!!isAdminRole || !!isSuperadminRole);
   };
 
   const signOut = async () => {
