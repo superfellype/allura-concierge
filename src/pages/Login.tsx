@@ -11,7 +11,7 @@ import logoFlower from "@/assets/logo-allura-flower.png";
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, loading: authLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -20,9 +20,9 @@ const Login = () => {
   // Get the redirect path from location state or default to home
   const from = (location.state as any)?.from?.pathname || "/";
 
-  // Redirect if already logged in
+  // Redirect if already logged in - wait for auth loading to complete
   useEffect(() => {
-    if (user) {
+    if (user && !authLoading) {
       // If admin, go to admin dashboard, otherwise go to intended destination
       if (isAdmin) {
         navigate("/admin");
@@ -30,7 +30,7 @@ const Login = () => {
         navigate(from);
       }
     }
-  }, [user, isAdmin, navigate, from]);
+  }, [user, isAdmin, authLoading, navigate, from]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
