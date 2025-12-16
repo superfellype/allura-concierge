@@ -14,13 +14,15 @@ import RecuperarSenha from "./pages/RecuperarSenha";
 import Carrinho from "./pages/Carrinho";
 import Checkout from "./pages/Checkout";
 import Produto from "./pages/Produto";
+import ProdutosLista from "./pages/Produtos";
+import Sobre from "./pages/Sobre";
 import PedidoSucesso from "./pages/PedidoSucesso";
 import MinhaConta from "./pages/MinhaConta";
 import NotFound from "./pages/NotFound";
 
 // Admin Pages
 import Dashboard from "./pages/admin/Dashboard";
-import Produtos from "./pages/admin/Produtos";
+import AdminProdutos from "./pages/admin/Produtos";
 import Pedidos from "./pages/admin/Pedidos";
 import Clientes from "./pages/admin/Clientes";
 import Configuracoes from "./pages/admin/Configuracoes";
@@ -43,6 +45,8 @@ const App = () => (
             <Route path="/carrinho" element={<Carrinho />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/produto/:slug" element={<Produto />} />
+            <Route path="/produtos" element={<ProdutosLista />} />
+            <Route path="/sobre" element={<Sobre />} />
             <Route path="/pedido/sucesso" element={<PedidoSucesso />} />
             <Route path="/minha-conta" element={<MinhaConta />} />
 
@@ -59,7 +63,7 @@ const App = () => (
               path="/admin/produtos"
               element={
                 <ProtectedRoute>
-                  <Produtos />
+                  <AdminProdutos />
                 </ProtectedRoute>
               }
             />

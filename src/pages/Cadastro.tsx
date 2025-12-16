@@ -198,18 +198,25 @@ const Cadastro = () => {
 
       // Update profile with all preferences
       if (authData.user) {
-        await supabase.from('profiles').upsert({
-          user_id: authData.user.id,
-          full_name: formData.fullName,
-          phone: formData.whatsapp.replace(/\D/g, ""),
-          avatar_url: avatarUrl,
-          preferences: {
-            pronoun: formData.pronoun,
-            style_preferences: formData.stylePreferences,
-            occasions: formData.occasions,
-            whatsapp_opt_in: formData.whatsappOptIn,
-          }
-        });
+        const { error: profileError } = await supabase.from('profiles').upsert(
+          {
+            user_id: authData.user.id,
+            full_name: formData.fullName,
+            phone: formData.whatsapp.replace(/\D/g, ""),
+            avatar_url: avatarUrl,
+            preferences: {
+              pronoun: formData.pronoun,
+              style_preferences: formData.stylePreferences,
+              occasions: formData.occasions,
+              whatsapp_opt_in: formData.whatsappOptIn,
+            }
+          },
+          { onConflict: 'user_id' }
+        );
+        
+        if (profileError) {
+          console.error('Profile update error:', profileError);
+        }
       }
 
       nextStep(); // Go to complete step

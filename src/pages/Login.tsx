@@ -1,36 +1,65 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import logoAllura from "@/assets/logo-allura-text.png";
 import logoFlower from "@/assets/logo-allura-flower.png";
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user, isAdmin } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Get the redirect path from location state or default to home
+  const from = (location.state as any)?.from?.pathname || "/";
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      // If admin, go to admin dashboard, otherwise go to intended destination
+      if (isAdmin) {
+        navigate("/admin");
+      } else {
+        navigate(from);
+      }
+    }
+  }, [user, isAdmin, navigate, from]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error) {
-      toast.error("Email ou senha incorretos");
+      if (error) {
+        if (error.message.includes('Invalid login credentials')) {
+          toast.error("Email ou senha incorretos");
+        } else if (error.message.includes('Email not confirmed')) {
+          toast.error("Por favor, confirme seu email antes de entrar");
+        } else {
+          toast.error(error.message);
+        }
+        return;
+      }
+
+      toast.success("Bem-vinda de volta!");
+      // Navigation will be handled by the useEffect above
+    } catch (error: any) {
+      toast.error("Erro ao fazer login");
+    } finally {
       setLoading(false);
-      return;
     }
-
-    toast.success("Bem-vinda de volta!");
-    navigate("/admin");
   };
 
   return (
@@ -48,10 +77,10 @@ const Login = () => {
       >
         <div className="liquid-card p-8">
           {/* Logo */}
-          <div className="flex items-center justify-center gap-2 mb-8">
+          <Link to="/" className="flex items-center justify-center gap-2 mb-8">
             <img src={logoFlower} alt="" className="h-8 w-auto" />
             <img src={logoAllura} alt="Allura" className="h-8 w-auto" />
-          </div>
+          </Link>
 
           <h1 className="font-display text-2xl font-medium text-center mb-2">
             Bem-vinda de volta
