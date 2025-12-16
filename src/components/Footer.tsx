@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Heart, Instagram, Mail, MapPin, Phone } from "lucide-react";
+import logoAllura from "@/assets/logo-allura.png";
 
 const footerLinks = {
   shop: [
@@ -38,7 +39,11 @@ const Footer = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
             >
-              <h2 className="font-display text-3xl font-semibold mb-4">Allura</h2>
+              <img 
+                src={logoAllura} 
+                alt="Allura" 
+                className="h-16 w-auto mb-4 brightness-0 invert"
+              />
               <p className="font-body text-primary-foreground/70 max-w-sm">
                 Desde 2012, transformamos couro brasileiro premium em peças atemporais que contam histórias de elegância e sofisticação.
               </p>

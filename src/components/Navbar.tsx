@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, Search, ShoppingBag, User } from "lucide-react";
+import logoAllura from "@/assets/logo-allura.png";
 
 const navLinks = [
   { name: "Coleções", href: "#colecoes" },
@@ -37,14 +38,15 @@ const Navbar = () => {
           {/* Logo */}
           <motion.a
             href="/"
-            className="relative z-10"
+            className="relative z-10 flex items-center gap-3"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            <h1 className="font-display text-2xl md:text-3xl font-semibold tracking-tight text-foreground">
-              Allura
-            </h1>
-            <span className="absolute -bottom-1 left-0 w-8 h-0.5 bg-primary rounded-full" />
+            <img 
+              src={logoAllura} 
+              alt="Allura" 
+              className="h-10 md:h-12 w-auto"
+            />
           </motion.a>
 
           {/* Desktop Navigation */}
