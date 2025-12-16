@@ -10,6 +10,12 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Cadastro from "./pages/Cadastro";
+import RecuperarSenha from "./pages/RecuperarSenha";
+import Carrinho from "./pages/Carrinho";
+import Checkout from "./pages/Checkout";
+import Produto from "./pages/Produto";
+import PedidoSucesso from "./pages/PedidoSucesso";
+import MinhaConta from "./pages/MinhaConta";
 import NotFound from "./pages/NotFound";
 
 // Admin Pages
@@ -33,6 +39,12 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/cadastro" element={<Cadastro />} />
+            <Route path="/recuperar-senha" element={<RecuperarSenha />} />
+            <Route path="/carrinho" element={<Carrinho />} />
+            <Route path="/checkout" element={<Checkout />} />
+            <Route path="/produto/:slug" element={<Produto />} />
+            <Route path="/pedido/sucesso" element={<PedidoSucesso />} />
+            <Route path="/minha-conta" element={<MinhaConta />} />
 
             {/* Admin Routes */}
             <Route
