@@ -1,0 +1,471 @@
+import { useState, useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import { ArrowLeft, MapPin, CreditCard, Truck, ShieldCheck } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+import { createPaymentGateway, formatToCentavos, formatPrice } from "@/lib/payment/infinitepay-adapter";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
+interface CartItem {
+  id: string;
+  product_id: string;
+  quantity: number;
+  attributes: Record<string, string> | null;
+  product: {
+    id: string;
+    name: string;
+    price: number;
+    images: string[] | null;
+  };
+}
+
+interface ShippingAddress {
+  cep: string;
+  street: string;
+  number: string;
+  complement: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+}
+
+const INFINITEPAY_HANDLE = 'allura'; // Handle da loja no InfinitePay
+
+const Checkout = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState(false);
+  const [profile, setProfile] = useState<{ full_name: string; phone: string } | null>(null);
+  
+  const [address, setAddress] = useState<ShippingAddress>({
+    cep: '',
+    street: '',
+    number: '',
+    complement: '',
+    neighborhood: '',
+    city: '',
+    state: ''
+  });
+
+  useEffect(() => {
+    if (!user) {
+      navigate('/login?redirect=/checkout');
+      return;
+    }
+    fetchData();
+  }, [user, navigate]);
+
+  const fetchData = async () => {
+    try {
+      // Fetch cart items
+      const { data: cartData, error: cartError } = await supabase
+        .from('cart_items')
+        .select(`
+          id,
+          product_id,
+          quantity,
+          attributes,
+          products (id, name, price, images)
+        `)
+        .eq('user_id', user?.id);
+
+      if (cartError) throw cartError;
+
+      if (!cartData || cartData.length === 0) {
+        navigate('/carrinho');
+        return;
+      }
+
+      setCartItems(cartData.map(item => ({
+        id: item.id,
+        product_id: item.product_id,
+        quantity: item.quantity,
+        attributes: (item.attributes as Record<string, string>) || null,
+        product: item.products as any
+      })));
+
+      // Fetch profile
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('full_name, phone')
+        .eq('user_id', user?.id)
+        .maybeSingle();
+
+      if (profileData) {
+        setProfile(profileData);
+      }
+    } catch (error: any) {
+      console.error('Error fetching data:', error);
+      toast.error('Erro ao carregar dados');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchAddressByCep = async (cep: string) => {
+    const cleanCep = cep.replace(/\D/g, '');
+    if (cleanCep.length !== 8) return;
+
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+      const data = await response.json();
+      
+      if (!data.erro) {
+        setAddress(prev => ({
+          ...prev,
+          street: data.logradouro || '',
+          neighborhood: data.bairro || '',
+          city: data.localidade || '',
+          state: data.uf || ''
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching CEP:', error);
+    }
+  };
+
+  const handleCepChange = (value: string) => {
+    const formatted = value.replace(/\D/g, '').replace(/(\d{5})(\d)/, '$1-$2').slice(0, 9);
+    setAddress(prev => ({ ...prev, cep: formatted }));
+    
+    if (formatted.replace(/\D/g, '').length === 8) {
+      fetchAddressByCep(formatted);
+    }
+  };
+
+  const subtotal = cartItems.reduce(
+    (sum, item) => sum + item.product.price * item.quantity,
+    0
+  );
+  const shipping = subtotal > 299 ? 0 : 19.90;
+  const total = subtotal + shipping;
+
+  const handleCheckout = async () => {
+    // Validate address
+    if (!address.cep || !address.street || !address.number || !address.city || !address.state) {
+      toast.error('Preencha o endereço completo');
+      return;
+    }
+
+    setProcessing(true);
+
+    try {
+      // Create order in database
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .insert([{
+          user_id: user?.id as string,
+          status: 'created' as const,
+          subtotal,
+          shipping_cost: shipping,
+          total,
+          shipping_address: JSON.parse(JSON.stringify(address)),
+          payment_method: 'infinitepay'
+        }])
+        .select()
+        .single();
+
+      if (orderError) throw orderError;
+
+      // Create order items
+      const orderItems = cartItems.map(item => ({
+        order_id: order.id,
+        product_id: item.product_id,
+        quantity: item.quantity,
+        unit_price: item.product.price,
+        total_price: item.product.price * item.quantity,
+        attributes: item.attributes
+      }));
+
+      const { error: itemsError } = await supabase
+        .from('order_items')
+        .insert(orderItems);
+
+      if (itemsError) throw itemsError;
+
+      // Clear cart
+      await supabase
+        .from('cart_items')
+        .delete()
+        .eq('user_id', user?.id);
+
+      // Create InfinitePay checkout link
+      const paymentGateway = createPaymentGateway(INFINITEPAY_HANDLE);
+      
+      const checkoutUrl = paymentGateway.createCheckoutLink({
+        handle: INFINITEPAY_HANDLE,
+        items: cartItems.map(item => ({
+          name: item.product.name,
+          quantity: item.quantity,
+          unit_price: formatToCentavos(item.product.price)
+        })),
+        order_nsu: order.id,
+        redirect_url: `${window.location.origin}/pedido/sucesso?order_id=${order.id}`,
+        customer_name: profile?.full_name,
+        customer_email: user?.email,
+        customer_phone: profile?.phone
+      });
+
+      // Redirect to InfinitePay
+      window.location.href = checkoutUrl;
+
+    } catch (error: any) {
+      console.error('Error creating order:', error);
+      toast.error('Erro ao processar pedido');
+      setProcessing(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="pt-32 pb-20 px-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="liquid-glass p-12 rounded-3xl text-center">
+              <div className="animate-pulse">Carregando...</div>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Navbar />
+      
+      <main className="pt-32 pb-20 px-4">
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8"
+          >
+            <Link
+              to="/carrinho"
+              className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Voltar ao Carrinho
+            </Link>
+          </motion.div>
+
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-3xl md:text-4xl font-serif mb-8"
+          >
+            Finalizar Compra
+          </motion.h1>
+
+          <div className="grid lg:grid-cols-2 gap-8">
+            {/* Shipping Form */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="space-y-6"
+            >
+              <div className="liquid-glass p-6 rounded-2xl">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <MapPin className="w-5 h-5 text-primary" />
+                  </div>
+                  <h2 className="text-xl font-serif">Endereço de Entrega</h2>
+                </div>
+
+                <div className="grid gap-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="cep">CEP</Label>
+                      <Input
+                        id="cep"
+                        value={address.cep}
+                        onChange={(e) => handleCepChange(e.target.value)}
+                        placeholder="00000-000"
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="state">Estado</Label>
+                      <Input
+                        id="state"
+                        value={address.state}
+                        onChange={(e) => setAddress(prev => ({ ...prev, state: e.target.value }))}
+                        placeholder="MG"
+                        maxLength={2}
+                        className="mt-1"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="city">Cidade</Label>
+                    <Input
+                      id="city"
+                      value={address.city}
+                      onChange={(e) => setAddress(prev => ({ ...prev, city: e.target.value }))}
+                      placeholder="Uberlândia"
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="neighborhood">Bairro</Label>
+                    <Input
+                      id="neighborhood"
+                      value={address.neighborhood}
+                      onChange={(e) => setAddress(prev => ({ ...prev, neighborhood: e.target.value }))}
+                      placeholder="Centro"
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="street">Rua</Label>
+                    <Input
+                      id="street"
+                      value={address.street}
+                      onChange={(e) => setAddress(prev => ({ ...prev, street: e.target.value }))}
+                      placeholder="Rua das Flores"
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="number">Número</Label>
+                      <Input
+                        id="number"
+                        value={address.number}
+                        onChange={(e) => setAddress(prev => ({ ...prev, number: e.target.value }))}
+                        placeholder="123"
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="complement">Complemento</Label>
+                      <Input
+                        id="complement"
+                        value={address.complement}
+                        onChange={(e) => setAddress(prev => ({ ...prev, complement: e.target.value }))}
+                        placeholder="Apto 101"
+                        className="mt-1"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment Info */}
+              <div className="liquid-glass p-6 rounded-2xl">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <CreditCard className="w-5 h-5 text-primary" />
+                  </div>
+                  <h2 className="text-xl font-serif">Pagamento</h2>
+                </div>
+
+                <p className="text-muted-foreground text-sm">
+                  Você será redirecionado para o checkout seguro da InfinitePay para finalizar o pagamento com Pix ou cartão de crédito.
+                </p>
+
+                <div className="mt-4 flex items-center gap-4 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-green-600" />
+                    <span>Pagamento Seguro</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Truck className="w-4 h-4" />
+                    <span>Entrega via Correios</span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Order Summary */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <div className="liquid-glass p-6 rounded-2xl lg:sticky lg:top-32">
+                <h2 className="text-xl font-serif mb-6">Resumo do Pedido</h2>
+
+                <div className="space-y-4 mb-6">
+                  {cartItems.map((item) => (
+                    <div key={item.id} className="flex gap-4">
+                      <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                        {item.product.images?.[0] && (
+                          <img
+                            src={item.product.images[0]}
+                            alt={item.product.name}
+                            className="w-full h-full object-cover"
+                          />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm line-clamp-1">{item.product.name}</p>
+                        <p className="text-sm text-muted-foreground">Qtd: {item.quantity}</p>
+                        <p className="text-sm font-medium text-primary">
+                          {formatPrice(item.product.price * item.quantity)}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="space-y-3 border-t border-border/50 pt-4 mb-6">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Subtotal</span>
+                    <span>{formatPrice(subtotal)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Frete</span>
+                    <span>
+                      {shipping === 0 ? (
+                        <span className="text-green-600">Grátis</span>
+                      ) : (
+                        formatPrice(shipping)
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-lg font-medium pt-2 border-t border-border/50">
+                    <span>Total</span>
+                    <span className="text-primary">{formatPrice(total)}</span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleCheckout}
+                  disabled={processing}
+                  className="w-full liquid-button py-4 disabled:opacity-50"
+                >
+                  {processing ? 'Processando...' : 'Pagar com InfinitePay'}
+                </button>
+
+                <p className="mt-4 text-xs text-center text-muted-foreground">
+                  Ao finalizar, você concorda com nossos termos de uso
+                </p>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </main>
+
+      <Footer />
+    </div>
+  );
+};
+
+export default Checkout;
