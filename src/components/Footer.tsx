@@ -78,9 +78,9 @@ const Footer = () => {
                   <Phone className="w-4 h-4" />
                   +55 (34) 99928-1320    
                 </a>
-                <a href="mailto:contato@allura.com.br" className="flex items-center gap-3 text-sm text-primary-foreground/70 hover:text-primary transition-colors">
+                <a className="flex items-center gap-3 text-sm text-primary-foreground/70 hover:text-primary transition-colors" href="mailto:contato@allura.com">
                   <Mail className="w-4 h-4" />
-                  contato@allura.com.br
+                  contato@allura.com
                 </a>
                 <div className="flex items-center gap-3 text-sm text-primary-foreground/70">
                   <MapPin className="w-4 h-4" />
