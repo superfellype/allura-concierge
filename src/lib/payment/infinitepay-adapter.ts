@@ -31,18 +31,17 @@ class InfinitePayAdapter implements IPaymentGateway {
   }
 
   createCheckoutLink(config: CheckoutConfig): string {
-    // Build items array in InfinitePay format
+    // InfinitePay expects price in centavos and minimal encoding.
+    // Also, their checkout examples use "+" for spaces inside the JSON string.
     const items = config.items.map(item => ({
-      name: item.name,
-      price: item.price,
+      name: item.name.replace(/ /g, '+'),
+      price: Math.round(item.price * 100),
       quantity: item.quantity
     }));
 
-    // Build URL manually without heavy encoding (InfinitePay expects minimal encoding)
     const itemsJson = JSON.stringify(items);
-    const redirectUrl = encodeURIComponent(config.redirect_url);
-    
-    return `${this.baseUrl}/${this.handle}?items=${itemsJson}&redirect_url=${redirectUrl}`;
+
+    return `${this.baseUrl}/${this.handle}?items=${itemsJson}&redirect_url=${config.redirect_url}`;
   }
 
   parseRedirectParams(params: URLSearchParams): { transactionId: string; status: string } {
