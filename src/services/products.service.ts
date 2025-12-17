@@ -14,6 +14,14 @@ export interface Product {
   is_featured: boolean;
   images: string[] | null;
   attributes: Json | null;
+  sku: string | null;
+  cost_price: number | null;
+  low_stock_threshold: number | null;
+  allow_backorder: boolean | null;
+  weight_grams: number | null;
+  height_cm: number | null;
+  width_cm: number | null;
+  length_cm: number | null;
 }
 
 export interface ProductInput {
@@ -28,6 +36,14 @@ export interface ProductInput {
   is_featured?: boolean;
   images?: string[] | null;
   attributes?: Json | null;
+  sku?: string | null;
+  cost_price?: number | null;
+  low_stock_threshold?: number | null;
+  allow_backorder?: boolean | null;
+  weight_grams?: number | null;
+  height_cm?: number | null;
+  width_cm?: number | null;
+  length_cm?: number | null;
 }
 
 class ProductsService {
