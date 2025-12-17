@@ -1,27 +1,51 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageCircle, X, Send, Sparkles, User } from "lucide-react";
+import { X, Send, Sparkles, User, ImagePlus, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
+  image?: string; // base64 image
 }
 
 const AIConcierge = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: "assistant",
-      content: "Olá! Sou a Lara, sua personal stylist da Allura. ✨ Como posso ajudá-la hoje? Posso recomendar peças, esclarecer dúvidas sobre nossos produtos ou ajudar a encontrar a bolsa perfeita para você.",
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const [preferences, setPreferences] = useState<any>(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Reset chat with personalized greeting when user changes
+  useEffect(() => {
+    if (user && preferences) {
+      const userName = preferences.full_name?.split(" ")[0] || "";
+      const stylePrefs = preferences.preferences?.styles || [];
+      
+      let greeting = `Olá${userName ? `, ${userName}` : ""}! ✨ Sou a Lara, sua personal stylist da Allura.`;
+      
+      if (stylePrefs.length > 0) {
+        greeting += ` Vejo que você tem um estilo ${stylePrefs.join(" e ").toLowerCase()}. Posso ajudá-la a encontrar peças que combinem perfeitamente com você!`;
+      } else {
+        greeting += " Como posso ajudá-la hoje? Posso recomendar peças, esclarecer dúvidas ou ajudar a encontrar a bolsa perfeita para você.";
+      }
+      
+      setMessages([{ role: "assistant", content: greeting }]);
+    } else if (user) {
+      setMessages([{
+        role: "assistant",
+        content: "Olá! ✨ Sou a Lara, sua personal stylist da Allura. Como posso ajudá-la hoje?"
+      }]);
+    }
+  }, [user, preferences]);
 
   useEffect(() => {
     if (user) {
@@ -45,16 +69,46 @@ const AIConcierge = () => {
     }
   };
 
-  const sendMessage = async () => {
-    if (!input.trim() || isLoading) return;
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    const userMessage: Message = { role: "user", content: input.trim() };
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Imagem muito grande. Máximo 5MB.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setSelectedImage(event.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeImage = () => {
+    setSelectedImage(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const sendMessage = async () => {
+    if ((!input.trim() && !selectedImage) || isLoading) return;
+
+    const userMessage: Message = { 
+      role: "user", 
+      content: input.trim() || "O que você acha desta imagem?",
+      image: selectedImage || undefined
+    };
+    
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
+    setSelectedImage(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
     setIsLoading(true);
 
     let assistantContent = "";
-    const messagesForAPI = [...messages, userMessage].slice(-10); // Last 10 messages
+    const messagesForAPI = [...messages, userMessage].slice(-10);
 
     try {
       const response = await fetch(
@@ -117,7 +171,7 @@ const AIConcierge = () => {
               });
             }
           } catch {
-            // Ignore parse errors for incomplete JSON
+            // Ignore parse errors
           }
         }
       }
@@ -141,6 +195,62 @@ const AIConcierge = () => {
       sendMessage();
     }
   };
+
+  // Don't render anything if not logged in
+  if (authLoading) return null;
+  
+  if (!user) {
+    return (
+      <AnimatePresence>
+        {!isOpen ? (
+          <motion.button
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setIsOpen(true)}
+            className="fixed bottom-24 right-6 z-50 w-14 h-14 rounded-full bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg flex items-center justify-center"
+          >
+            <Sparkles className="w-6 h-6" />
+          </motion.button>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            className="fixed bottom-24 right-6 z-50 w-[360px] liquid-card-strong flex flex-col overflow-hidden shadow-2xl p-6"
+          >
+            <button
+              onClick={() => setIsOpen(false)}
+              className="absolute top-3 right-3 p-2 hover:bg-secondary/50 rounded-full transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            
+            <div className="text-center py-4">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center mx-auto mb-4">
+                <Sparkles className="w-8 h-8 text-primary-foreground" />
+              </div>
+              <h3 className="font-display text-lg font-medium mb-2">Conheça a Lara</h3>
+              <p className="text-sm text-muted-foreground mb-6">
+                Sua personal stylist exclusiva. Faça login para receber recomendações personalizadas.
+              </p>
+              <Button onClick={() => navigate("/login")} className="w-full">
+                Entrar na minha conta
+              </Button>
+              <p className="text-xs text-muted-foreground mt-3">
+                Não tem conta?{" "}
+                <button onClick={() => navigate("/cadastro")} className="text-primary hover:underline">
+                  Criar conta
+                </button>
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    );
+  }
 
   return (
     <>
@@ -168,17 +278,17 @@ const AIConcierge = () => {
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-24 right-6 z-50 w-[360px] h-[500px] max-h-[70vh] liquid-card-strong flex flex-col overflow-hidden shadow-2xl"
+            className="fixed bottom-24 right-6 z-50 w-[380px] h-[520px] max-h-[75vh] liquid-card-strong flex flex-col overflow-hidden shadow-2xl"
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-border/30">
+            <div className="flex items-center justify-between p-4 border-b border-border/30 bg-background/50">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center">
                   <Sparkles className="w-5 h-5 text-primary-foreground" />
                 </div>
                 <div>
                   <h3 className="font-display text-sm font-medium">Lara</h3>
-                  <p className="text-xs text-muted-foreground">Personal Stylist Allura</p>
+                  <p className="text-xs text-muted-foreground">Sua Personal Stylist</p>
                 </div>
               </div>
               <button
@@ -204,13 +314,20 @@ const AIConcierge = () => {
                     </div>
                   )}
                   <div
-                    className={`max-w-[80%] px-4 py-2.5 rounded-2xl font-body text-sm ${
+                    className={`max-w-[80%] rounded-2xl font-body text-sm ${
                       message.role === "user"
                         ? "bg-primary text-primary-foreground rounded-br-md"
                         : "bg-secondary/50 text-foreground rounded-bl-md"
                     }`}
                   >
-                    {message.content}
+                    {message.image && (
+                      <img 
+                        src={message.image} 
+                        alt="Imagem enviada" 
+                        className="w-full max-w-[200px] rounded-t-2xl object-cover"
+                      />
+                    )}
+                    <p className="px-4 py-2.5">{message.content}</p>
                   </div>
                   {message.role === "user" && (
                     <div className="w-7 h-7 rounded-full bg-secondary flex-shrink-0 flex items-center justify-center">
@@ -236,9 +353,43 @@ const AIConcierge = () => {
               <div ref={messagesEndRef} />
             </div>
 
+            {/* Image Preview */}
+            {selectedImage && (
+              <div className="px-4 py-2 border-t border-border/30 bg-secondary/20">
+                <div className="relative inline-block">
+                  <img 
+                    src={selectedImage} 
+                    alt="Preview" 
+                    className="h-16 w-auto rounded-lg object-cover"
+                  />
+                  <button
+                    onClick={removeImage}
+                    className="absolute -top-2 -right-2 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Input */}
-            <div className="p-4 border-t border-border/30">
-              <div className="flex gap-2">
+            <div className="p-4 border-t border-border/30 bg-background/50">
+              <div className="flex gap-2 items-end">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleImageSelect}
+                  accept="image/*"
+                  className="hidden"
+                />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isLoading}
+                  className="p-2.5 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-xl transition-colors disabled:opacity-50"
+                  title="Enviar imagem"
+                >
+                  <ImagePlus className="w-5 h-5" />
+                </button>
                 <input
                   type="text"
                   value={input}
@@ -250,7 +401,7 @@ const AIConcierge = () => {
                 />
                 <button
                   onClick={sendMessage}
-                  disabled={!input.trim() || isLoading}
+                  disabled={(!input.trim() && !selectedImage) || isLoading}
                   className="p-2.5 bg-primary text-primary-foreground rounded-xl disabled:opacity-50 transition-opacity"
                 >
                   <Send className="w-4 h-4" />
