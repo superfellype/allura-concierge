@@ -16,14 +16,17 @@ import { useAuth } from "@/hooks/useAuth";
 import logoAllura from "@/assets/logo-allura-text.png";
 import logoFlower from "@/assets/logo-allura-flower.png";
 
-import { Boxes, Kanban } from "lucide-react";
+import { Boxes, Kanban, FolderTree, Sparkles, Ticket } from "lucide-react";
 
 const navItems = [
   { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { name: "Produtos", href: "/admin/produtos", icon: Package },
+  { name: "Categorias", href: "/admin/categorias", icon: FolderTree },
+  { name: "Coleções", href: "/admin/colecoes", icon: Sparkles },
   { name: "Estoque", href: "/admin/estoque", icon: Boxes },
   { name: "Pedidos", href: "/admin/pedidos", icon: ShoppingCart },
   { name: "Kanban", href: "/admin/kanban", icon: Kanban },
+  { name: "Cupons", href: "/admin/cupons", icon: Ticket },
   { name: "Clientes", href: "/admin/clientes", icon: Users },
   { name: "Configurações", href: "/admin/configuracoes", icon: Settings },
 ];

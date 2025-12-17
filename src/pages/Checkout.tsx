@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, MapPin, CreditCard, Truck, ShieldCheck } from "lucide-react";
+import { ArrowLeft, MapPin, CreditCard, Truck, ShieldCheck, Tag, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -10,6 +10,11 @@ import Footer from "@/components/Footer";
 import { createPaymentGateway, formatToCentavos, formatPrice } from "@/lib/payment/infinitepay-adapter";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { shippingService, ShippingOption, ProductDimensions } from "@/services/shipping.service";
+import { couponsService, CouponValidation } from "@/services/coupons.service";
+import { paymentsService } from "@/services/payments.service";
 
 interface CartItem {
   id: string;
@@ -21,6 +26,10 @@ interface CartItem {
     name: string;
     price: number;
     images: string[] | null;
+    weight_grams?: number;
+    height_cm?: number;
+    width_cm?: number;
+    length_cm?: number;
   };
 }
 
@@ -34,7 +43,7 @@ interface ShippingAddress {
   state: string;
 }
 
-const INFINITEPAY_HANDLE = 'allura'; // Handle da loja no InfinitePay
+const INFINITEPAY_HANDLE = 'allura';
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -44,6 +53,7 @@ const Checkout = () => {
   const [processing, setProcessing] = useState(false);
   const [profile, setProfile] = useState<{ full_name: string; phone: string } | null>(null);
   
+  // Address state
   const [address, setAddress] = useState<ShippingAddress>({
     cep: '',
     street: '',
@@ -53,6 +63,16 @@ const Checkout = () => {
     city: '',
     state: ''
   });
+
+  // Shipping state
+  const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>([]);
+  const [selectedShipping, setSelectedShipping] = useState<ShippingOption | null>(null);
+  const [loadingShipping, setLoadingShipping] = useState(false);
+
+  // Coupon state
+  const [couponCode, setCouponCode] = useState('');
+  const [couponValidation, setCouponValidation] = useState<CouponValidation | null>(null);
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -64,7 +84,6 @@ const Checkout = () => {
 
   const fetchData = async () => {
     try {
-      // Fetch cart items
       const { data: cartData, error: cartError } = await supabase
         .from('cart_items')
         .select(`
@@ -72,7 +91,7 @@ const Checkout = () => {
           product_id,
           quantity,
           attributes,
-          products (id, name, price, images)
+          products (id, name, price, images, weight_grams, height_cm, width_cm, length_cm)
         `)
         .eq('user_id', user?.id);
 
@@ -91,7 +110,6 @@ const Checkout = () => {
         product: item.products as any
       })));
 
-      // Fetch profile
       const { data: profileData } = await supabase
         .from('profiles')
         .select('full_name, phone')
@@ -125,10 +143,35 @@ const Checkout = () => {
           city: data.localidade || '',
           state: data.uf || ''
         }));
+
+        // Calculate shipping after getting address
+        calculateShipping(cleanCep);
       }
     } catch (error) {
       console.error('Error fetching CEP:', error);
     }
+  };
+
+  const calculateShipping = async (cep: string) => {
+    setLoadingShipping(true);
+    
+    const productDimensions: ProductDimensions[] = cartItems.map(item => ({
+      weight_grams: item.product.weight_grams || 300,
+      height_cm: item.product.height_cm || 10,
+      width_cm: item.product.width_cm || 20,
+      length_cm: item.product.length_cm || 30
+    }));
+
+    const { data, error } = await shippingService.calculateShipping(cep, productDimensions);
+    
+    if (data && !error) {
+      setShippingOptions(data);
+      // Auto-select cheapest option
+      const cheapest = data.reduce((min, opt) => opt.price < min.price ? opt : min, data[0]);
+      setSelectedShipping(cheapest);
+    }
+    
+    setLoadingShipping(false);
   };
 
   const handleCepChange = (value: string) => {
@@ -140,17 +183,54 @@ const Checkout = () => {
     }
   };
 
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    
+    setValidatingCoupon(true);
+    const validation = await couponsService.validate(couponCode, subtotal);
+    setCouponValidation(validation);
+    
+    if (validation.valid) {
+      toast.success(`Cupom aplicado: ${formatDiscount(validation)}`);
+    } else {
+      toast.error(validation.error || 'Cupom inválido');
+    }
+    
+    setValidatingCoupon(false);
+  };
+
+  const removeCoupon = () => {
+    setCouponCode('');
+    setCouponValidation(null);
+  };
+
+  const formatDiscount = (validation: CouponValidation) => {
+    if (!validation.coupon) return '';
+    if (validation.coupon.discount_type === 'percentage') {
+      return `${validation.coupon.discount_value}% de desconto`;
+    }
+    return `R$ ${validation.coupon.discount_value.toFixed(2)} de desconto`;
+  };
+
+  // Calculate totals
   const subtotal = cartItems.reduce(
     (sum, item) => sum + item.product.price * item.quantity,
     0
   );
-  const shipping = subtotal > 299 ? 0 : 19.90;
-  const total = subtotal + shipping;
+  
+  const discount = couponValidation?.valid ? couponValidation.discount : 0;
+  const shippingCost = shippingService.checkFreeShipping(subtotal) ? 0 : (selectedShipping?.price || 0);
+  const total = subtotal - discount + shippingCost;
 
   const handleCheckout = async () => {
     // Validate address
     if (!address.cep || !address.street || !address.number || !address.city || !address.state) {
       toast.error('Preencha o endereço completo');
+      return;
+    }
+
+    if (!selectedShipping && shippingCost > 0) {
+      toast.error('Selecione uma opção de frete');
       return;
     }
 
@@ -164,10 +244,12 @@ const Checkout = () => {
           user_id: user?.id as string,
           status: 'created' as const,
           subtotal,
-          shipping_cost: shipping,
+          discount_total: discount,
+          shipping_cost: shippingCost,
           total,
           shipping_address: JSON.parse(JSON.stringify(address)),
-          payment_method: 'infinitepay'
+          payment_method: 'infinitepay',
+          coupon_id: couponValidation?.coupon?.id || null
         }])
         .select()
         .single();
@@ -189,6 +271,23 @@ const Checkout = () => {
         .insert(orderItems);
 
       if (itemsError) throw itemsError;
+
+      // Register coupon use if applied
+      if (couponValidation?.valid && couponValidation.coupon) {
+        await couponsService.incrementUse(
+          couponValidation.coupon.id,
+          user?.id as string,
+          order.id,
+          discount
+        );
+      }
+
+      // Create payment record
+      await paymentsService.create({
+        order_id: order.id,
+        amount: total,
+        method: 'checkout_link'
+      });
 
       // Clear cart
       await supabase
@@ -230,7 +329,8 @@ const Checkout = () => {
         <main className="pt-32 pb-20 px-4">
           <div className="max-w-4xl mx-auto">
             <div className="liquid-glass p-12 rounded-3xl text-center">
-              <div className="animate-pulse">Carregando...</div>
+              <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
+              <p className="mt-4 text-muted-foreground">Carregando...</p>
             </div>
           </div>
         </main>
@@ -367,6 +467,109 @@ const Checkout = () => {
                 </div>
               </div>
 
+              {/* Shipping Options */}
+              <div className="liquid-glass p-6 rounded-2xl">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Truck className="w-5 h-5 text-primary" />
+                  </div>
+                  <h2 className="text-xl font-serif">Frete</h2>
+                </div>
+
+                {shippingService.checkFreeShipping(subtotal) ? (
+                  <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg text-green-700 dark:text-green-400 text-sm">
+                    🎉 Parabéns! Você ganhou <strong>frete grátis</strong> nesta compra.
+                  </div>
+                ) : loadingShipping ? (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Calculando frete...
+                  </div>
+                ) : shippingOptions.length > 0 ? (
+                  <RadioGroup
+                    value={selectedShipping?.service}
+                    onValueChange={(value) => {
+                      const option = shippingOptions.find(o => o.service === value);
+                      if (option) setSelectedShipping(option);
+                    }}
+                    className="space-y-3"
+                  >
+                    {shippingOptions.map((option) => (
+                      <div
+                        key={option.service}
+                        className={`flex items-center justify-between p-4 rounded-lg border transition-colors ${
+                          selectedShipping?.service === option.service
+                            ? 'border-primary bg-primary/5'
+                            : 'border-border hover:border-primary/50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <RadioGroupItem value={option.service} id={option.service} />
+                          <label htmlFor={option.service} className="cursor-pointer">
+                            <p className="font-medium">{option.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {option.days} dias úteis
+                            </p>
+                          </label>
+                        </div>
+                        <span className="font-medium">{formatPrice(option.price)}</span>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                ) : address.cep.length === 9 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Digite um CEP válido para calcular o frete
+                  </p>
+                ) : null}
+              </div>
+
+              {/* Coupon */}
+              <div className="liquid-glass p-6 rounded-2xl">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Tag className="w-5 h-5 text-primary" />
+                  </div>
+                  <h2 className="text-xl font-serif">Cupom de Desconto</h2>
+                </div>
+
+                {couponValidation?.valid ? (
+                  <div className="flex items-center justify-between p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                    <div>
+                      <p className="font-medium text-green-700 dark:text-green-400">
+                        {couponValidation.coupon?.code}
+                      </p>
+                      <p className="text-sm text-green-600 dark:text-green-500">
+                        {formatDiscount(couponValidation)}
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={removeCoupon}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      Remover
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Digite o código do cupom"
+                      value={couponCode}
+                      onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                      className="uppercase"
+                    />
+                    <Button
+                      onClick={handleApplyCoupon}
+                      disabled={validatingCoupon || !couponCode.trim()}
+                      variant="outline"
+                    >
+                      {validatingCoupon ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Aplicar'}
+                    </Button>
+                  </div>
+                )}
+              </div>
+
               {/* Payment Info */}
               <div className="liquid-glass p-6 rounded-2xl">
                 <div className="flex items-center gap-3 mb-4">
@@ -384,10 +587,6 @@ const Checkout = () => {
                   <div className="flex items-center gap-2">
                     <ShieldCheck className="w-4 h-4 text-green-600" />
                     <span>Pagamento Seguro</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Truck className="w-4 h-4" />
-                    <span>Entrega via Correios</span>
                   </div>
                 </div>
               </div>
@@ -430,16 +629,25 @@ const Checkout = () => {
                     <span className="text-muted-foreground">Subtotal</span>
                     <span>{formatPrice(subtotal)}</span>
                   </div>
+                  
+                  {discount > 0 && (
+                    <div className="flex justify-between text-sm text-green-600">
+                      <span>Desconto</span>
+                      <span>- {formatPrice(discount)}</span>
+                    </div>
+                  )}
+                  
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Frete</span>
                     <span>
-                      {shipping === 0 ? (
+                      {shippingCost === 0 ? (
                         <span className="text-green-600">Grátis</span>
                       ) : (
-                        formatPrice(shipping)
+                        formatPrice(shippingCost)
                       )}
                     </span>
                   </div>
+                  
                   <div className="flex justify-between text-lg font-medium pt-2 border-t border-border/50">
                     <span>Total</span>
                     <span className="text-primary">{formatPrice(total)}</span>
@@ -451,7 +659,14 @@ const Checkout = () => {
                   disabled={processing}
                   className="w-full liquid-button py-4 disabled:opacity-50"
                 >
-                  {processing ? 'Processando...' : 'Pagar com InfinitePay'}
+                  {processing ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Processando...
+                    </span>
+                  ) : (
+                    'Pagar com InfinitePay'
+                  )}
                 </button>
 
                 <p className="mt-4 text-xs text-center text-muted-foreground">

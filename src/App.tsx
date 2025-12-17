@@ -23,6 +23,9 @@ import NotFound from "./pages/NotFound";
 // Admin Pages
 import Dashboard from "./pages/admin/Dashboard";
 import AdminProdutos from "./pages/admin/Produtos";
+import Categorias from "./pages/admin/Categorias";
+import Colecoes from "./pages/admin/Colecoes";
+import Cupons from "./pages/admin/Cupons";
 import Estoque from "./pages/admin/Estoque";
 import Pedidos from "./pages/admin/Pedidos";
 import PedidosKanban from "./pages/admin/PedidosKanban";
@@ -57,6 +60,9 @@ const App = () => (
             {/* Admin Routes */}
             <Route path="/admin" element={<ProtectedRoute requireAdmin><Dashboard /></ProtectedRoute>} />
             <Route path="/admin/produtos" element={<ProtectedRoute requireAdmin><AdminProdutos /></ProtectedRoute>} />
+            <Route path="/admin/categorias" element={<ProtectedRoute requireAdmin><Categorias /></ProtectedRoute>} />
+            <Route path="/admin/colecoes" element={<ProtectedRoute requireAdmin><Colecoes /></ProtectedRoute>} />
+            <Route path="/admin/cupons" element={<ProtectedRoute requireAdmin><Cupons /></ProtectedRoute>} />
             <Route path="/admin/estoque" element={<ProtectedRoute requireAdmin><Estoque /></ProtectedRoute>} />
             <Route path="/admin/pedidos" element={<ProtectedRoute requireAdmin><Pedidos /></ProtectedRoute>} />
             <Route path="/admin/kanban" element={<ProtectedRoute requireAdmin><PedidosKanban /></ProtectedRoute>} />
