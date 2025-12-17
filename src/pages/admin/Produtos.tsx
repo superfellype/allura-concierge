@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, Search, Edit, Trash2, Image as ImageIcon, X } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Image as ImageIcon, X, Package, Weight, Ruler } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import AdminPagination from "@/components/admin/AdminPagination";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
@@ -19,6 +19,14 @@ interface Product {
   is_active: boolean;
   is_featured: boolean;
   images: string[] | null;
+  sku: string | null;
+  cost_price: number | null;
+  low_stock_threshold: number | null;
+  allow_backorder: boolean | null;
+  weight_grams: number | null;
+  height_cm: number | null;
+  width_cm: number | null;
+  length_cm: number | null;
 }
 
 const ITEMS_PER_PAGE = 9;
@@ -46,6 +54,14 @@ const Produtos = () => {
     is_active: true,
     is_featured: false,
     images: [] as string[],
+    sku: "",
+    cost_price: "",
+    low_stock_threshold: "5",
+    allow_backorder: false,
+    weight_grams: "",
+    height_cm: "",
+    width_cm: "",
+    length_cm: "",
   });
 
   const [imageUrl, setImageUrl] = useState("");
@@ -88,6 +104,14 @@ const Produtos = () => {
       is_active: formData.is_active,
       is_featured: formData.is_featured,
       images: formData.images.length > 0 ? formData.images : null,
+      sku: formData.sku.trim() || null,
+      cost_price: formData.cost_price ? parseFloat(formData.cost_price) : null,
+      low_stock_threshold: formData.low_stock_threshold ? parseInt(formData.low_stock_threshold) : 5,
+      allow_backorder: formData.allow_backorder,
+      weight_grams: formData.weight_grams ? parseInt(formData.weight_grams) : 0,
+      height_cm: formData.height_cm ? parseFloat(formData.height_cm) : 0,
+      width_cm: formData.width_cm ? parseFloat(formData.width_cm) : 0,
+      length_cm: formData.length_cm ? parseFloat(formData.length_cm) : 0,
     };
 
     if (editingProduct) {
@@ -105,7 +129,11 @@ const Produtos = () => {
       const { error } = await supabase.from("products").insert(productData);
 
       if (error) {
-        toast.error("Erro ao criar produto");
+        if (error.code === '23505' && error.message.includes('sku')) {
+          toast.error("SKU já existe. Use um código único.");
+        } else {
+          toast.error("Erro ao criar produto");
+        }
         return;
       }
       toast.success("Produto criado!");
@@ -129,6 +157,14 @@ const Produtos = () => {
       is_active: product.is_active,
       is_featured: product.is_featured,
       images: product.images || [],
+      sku: product.sku || "",
+      cost_price: product.cost_price ? String(product.cost_price) : "",
+      low_stock_threshold: product.low_stock_threshold ? String(product.low_stock_threshold) : "5",
+      allow_backorder: product.allow_backorder || false,
+      weight_grams: product.weight_grams ? String(product.weight_grams) : "",
+      height_cm: product.height_cm ? String(product.height_cm) : "",
+      width_cm: product.width_cm ? String(product.width_cm) : "",
+      length_cm: product.length_cm ? String(product.length_cm) : "",
     });
     setShowModal(true);
   };
@@ -160,6 +196,14 @@ const Produtos = () => {
       is_active: true,
       is_featured: false,
       images: [],
+      sku: "",
+      cost_price: "",
+      low_stock_threshold: "5",
+      allow_backorder: false,
+      weight_grams: "",
+      height_cm: "",
+      width_cm: "",
+      length_cm: "",
     });
     setEditingProduct(null);
     setImageUrl("");
@@ -179,7 +223,8 @@ const Produtos = () => {
 
   const filteredProducts = products.filter((p) =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.category.toLowerCase().includes(searchQuery.toLowerCase())
+    p.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (p.sku && p.sku.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
@@ -188,9 +233,10 @@ const Produtos = () => {
     currentPage * ITEMS_PER_PAGE
   );
 
-  const getStockStatus = (qty: number) => {
-    if (qty === 0) return { label: "Esgotado", class: "out-of-stock" };
-    if (qty <= 5) return { label: `${qty} un.`, class: "low-stock" };
+  const getStockStatus = (qty: number, threshold: number | null) => {
+    const t = threshold || 5;
+    if (qty === 0) return { label: "Esgotado", class: "bg-destructive/10 text-destructive" };
+    if (qty <= t) return { label: `${qty} un.`, class: "bg-amber-100 text-amber-700" };
     return { label: `${qty} un.`, class: "bg-secondary text-secondary-foreground" };
   };
 
@@ -202,7 +248,7 @@ const Produtos = () => {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Buscar por nome ou categoria..."
+            placeholder="Buscar por nome, categoria ou SKU..."
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
@@ -240,7 +286,7 @@ const Produtos = () => {
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {paginatedProducts.map((product, index) => {
-              const stockStatus = getStockStatus(product.stock_quantity);
+              const stockStatus = getStockStatus(product.stock_quantity, product.low_stock_threshold);
               return (
                 <motion.div
                   key={product.id}
@@ -272,6 +318,9 @@ const Produtos = () => {
                     <div className="flex-1 min-w-0">
                       <h3 className="font-display text-lg font-medium truncate">{product.name}</h3>
                       <p className="font-body text-sm text-muted-foreground">{product.category}</p>
+                      {product.sku && (
+                        <p className="font-mono text-xs text-muted-foreground">SKU: {product.sku}</p>
+                      )}
                     </div>
                     <span className={`ml-2 px-2 py-1 rounded-full text-xs font-body ${
                       product.is_active ? 'bg-green-100 text-green-700' : 'bg-muted text-muted-foreground'
@@ -295,6 +344,20 @@ const Produtos = () => {
                       {stockStatus.label}
                     </span>
                   </div>
+
+                  {/* Shipping Info Badge */}
+                  {(product.weight_grams && product.weight_grams > 0) && (
+                    <div className="flex items-center gap-2 mb-3 text-xs text-muted-foreground">
+                      <Weight className="w-3 h-3" />
+                      <span>{product.weight_grams}g</span>
+                      {product.height_cm && product.width_cm && product.length_cm && (
+                        <>
+                          <Ruler className="w-3 h-3 ml-2" />
+                          <span>{product.height_cm}×{product.width_cm}×{product.length_cm}cm</span>
+                        </>
+                      )}
+                    </div>
+                  )}
 
                   <div className="flex gap-2">
                     <button
@@ -334,126 +397,259 @@ const Produtos = () => {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="relative z-10 w-full max-w-2xl liquid-card-strong p-6 max-h-[90vh] overflow-y-auto"
+            className="relative z-10 w-full max-w-3xl liquid-card-strong p-6 max-h-[90vh] overflow-y-auto"
           >
             <h2 className="font-display text-2xl font-medium mb-6">
               {editingProduct ? "Editar Produto" : "Novo Produto"}
             </h2>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2">
-                  <label className="font-body text-sm text-foreground/70 mb-1.5 block">Nome *</label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
-                    className="w-full px-4 py-3 liquid-glass rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-body text-sm text-foreground/70 mb-1.5 block">Preço (R$) *</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formData.price}
-                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                    required
-                    className="w-full px-4 py-3 liquid-glass rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-body text-sm text-foreground/70 mb-1.5 block">Preço Original (Promoção)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formData.original_price}
-                    onChange={(e) => setFormData({ ...formData, original_price: e.target.value })}
-                    placeholder="Deixe vazio se não estiver em promoção"
-                    className="w-full px-4 py-3 liquid-glass rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-body text-sm text-foreground/70 mb-1.5 block">Estoque *</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={formData.stock_quantity}
-                    onChange={(e) => setFormData({ ...formData, stock_quantity: e.target.value })}
-                    required
-                    className="w-full px-4 py-3 liquid-glass rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-body text-sm text-foreground/70 mb-1.5 block">Categoria *</label>
-                  <input
-                    type="text"
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    required
-                    placeholder="Ex: Bolsas, Carteiras, Acessórios"
-                    className="w-full px-4 py-3 liquid-glass rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="font-body text-sm text-foreground/70 mb-1.5 block">Descrição</label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    rows={3}
-                    className="w-full px-4 py-3 liquid-glass rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="font-body text-sm text-foreground/70 mb-1.5 block">Imagens (URLs)</label>
-                  <div className="flex gap-2 mb-2">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Informações Básicas */}
+              <div>
+                <h3 className="font-display text-sm font-medium text-muted-foreground mb-3 uppercase tracking-wider">
+                  Informações Básicas
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="md:col-span-2">
+                    <label className="font-body text-sm text-foreground/70 mb-1.5 block">Nome *</label>
                     <input
-                      type="url"
-                      value={imageUrl}
-                      onChange={(e) => setImageUrl(e.target.value)}
-                      placeholder="https://exemplo.com/imagem.jpg"
-                      className="flex-1 px-4 py-3 liquid-glass rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      required
+                      className="w-full px-4 py-3 liquid-glass rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                     />
-                    <button
-                      type="button"
-                      onClick={addImageUrl}
-                      className="px-4 py-3 glass-button rounded-xl font-body text-sm"
-                    >
-                      Adicionar
-                    </button>
                   </div>
-                  {formData.images.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {formData.images.map((img, idx) => (
-                        <div key={idx} className="relative group">
-                          <img
-                            src={img}
-                            alt={`Imagem ${idx + 1}`}
-                            className="w-16 h-16 object-cover rounded-lg"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => removeImage(idx)}
-                            className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+
+                  <div>
+                    <label className="font-body text-sm text-foreground/70 mb-1.5 block">SKU (Código Único)</label>
+                    <input
+                      type="text"
+                      value={formData.sku}
+                      onChange={(e) => setFormData({ ...formData, sku: e.target.value.toUpperCase() })}
+                      placeholder="Ex: BOLSA-001"
+                      className="w-full px-4 py-3 liquid-glass rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 uppercase"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-body text-sm text-foreground/70 mb-1.5 block">Categoria *</label>
+                    <input
+                      type="text"
+                      value={formData.category}
+                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                      required
+                      placeholder="Ex: Bolsas, Carteiras, Acessórios"
+                      className="w-full px-4 py-3 liquid-glass rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="font-body text-sm text-foreground/70 mb-1.5 block">Descrição</label>
+                    <textarea
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      rows={3}
+                      className="w-full px-4 py-3 liquid-glass rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
+                    />
+                  </div>
                 </div>
               </div>
 
+              {/* Preços */}
+              <div>
+                <h3 className="font-display text-sm font-medium text-muted-foreground mb-3 uppercase tracking-wider">
+                  Preços
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="font-body text-sm text-foreground/70 mb-1.5 block">Preço (R$) *</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formData.price}
+                      onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                      required
+                      className="w-full px-4 py-3 liquid-glass rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-body text-sm text-foreground/70 mb-1.5 block">Preço Original (Promoção)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formData.original_price}
+                      onChange={(e) => setFormData({ ...formData, original_price: e.target.value })}
+                      placeholder="Deixe vazio se não houver"
+                      className="w-full px-4 py-3 liquid-glass rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-body text-sm text-foreground/70 mb-1.5 block">Custo (Admin)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formData.cost_price}
+                      onChange={(e) => setFormData({ ...formData, cost_price: e.target.value })}
+                      placeholder="Custo do produto"
+                      className="w-full px-4 py-3 liquid-glass rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Estoque */}
+              <div>
+                <h3 className="font-display text-sm font-medium text-muted-foreground mb-3 uppercase tracking-wider">
+                  Estoque
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="font-body text-sm text-foreground/70 mb-1.5 block">Quantidade *</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.stock_quantity}
+                      onChange={(e) => setFormData({ ...formData, stock_quantity: e.target.value })}
+                      required
+                      className="w-full px-4 py-3 liquid-glass rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-body text-sm text-foreground/70 mb-1.5 block">Alerta Estoque Baixo</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.low_stock_threshold}
+                      onChange={(e) => setFormData({ ...formData, low_stock_threshold: e.target.value })}
+                      placeholder="5"
+                      className="w-full px-4 py-3 liquid-glass rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    />
+                  </div>
+
+                  <div className="flex items-end">
+                    <label className="flex items-center gap-2 cursor-pointer py-3">
+                      <input
+                        type="checkbox"
+                        checked={formData.allow_backorder}
+                        onChange={(e) => setFormData({ ...formData, allow_backorder: e.target.checked })}
+                        className="w-4 h-4 rounded border-border"
+                      />
+                      <span className="font-body text-sm">Permitir pré-venda</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Dimensões para Frete */}
+              <div>
+                <h3 className="font-display text-sm font-medium text-muted-foreground mb-3 uppercase tracking-wider">
+                  Dimensões para Frete
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div>
+                    <label className="font-body text-sm text-foreground/70 mb-1.5 block">Peso (gramas)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.weight_grams}
+                      onChange={(e) => setFormData({ ...formData, weight_grams: e.target.value })}
+                      placeholder="Ex: 500"
+                      className="w-full px-4 py-3 liquid-glass rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-body text-sm text-foreground/70 mb-1.5 block">Altura (cm)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={formData.height_cm}
+                      onChange={(e) => setFormData({ ...formData, height_cm: e.target.value })}
+                      placeholder="Ex: 20"
+                      className="w-full px-4 py-3 liquid-glass rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-body text-sm text-foreground/70 mb-1.5 block">Largura (cm)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={formData.width_cm}
+                      onChange={(e) => setFormData({ ...formData, width_cm: e.target.value })}
+                      placeholder="Ex: 30"
+                      className="w-full px-4 py-3 liquid-glass rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-body text-sm text-foreground/70 mb-1.5 block">Comprimento (cm)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={formData.length_cm}
+                      onChange={(e) => setFormData({ ...formData, length_cm: e.target.value })}
+                      placeholder="Ex: 10"
+                      className="w-full px-4 py-3 liquid-glass rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Imagens */}
+              <div>
+                <h3 className="font-display text-sm font-medium text-muted-foreground mb-3 uppercase tracking-wider">
+                  Imagens
+                </h3>
+                <div className="flex gap-2 mb-2">
+                  <input
+                    type="url"
+                    value={imageUrl}
+                    onChange={(e) => setImageUrl(e.target.value)}
+                    placeholder="https://exemplo.com/imagem.jpg"
+                    className="flex-1 px-4 py-3 liquid-glass rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                  <button
+                    type="button"
+                    onClick={addImageUrl}
+                    className="px-4 py-3 glass-button rounded-xl font-body text-sm"
+                  >
+                    Adicionar
+                  </button>
+                </div>
+                {formData.images.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {formData.images.map((img, idx) => (
+                      <div key={idx} className="relative group">
+                        <img
+                          src={img}
+                          alt={`Imagem ${idx + 1}`}
+                          className="w-16 h-16 object-cover rounded-lg"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(idx)}
+                          className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Opções */}
               <div className="flex gap-6">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
@@ -508,8 +704,5 @@ const Produtos = () => {
     </AdminLayout>
   );
 };
-
-// Add missing import
-import { Package } from "lucide-react";
 
 export default Produtos;
