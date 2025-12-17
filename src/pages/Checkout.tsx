@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { createPaymentGateway, formatToCentavos, formatPrice } from "@/lib/payment/infinitepay-adapter";
+import { createPaymentGateway, formatPrice } from "@/lib/payment/infinitepay-adapter";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -43,7 +43,7 @@ interface ShippingAddress {
   state: string;
 }
 
-const INFINITEPAY_HANDLE = 'allura';
+const INFINITEPAY_HANDLE = 'andreybern';
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -303,13 +303,9 @@ const Checkout = () => {
         items: cartItems.map(item => ({
           name: item.product.name,
           quantity: item.quantity,
-          unit_price: formatToCentavos(item.product.price)
+          price: item.product.price
         })),
-        order_nsu: order.id,
-        redirect_url: `${window.location.origin}/pedido/sucesso?order_id=${order.id}`,
-        customer_name: profile?.full_name,
-        customer_email: user?.email,
-        customer_phone: profile?.phone
+        redirect_url: `https://comallura.com/pedido/sucesso?order_id=${order.id}`
       });
 
       // Redirect to InfinitePay
