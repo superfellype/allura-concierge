@@ -4,13 +4,13 @@
 export interface PaymentItem {
   name: string;
   quantity: number;
-  unit_price: number; // em centavos
+  price: number; // em reais (R$)
 }
 
 export interface CheckoutConfig {
   handle: string;
   items: PaymentItem[];
-  order_nsu: string;
+  order_nsu?: string;
   redirect_url: string;
   customer_name?: string;
   customer_email?: string;
@@ -31,25 +31,17 @@ class InfinitePayAdapter implements IPaymentGateway {
   }
 
   createCheckoutLink(config: CheckoutConfig): string {
-    const params = new URLSearchParams();
-    
-    // Encode items as JSON
-    params.set('items', JSON.stringify(config.items.map(item => ({
+    // Build items array in InfinitePay format
+    const items = config.items.map(item => ({
       name: item.name,
-      quantity: item.quantity,
-      unit_price: item.unit_price
-    }))));
-    
-    // Order reference
-    params.set('order_nsu', config.order_nsu);
-    
-    // Redirect after payment
+      price: item.price,
+      quantity: item.quantity
+    }));
+
+    // Build URL with query params
+    const params = new URLSearchParams();
+    params.set('items', JSON.stringify(items));
     params.set('redirect_url', config.redirect_url);
-    
-    // Customer info (optional)
-    if (config.customer_name) params.set('customer_name', config.customer_name);
-    if (config.customer_email) params.set('customer_email', config.customer_email);
-    if (config.customer_phone) params.set('customer_phone', config.customer_phone);
 
     return `${this.baseUrl}/${this.handle}?${params.toString()}`;
   }
@@ -66,9 +58,6 @@ class InfinitePayAdapter implements IPaymentGateway {
 export const createPaymentGateway = (handle: string): IPaymentGateway => {
   return new InfinitePayAdapter(handle);
 };
-
-// Helper to format price from BRL to centavos
-export const formatToCentavos = (value: number): number => Math.round(value * 100);
 
 // Helper to format price display
 export const formatPrice = (value: number): string => {
