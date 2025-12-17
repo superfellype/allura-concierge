@@ -38,12 +38,11 @@ class InfinitePayAdapter implements IPaymentGateway {
       quantity: item.quantity
     }));
 
-    // Build URL with query params
-    const params = new URLSearchParams();
-    params.set('items', JSON.stringify(items));
-    params.set('redirect_url', config.redirect_url);
-
-    return `${this.baseUrl}/${this.handle}?${params.toString()}`;
+    // Build URL manually without heavy encoding (InfinitePay expects minimal encoding)
+    const itemsJson = JSON.stringify(items);
+    const redirectUrl = encodeURIComponent(config.redirect_url);
+    
+    return `${this.baseUrl}/${this.handle}?items=${itemsJson}&redirect_url=${redirectUrl}`;
   }
 
   parseRedirectParams(params: URLSearchParams): { transactionId: string; status: string } {
