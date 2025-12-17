@@ -305,7 +305,7 @@ const Checkout = () => {
           quantity: item.quantity,
           price: item.product.price
         })),
-        redirect_url: `https://comallura.com/pedido/sucesso?order_id=${order.id}`
+        redirect_url: `https://comallura.com/pedido/sucesso`
       });
 
       // Redirect to InfinitePay
