@@ -5,6 +5,7 @@ import { Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { getUserFriendlyError, safeLogError } from "@/lib/error-utils";
 import logoAllura from "@/assets/logo-allura-text.png";
 import logoFlower from "@/assets/logo-allura-flower.png";
 
@@ -43,20 +44,16 @@ const Login = () => {
       });
 
       if (error) {
-        if (error.message.includes('Invalid login credentials')) {
-          toast.error("Email ou senha incorretos");
-        } else if (error.message.includes('Email not confirmed')) {
-          toast.error("Por favor, confirme seu email antes de entrar");
-        } else {
-          toast.error(error.message);
-        }
+        safeLogError('Login', error);
+        toast.error(getUserFriendlyError(error));
         return;
       }
 
       toast.success("Bem-vinda de volta!");
       // Navigation will be handled by the useEffect above
-    } catch (error: any) {
-      toast.error("Erro ao fazer login");
+    } catch (error: unknown) {
+      safeLogError('Login', error);
+      toast.error(getUserFriendlyError(error));
     } finally {
       setLoading(false);
     }

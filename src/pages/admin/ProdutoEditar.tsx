@@ -16,6 +16,8 @@ import { categoriesService } from "@/services/categories.service";
 import { collectionsService } from "@/services/collections.service";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getUserFriendlyError, safeLogError } from "@/lib/error-utils";
+import { sanitizeSlug, validateImageUrls } from "@/lib/validation-utils";
 
 interface ProductFormData {
   name: string;
@@ -169,8 +171,14 @@ const ProdutoEditar = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.name.trim()) {
-      toast.error("Nome do produto é obrigatório");
+    // Validate required fields
+    const name = formData.name.trim();
+    if (!name || name.length < 2) {
+      toast.error("Nome do produto deve ter pelo menos 2 caracteres");
+      return;
+    }
+    if (name.length > 200) {
+      toast.error("Nome do produto deve ter no máximo 200 caracteres");
       return;
     }
 
@@ -179,10 +187,36 @@ const ProdutoEditar = () => {
       return;
     }
 
+    // Validate SKU format if provided
     if (formData.sku) {
+      const skuTrimmed = formData.sku.trim().toUpperCase();
+      if (!/^[A-Z0-9-]+$/.test(skuTrimmed)) {
+        toast.error("SKU deve conter apenas letras, números e hífens");
+        return;
+      }
+      if (skuTrimmed.length > 50) {
+        toast.error("SKU deve ter no máximo 50 caracteres");
+        return;
+      }
       const skuValid = await validateSku(formData.sku);
       if (!skuValid) {
         toast.error("SKU já existe. Use um código único.");
+        return;
+      }
+    }
+
+    // Validate slug format
+    const slug = formData.slug || sanitizeSlug(formData.name);
+    if (slug && !/^[a-z0-9-]+$/.test(slug)) {
+      toast.error("Slug deve conter apenas letras minúsculas, números e hífens");
+      return;
+    }
+
+    // Validate image URLs
+    if (formData.images.length > 0) {
+      const imageValidation = validateImageUrls(formData.images);
+      if (!imageValidation.valid) {
+        toast.error("Uma ou mais URLs de imagem são inválidas");
         return;
       }
     }
@@ -198,22 +232,22 @@ const ProdutoEditar = () => {
     }
 
     const productData = {
-      name: formData.name.trim(),
-      slug: formData.slug || generateSlug(formData.name),
+      name: name,
+      slug: slug,
       sku: formData.sku.trim().toUpperCase() || null,
-      description: formData.description.trim() || null,
+      description: formData.description.trim().slice(0, 5000) || null,
       price: parseFloat(formData.price),
       original_price: formData.original_price ? parseFloat(formData.original_price) : null,
       cost_price: formData.cost_price ? parseFloat(formData.cost_price) : null,
-      category: categoryName,
-      stock_quantity: parseInt(formData.stock_quantity) || 0,
+      category: categoryName.slice(0, 100),
+      stock_quantity: Math.max(0, parseInt(formData.stock_quantity) || 0),
       low_stock_threshold: parseInt(formData.low_stock_threshold) || 5,
       allow_backorder: formData.allow_backorder,
       weight_grams: formData.weight_grams ? parseInt(formData.weight_grams) : 0,
       height_cm: formData.height_cm ? parseFloat(formData.height_cm) : 0,
       width_cm: formData.width_cm ? parseFloat(formData.width_cm) : 0,
       length_cm: formData.length_cm ? parseFloat(formData.length_cm) : 0,
-      images: formData.images.length > 0 ? formData.images : null,
+      images: formData.images.length > 0 ? formData.images.slice(0, 20) : null,
       is_active: formData.is_active,
       is_featured: formData.is_featured,
     };
@@ -251,13 +285,9 @@ const ProdutoEditar = () => {
       if (isNew && productId) {
         navigate(`/admin/produtos/${productId}`);
       }
-    } catch (error: any) {
-      console.error("Error saving product:", error);
-      if (error.code === "23505" && error.message?.includes("sku")) {
-        toast.error("SKU já existe. Use um código único.");
-      } else {
-        toast.error("Erro ao salvar produto");
-      }
+    } catch (error: unknown) {
+      safeLogError("Product save", error);
+      toast.error(getUserFriendlyError(error));
     } finally {
       setSaving(false);
     }
@@ -314,9 +344,9 @@ const ProdutoEditar = () => {
 
       toast.success("Produto duplicado!");
       navigate(`/admin/produtos/${data.id}`);
-    } catch (error) {
-      console.error("Error duplicating:", error);
-      toast.error("Erro ao duplicar produto");
+    } catch (error: unknown) {
+      safeLogError("Product duplicate", error);
+      toast.error(getUserFriendlyError(error));
     } finally {
       setDuplicating(false);
     }
