@@ -4,19 +4,10 @@ import { Link, useSearchParams } from "react-router-dom";
 import { Heart, SlidersHorizontal, X } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { supabase } from "@/integrations/supabase/client";
-import { formatPrice } from "@/lib/payment/infinitepay-adapter";
+import { useProducts, BRANDS, formatInstallmentPrice, formatFullPrice } from "@/hooks/useProducts";
+import type { Database } from "@/integrations/supabase/types";
 
-interface Product {
-  id: string;
-  name: string;
-  slug: string;
-  price: number;
-  original_price: number | null;
-  images: string[] | null;
-  category: string;
-  description: string | null;
-}
+type ProductBrand = Database["public"]["Enums"]["product_brand"];
 
 const CATEGORIES = [
   { id: "all", label: "Todos" },
@@ -28,38 +19,16 @@ const CATEGORIES = [
 
 const Produtos = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('categoria') || 'all');
+  const [selectedBrand, setSelectedBrand] = useState<ProductBrand | "all">(
+    (searchParams.get('marca') as ProductBrand) || 'all'
+  );
   const [showFilters, setShowFilters] = useState(false);
 
-  useEffect(() => {
-    fetchProducts();
-  }, [selectedCategory]);
-
-  const fetchProducts = async () => {
-    setLoading(true);
-    try {
-      let query = supabase
-        .from('products')
-        .select('id, name, slug, price, original_price, images, category, description')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
-
-      if (selectedCategory !== 'all') {
-        query = query.ilike('category', `%${selectedCategory}%`);
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      setProducts(data || []);
-    } catch (error) {
-      console.error('Error fetching products:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { products, loading } = useProducts({
+    category: selectedCategory,
+    brand: selectedBrand,
+  });
 
   const handleCategoryChange = (category: string) => {
     setSelectedCategory(category);
@@ -72,7 +41,17 @@ const Produtos = () => {
     setShowFilters(false);
   };
 
-  const getProductImage = (product: Product) => {
+  const handleBrandChange = (brand: ProductBrand | "all") => {
+    setSelectedBrand(brand);
+    if (brand === 'all') {
+      searchParams.delete('marca');
+    } else {
+      searchParams.set('marca', brand);
+    }
+    setSearchParams(searchParams);
+  };
+
+  const getProductImage = (product: { images: string[] | null }) => {
     if (product.images && product.images.length > 0) {
       return product.images[0];
     }
@@ -103,7 +82,24 @@ const Produtos = () => {
             </p>
           </motion.div>
 
-          {/* Filter Bar */}
+          {/* Brand Filter Pills */}
+          <div className="flex flex-wrap justify-center gap-2 mb-8">
+            {BRANDS.map((brand) => (
+              <button
+                key={brand.id}
+                onClick={() => handleBrandChange(brand.id)}
+                className={`px-5 py-2.5 rounded-full font-body text-sm font-medium transition-all duration-300 ${
+                  selectedBrand === brand.id
+                    ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25"
+                    : "liquid-glass text-foreground hover:bg-primary/10"
+                }`}
+              >
+                {brand.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Category Filter Bar */}
           <div className="flex items-center justify-between mb-8">
             <div className="hidden md:flex items-center gap-2">
               {CATEGORIES.map((category) => (
@@ -151,25 +147,50 @@ const Produtos = () => {
                 className="absolute bottom-0 left-0 right-0 liquid-glass rounded-t-3xl p-6"
               >
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="font-display text-lg font-medium">Categorias</h3>
+                  <h3 className="font-display text-lg font-medium">Filtros</h3>
                   <button onClick={() => setShowFilters(false)}>
                     <X className="w-5 h-5" />
                   </button>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {CATEGORIES.map((category) => (
-                    <button
-                      key={category.id}
-                      onClick={() => handleCategoryChange(category.id)}
-                      className={`px-4 py-2 rounded-full font-body text-sm transition-all ${
-                        selectedCategory === category.id
-                          ? "liquid-glass bg-primary/10 text-foreground"
-                          : "liquid-glass text-muted-foreground"
-                      }`}
-                    >
-                      {category.label}
-                    </button>
-                  ))}
+                
+                {/* Brands */}
+                <div className="mb-6">
+                  <h4 className="font-body text-sm font-medium mb-3 text-muted-foreground">Marcas</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {BRANDS.map((brand) => (
+                      <button
+                        key={brand.id}
+                        onClick={() => handleBrandChange(brand.id)}
+                        className={`px-4 py-2 rounded-full font-body text-sm transition-all ${
+                          selectedBrand === brand.id
+                            ? "bg-primary text-primary-foreground"
+                            : "liquid-glass text-foreground"
+                        }`}
+                      >
+                        {brand.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Categories */}
+                <div>
+                  <h4 className="font-body text-sm font-medium mb-3 text-muted-foreground">Categorias</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {CATEGORIES.map((category) => (
+                      <button
+                        key={category.id}
+                        onClick={() => handleCategoryChange(category.id)}
+                        className={`px-4 py-2 rounded-full font-body text-sm transition-all ${
+                          selectedCategory === category.id
+                            ? "liquid-glass bg-primary/10 text-foreground"
+                            : "liquid-glass text-muted-foreground"
+                        }`}
+                      >
+                        {category.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </motion.div>
             </motion.div>
@@ -190,7 +211,7 @@ const Produtos = () => {
           ) : products.length === 0 ? (
             <div className="text-center py-20">
               <p className="font-body text-muted-foreground">
-                Nenhum produto encontrado nesta categoria.
+                Nenhum produto encontrado com esses filtros.
               </p>
             </div>
           ) : (
@@ -214,17 +235,31 @@ const Produtos = () => {
                           className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-700 ease-out"
                         />
                         
+                        {/* SKU Badge */}
+                        {product.sku && (
+                          <span className="absolute top-3 left-3 px-2 py-1 bg-background/80 backdrop-blur-sm rounded-full text-xs font-mono text-foreground/80 z-20">
+                            #{product.sku}
+                          </span>
+                        )}
+                        
+                        {/* Brand Badge */}
+                        {product.brand && product.brand !== "Outro" && (
+                          <span className="absolute top-3 right-3 px-2.5 py-1 bg-primary/90 backdrop-blur-sm rounded-full text-xs font-medium text-primary-foreground z-20">
+                            {product.brand}
+                          </span>
+                        )}
+                        
                         <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.95 }}
                           onClick={(e) => e.preventDefault()}
-                          className="absolute top-3 right-3 p-2.5 liquid-glass rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 z-20"
+                          className="absolute bottom-3 right-3 p-2.5 liquid-glass rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 z-20"
                         >
                           <Heart className="w-4 h-4 text-foreground" />
                         </motion.button>
 
                         <motion.div
-                          className="absolute bottom-4 left-4 right-4 py-3 liquid-glass-strong text-center font-body text-sm font-medium rounded-2xl opacity-0 group-hover:opacity-100 transition-all duration-300 z-20"
+                          className="absolute bottom-4 left-4 right-16 py-3 liquid-glass-strong text-center font-body text-sm font-medium rounded-2xl opacity-0 group-hover:opacity-100 transition-all duration-300 z-20"
                         >
                           Ver Detalhes
                         </motion.div>
@@ -237,15 +272,13 @@ const Produtos = () => {
                       <h3 className="font-display text-lg font-medium mt-1 group-hover:text-primary transition-colors duration-300">
                         {product.name}
                       </h3>
-                      <div className="flex items-center gap-2 mt-1">
-                        <p className="font-body text-sm text-foreground/70">
-                          {formatPrice(product.price)}
+                      <div className="mt-2 space-y-0.5">
+                        <p className="font-body text-sm text-primary font-medium">
+                          {formatInstallmentPrice(product.price)}
                         </p>
-                        {product.original_price && product.original_price > product.price && (
-                          <p className="font-body text-xs text-muted-foreground line-through">
-                            {formatPrice(product.original_price)}
-                          </p>
-                        )}
+                        <p className="font-body text-xs text-muted-foreground">
+                          ou {formatFullPrice(product.price)} à vista
+                        </p>
                       </div>
                     </div>
                   </Link>

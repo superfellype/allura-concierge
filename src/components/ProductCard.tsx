@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ShoppingBag, Heart } from "lucide-react";
-import { formatPrice } from "@/lib/payment/infinitepay-adapter";
+import { formatInstallmentPrice, formatFullPrice } from "@/hooks/useProducts";
 
 interface ProductCardProps {
   id: string;
@@ -11,6 +11,8 @@ interface ProductCardProps {
   originalPrice?: number | null;
   image?: string | null;
   category?: string;
+  sku?: string | null;
+  brand?: string | null;
   showQuickAdd?: boolean;
   onQuickAdd?: () => void;
 }
@@ -22,6 +24,8 @@ const ProductCard = ({
   originalPrice,
   image,
   category,
+  sku,
+  brand,
   showQuickAdd = false,
   onQuickAdd
 }: ProductCardProps) => {
@@ -50,9 +54,23 @@ const ProductCard = ({
             </div>
           )}
           
+          {/* SKU Badge */}
+          {sku && (
+            <span className="absolute top-3 left-3 bg-background/80 backdrop-blur-sm text-foreground text-xs font-mono px-2 py-1 rounded-full">
+              #{sku}
+            </span>
+          )}
+          
+          {/* Brand Badge */}
+          {brand && brand !== "Outro" && (
+            <span className="absolute top-3 right-3 bg-primary/90 backdrop-blur-sm text-primary-foreground text-xs font-medium px-2.5 py-1 rounded-full">
+              {brand}
+            </span>
+          )}
+          
           {/* Discount badge */}
           {discount > 0 && (
-            <span className="absolute top-3 left-3 bg-green-100 text-green-700 text-xs font-medium px-2 py-1 rounded-full">
+            <span className="absolute bottom-3 left-3 bg-green-100 text-green-700 text-xs font-medium px-2 py-1 rounded-full">
               -{discount}%
             </span>
           )}
@@ -95,13 +113,16 @@ const ProductCard = ({
           {name}
         </h3>
         
-        <div className="flex items-baseline gap-2">
-          <span className="text-lg font-medium text-primary">
-            {formatPrice(price)}
+        <div className="space-y-0.5">
+          <span className="text-sm font-medium text-primary">
+            {formatInstallmentPrice(price)}
           </span>
+          <p className="text-xs text-muted-foreground">
+            ou {formatFullPrice(price)} à vista
+          </p>
           {originalPrice && (
-            <span className="text-sm text-muted-foreground line-through">
-              {formatPrice(originalPrice)}
+            <span className="text-xs text-muted-foreground line-through">
+              {formatFullPrice(originalPrice)}
             </span>
           )}
         </div>
