@@ -1,50 +1,28 @@
 import { motion } from "framer-motion";
 import { Heart, Instagram, Mail, MapPin, Phone } from "lucide-react";
-import logoAllura from "@/assets/logo-allura-text.png";
+import { Link } from "react-router-dom";
 import logoBadge from "@/assets/logo-allura-badge.png";
+
 const footerLinks = {
-  shop: [{
-    name: "Todas as Bolsas",
-    href: "#"
-  }, {
-    name: "Totes",
-    href: "#"
-  }, {
-    name: "Clutches",
-    href: "#"
-  }, {
-    name: "Acessórios",
-    href: "#"
-  }, {
-    name: "Novidades",
-    href: "#"
-  }],
-  about: [{
-    name: "Nossa História",
-    href: "#"
-  }, {
-    name: "Artesanato",
-    href: "#"
-  }, {
-    name: "Sustentabilidade",
-    href: "#"
-  }, {
-    name: "Imprensa",
-    href: "#"
-  }],
-  help: [{
-    name: "FAQ",
-    href: "#"
-  }, {
-    name: "Envio e Entregas",
-    href: "#"
-  }, {
-    name: "Trocas e Devoluções",
-    href: "#"
-  }, {
-    name: "Cuidados com Couro",
-    href: "#"
-  }]
+  shop: [
+    { name: "Todas as Bolsas", href: "/produtos" },
+    { name: "Totes", href: "/produtos?categoria=totes" },
+    { name: "Clutches", href: "/produtos?categoria=clutches" },
+    { name: "Acessórios", href: "/produtos?categoria=acessorios" },
+    { name: "Novidades", href: "/produtos" },
+  ],
+  about: [
+    { name: "Nossa História", href: "/sobre" },
+    { name: "Artesanato", href: "/sobre" },
+    { name: "Sustentabilidade", href: "/sobre" },
+    { name: "Imprensa", href: "/sobre" },
+  ],
+  help: [
+    { name: "FAQ", href: "/sobre" },
+    { name: "Envio e Entregas", href: "/sobre" },
+    { name: "Trocas e Devoluções", href: "/sobre" },
+    { name: "Cuidados com Couro", href: "/sobre" },
+  ],
 };
 const Footer = () => {
   return <footer className="relative bg-foreground text-primary-foreground overflow-hidden">
@@ -90,10 +68,13 @@ const Footer = () => {
 
               {/* Social */}
               <div className="flex gap-4 mt-8">
-                <motion.a whileHover={{
-                scale: 1.1,
-                y: -2
-              }} href="#" className="w-10 h-10 rounded-full bg-primary-foreground/10 flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all duration-300">
+                <motion.a 
+                  whileHover={{ scale: 1.1, y: -2 }} 
+                  href="https://instagram.com/comallura" 
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 rounded-full bg-primary-foreground/10 flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all duration-300"
+                >
                   <Instagram className="w-5 h-5" />
                 </motion.a>
               </div>
@@ -106,11 +87,13 @@ const Footer = () => {
               Comprar
             </h3>
             <ul className="space-y-3">
-              {footerLinks.shop.map(link => <li key={link.name}>
-                  <a href={link.href} className="font-body text-sm text-primary-foreground/70 hover:text-primary transition-colors">
+              {footerLinks.shop.map(link => (
+                <li key={link.name}>
+                  <Link to={link.href} className="font-body text-sm text-primary-foreground/70 hover:text-primary transition-colors">
                     {link.name}
-                  </a>
-                </li>)}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
@@ -119,11 +102,13 @@ const Footer = () => {
               Sobre
             </h3>
             <ul className="space-y-3">
-              {footerLinks.about.map(link => <li key={link.name}>
-                  <a href={link.href} className="font-body text-sm text-primary-foreground/70 hover:text-primary transition-colors">
+              {footerLinks.about.map(link => (
+                <li key={link.name}>
+                  <Link to={link.href} className="font-body text-sm text-primary-foreground/70 hover:text-primary transition-colors">
                     {link.name}
-                  </a>
-                </li>)}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
@@ -132,11 +117,13 @@ const Footer = () => {
               Ajuda
             </h3>
             <ul className="space-y-3">
-              {footerLinks.help.map(link => <li key={link.name}>
-                  <a href={link.href} className="font-body text-sm text-primary-foreground/70 hover:text-primary transition-colors">
+              {footerLinks.help.map(link => (
+                <li key={link.name}>
+                  <Link to={link.href} className="font-body text-sm text-primary-foreground/70 hover:text-primary transition-colors">
                     {link.name}
-                  </a>
-                </li>)}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
         </div>
