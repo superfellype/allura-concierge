@@ -328,6 +328,7 @@ export type Database = {
           discount_total: number | null
           id: string
           notes: string | null
+          origin: string | null
           payment_id: string | null
           payment_method: string | null
           shipping_address: Json
@@ -344,6 +345,7 @@ export type Database = {
           discount_total?: number | null
           id?: string
           notes?: string | null
+          origin?: string | null
           payment_id?: string | null
           payment_method?: string | null
           shipping_address: Json
@@ -360,6 +362,7 @@ export type Database = {
           discount_total?: number | null
           id?: string
           notes?: string | null
+          origin?: string | null
           payment_id?: string | null
           payment_method?: string | null
           shipping_address?: Json
@@ -494,6 +497,7 @@ export type Database = {
         Row: {
           allow_backorder: boolean | null
           attributes: Json | null
+          brand: Database["public"]["Enums"]["product_brand"] | null
           category: string
           cost_price: number | null
           created_at: string
@@ -518,6 +522,7 @@ export type Database = {
         Insert: {
           allow_backorder?: boolean | null
           attributes?: Json | null
+          brand?: Database["public"]["Enums"]["product_brand"] | null
           category: string
           cost_price?: number | null
           created_at?: string
@@ -542,6 +547,7 @@ export type Database = {
         Update: {
           allow_backorder?: boolean | null
           attributes?: Json | null
+          brand?: Database["public"]["Enums"]["product_brand"] | null
           category?: string
           cost_price?: number | null
           created_at?: string
@@ -642,6 +648,7 @@ export type Database = {
         | "shipped"
         | "delivered"
         | "cancelled"
+      product_brand: "VeryRio" | "Chalita" | "LaytonVivian" | "Outro"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -779,6 +786,7 @@ export const Constants = {
         "delivered",
         "cancelled",
       ],
+      product_brand: ["VeryRio", "Chalita", "LaytonVivian", "Outro"],
     },
   },
 } as const

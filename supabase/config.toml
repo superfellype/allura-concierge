@@ -2,3 +2,6 @@ project_id = "vocpdmxmsqiypopzowsz"
 
 [functions.ai-concierge]
 verify_jwt = false
+
+[functions.payment-webhook]
+verify_jwt = false
