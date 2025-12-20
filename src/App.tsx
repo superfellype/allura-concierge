@@ -30,6 +30,7 @@ import Cupons from "./pages/admin/Cupons";
 import Estoque from "./pages/admin/Estoque";
 import Pedidos from "./pages/admin/Pedidos";
 import PedidosKanban from "./pages/admin/PedidosKanban";
+import VendaManual from "./pages/admin/VendaManual";
 import Clientes from "./pages/admin/Clientes";
 import Configuracoes from "./pages/admin/Configuracoes";
 
@@ -69,6 +70,7 @@ const App = () => (
             <Route path="/admin/estoque" element={<ProtectedRoute requireAdmin><Estoque /></ProtectedRoute>} />
             <Route path="/admin/pedidos" element={<ProtectedRoute requireAdmin><Pedidos /></ProtectedRoute>} />
             <Route path="/admin/kanban" element={<ProtectedRoute requireAdmin><PedidosKanban /></ProtectedRoute>} />
+            <Route path="/admin/venda-manual" element={<ProtectedRoute requireAdmin><VendaManual /></ProtectedRoute>} />
             <Route path="/admin/clientes" element={<ProtectedRoute requireAdmin><Clientes /></ProtectedRoute>} />
             <Route path="/admin/configuracoes" element={<ProtectedRoute requireAdmin><Configuracoes /></ProtectedRoute>} />
 
