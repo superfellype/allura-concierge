@@ -10,6 +10,7 @@ import {
   DollarSign,
   Clock,
   AlertTriangle,
+  Sparkles,
 } from "lucide-react";
 import {
   LineChart,
@@ -19,6 +20,8 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  AreaChart,
+  Area,
 } from "recharts";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,6 +32,7 @@ interface StatsCard {
   change: string;
   trend: "up" | "down";
   icon: React.ElementType;
+  gradient: string;
 }
 
 interface RevenueData {
@@ -49,25 +53,29 @@ const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: { staggerChildren: 0.08 }
+    transition: { staggerChildren: 0.1, delayChildren: 0.1 }
   }
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 16 },
+  hidden: { opacity: 0, y: 20, scale: 0.98 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] as const }
+    scale: 1,
+    transition: { 
+      duration: 0.6, 
+      ease: [0.22, 1, 0.36, 1] as const
+    }
   }
 };
 
 const Dashboard = () => {
   const [stats, setStats] = useState<StatsCard[]>([
-    { title: "Pedidos Hoje", value: "0", change: "+0%", trend: "up", icon: ShoppingCart },
-    { title: "Produtos Ativos", value: "0", change: "+0%", trend: "up", icon: Package },
-    { title: "Clientes", value: "0", change: "+0%", trend: "up", icon: Users },
-    { title: "Receita Mensal", value: "R$ 0", change: "+0%", trend: "up", icon: TrendingUp },
+    { title: "Pedidos Hoje", value: "0", change: "+0%", trend: "up", icon: ShoppingCart, gradient: "from-primary/20 to-accent/10" },
+    { title: "Produtos Ativos", value: "0", change: "+0%", trend: "up", icon: Package, gradient: "from-accent/20 to-primary/10" },
+    { title: "Clientes", value: "0", change: "+0%", trend: "up", icon: Users, gradient: "from-secondary to-muted/50" },
+    { title: "Receita Mensal", value: "R$ 0", change: "+0%", trend: "up", icon: TrendingUp, gradient: "from-primary/15 to-accent/20" },
   ]);
 
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
@@ -128,15 +136,16 @@ const Dashboard = () => {
       : 0;
 
     setStats([
-      { title: "Pedidos Hoje", value: String(todayOrders), change: "+12%", trend: "up", icon: ShoppingCart },
-      { title: "Produtos Ativos", value: String(productsCount || 0), change: "+3%", trend: "up", icon: Package },
-      { title: "Clientes", value: String(customersCount || 0), change: "+8%", trend: "up", icon: Users },
+      { title: "Pedidos Hoje", value: String(todayOrders), change: "+12%", trend: "up", icon: ShoppingCart, gradient: "from-primary/20 to-accent/10" },
+      { title: "Produtos Ativos", value: String(productsCount || 0), change: "+3%", trend: "up", icon: Package, gradient: "from-accent/20 to-primary/10" },
+      { title: "Clientes", value: String(customersCount || 0), change: "+8%", trend: "up", icon: Users, gradient: "from-secondary to-muted/50" },
       { 
         title: "Receita Mensal", 
         value: `R$ ${monthlyRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`, 
         change: `${revenueChange >= 0 ? '+' : ''}${revenueChange}%`, 
         trend: revenueChange >= 0 ? "up" : "down", 
-        icon: TrendingUp 
+        icon: TrendingUp,
+        gradient: "from-primary/15 to-accent/20"
       },
     ]);
   };
@@ -161,7 +170,6 @@ const Dashboard = () => {
       );
       setRecentOrders(ordersWithProfiles);
 
-      // Build activities from orders
       const orderActivities: ActivityItem[] = ordersWithProfiles.slice(0, 4).map(order => ({
         id: order.id,
         type: "order" as const,
@@ -226,24 +234,17 @@ const Dashboard = () => {
     return `${diffDays}d`;
   };
 
-  const statusColors: Record<string, string> = {
-    created: "bg-muted text-muted-foreground",
-    pending_payment: "bg-amber-100 text-amber-700",
-    paid: "bg-green-100 text-green-700",
-    packing: "bg-blue-100 text-blue-700",
-    shipped: "bg-purple-100 text-purple-700",
-    delivered: "bg-emerald-100 text-emerald-700",
-    cancelled: "bg-red-100 text-red-700",
-  };
-
-  const statusLabels: Record<string, string> = {
-    created: "Criado",
-    pending_payment: "Aguardando",
-    paid: "Pago",
-    packing: "Embalando",
-    shipped: "Enviado",
-    delivered: "Entregue",
-    cancelled: "Cancelado",
+  const getStatusBadge = (status: string) => {
+    const badges: Record<string, { class: string; label: string }> = {
+      created: { class: "glass-badge", label: "Criado" },
+      pending_payment: { class: "glass-badge glass-badge-warning", label: "Aguardando" },
+      paid: { class: "glass-badge glass-badge-success", label: "Pago" },
+      packing: { class: "glass-badge glass-badge-info", label: "Embalando" },
+      shipped: { class: "glass-badge glass-badge-info", label: "Enviado" },
+      delivered: { class: "glass-badge glass-badge-success", label: "Entregue" },
+      cancelled: { class: "glass-badge glass-badge-danger", label: "Cancelado" },
+    };
+    return badges[status] || { class: "glass-badge", label: status };
   };
 
   return (
@@ -252,33 +253,48 @@ const Dashboard = () => {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="space-y-6"
+        className="space-y-8"
       >
-        {/* Stats Grid with KPI Numbers */}
-        <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Welcome Header */}
+        <motion.div variants={itemVariants} className="flex items-center gap-3">
+          <div className="glass-icon glass-icon-md">
+            <Sparkles className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <h2 className="font-display text-xl font-medium text-foreground">Bem-vindo de volta</h2>
+            <p className="font-body text-sm text-muted-foreground">
+              Aqui está o resumo da sua loja hoje
+            </p>
+          </div>
+        </motion.div>
+
+        {/* Stats Grid - Liquid Glass Cards */}
+        <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
           {stats.map((stat, index) => (
             <motion.div
               key={stat.title}
               variants={itemVariants}
-              className="card-minimal p-5"
+              className="liquid-glass-card p-5 lg:p-6"
             >
-              <div className="flex items-start justify-between mb-4">
-                <div className="p-2.5 rounded-xl bg-primary/10">
-                  <stat.icon className="w-5 h-5 text-primary" />
+              <div className="relative z-10">
+                <div className="flex items-start justify-between mb-4">
+                  <div className={`glass-icon glass-icon-sm bg-gradient-to-br ${stat.gradient}`}>
+                    <stat.icon className="w-4 h-4 text-primary" />
+                  </div>
+                  <div className={`flex items-center gap-1 text-xs font-body font-medium ${
+                    stat.trend === 'up' ? 'text-green-600' : 'text-red-500'
+                  }`}>
+                    {stat.change}
+                    {stat.trend === 'up' ? (
+                      <ArrowUpRight className="w-3 h-3" />
+                    ) : (
+                      <ArrowDownRight className="w-3 h-3" />
+                    )}
+                  </div>
                 </div>
-                <div className={`flex items-center gap-1 text-xs font-body ${
-                  stat.trend === 'up' ? 'text-green-600' : 'text-red-600'
-                }`}>
-                  {stat.change}
-                  {stat.trend === 'up' ? (
-                    <ArrowUpRight className="w-3 h-3" />
-                  ) : (
-                    <ArrowDownRight className="w-3 h-3" />
-                  )}
-                </div>
+                <p className="glass-kpi glass-kpi-lg">{stat.value}</p>
+                <p className="font-body text-sm text-muted-foreground mt-2">{stat.title}</p>
               </div>
-              <p className="kpi-number">{stat.value}</p>
-              <p className="font-body text-sm text-muted-foreground mt-1">{stat.title}</p>
             </motion.div>
           ))}
         </motion.div>
@@ -288,93 +304,130 @@ const Dashboard = () => {
           {/* Revenue Chart - Takes 2 columns */}
           <motion.div
             variants={itemVariants}
-            className="lg:col-span-2 card-minimal p-6"
+            className="lg:col-span-2 liquid-glass-card p-6"
           >
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-primary/10">
-                  <DollarSign className="w-5 h-5 text-primary" />
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="glass-icon glass-icon-sm">
+                    <DollarSign className="w-4 h-4 text-primary" />
+                  </div>
+                  <h2 className="font-display text-lg font-medium">Receita</h2>
                 </div>
-                <h2 className="font-display text-lg font-medium">Receita</h2>
+                <span className="glass-badge">Últimos 7 dias</span>
               </div>
-              <span className="font-body text-xs text-muted-foreground">Últimos 7 dias</span>
-            </div>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={revenueData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                  <XAxis 
-                    dataKey="name" 
-                    stroke="hsl(var(--muted-foreground))"
-                    fontSize={11}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis 
-                    stroke="hsl(var(--muted-foreground))"
-                    fontSize={11}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(value) => value > 0 ? `${(value/1000).toFixed(0)}k` : '0'}
-                    width={35}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                      fontFamily: 'Inter',
-                      fontSize: '13px'
-                    }}
-                    formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR')}`, 'Receita']}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="receita" 
-                    stroke="hsl(var(--primary))" 
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 4, fill: 'hsl(var(--primary))' }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              <div className="h-72">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={revenueData}>
+                    <defs>
+                      <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="hsl(16 60% 50%)" stopOpacity={0.3} />
+                        <stop offset="100%" stopColor="hsl(16 60% 50%)" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid 
+                      strokeDasharray="3 3" 
+                      stroke="hsl(var(--border))" 
+                      strokeOpacity={0.5}
+                      vertical={false} 
+                    />
+                    <XAxis 
+                      dataKey="name" 
+                      stroke="hsl(var(--muted-foreground))"
+                      fontSize={11}
+                      tickLine={false}
+                      axisLine={false}
+                      dy={10}
+                    />
+                    <YAxis 
+                      stroke="hsl(var(--muted-foreground))"
+                      fontSize={11}
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(value) => value > 0 ? `${(value/1000).toFixed(0)}k` : '0'}
+                      width={40}
+                      dx={-10}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        background: 'hsl(30 25% 98% / 0.95)',
+                        backdropFilter: 'blur(20px)',
+                        border: '1px solid hsl(0 0% 100% / 0.3)',
+                        borderRadius: '16px',
+                        fontFamily: 'Inter',
+                        fontSize: '13px',
+                        boxShadow: '0 8px 32px hsl(0 0% 0% / 0.1)'
+                      }}
+                      formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR')}`, 'Receita']}
+                      labelStyle={{ color: 'hsl(var(--muted-foreground))' }}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="receita" 
+                      stroke="hsl(16 60% 50%)" 
+                      strokeWidth={2.5}
+                      fill="url(#revenueGradient)"
+                      dot={false}
+                      activeDot={{ 
+                        r: 6, 
+                        fill: 'hsl(16 60% 50%)',
+                        stroke: 'hsl(0 0% 100%)',
+                        strokeWidth: 2
+                      }}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </motion.div>
 
           {/* Activity Feed */}
           <motion.div
             variants={itemVariants}
-            className="card-minimal p-6"
+            className="liquid-glass-card p-6"
           >
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 rounded-xl bg-secondary">
-                <Clock className="w-5 h-5 text-muted-foreground" />
+            <div className="relative z-10">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="glass-icon glass-icon-sm bg-gradient-to-br from-secondary to-muted/50">
+                  <Clock className="w-4 h-4 text-muted-foreground" />
+                </div>
+                <h2 className="font-display text-lg font-medium">Atividade</h2>
               </div>
-              <h2 className="font-display text-lg font-medium">Atividade</h2>
-            </div>
-            
-            <div className="space-y-1">
-              {activities.length === 0 ? (
-                <p className="font-body text-sm text-muted-foreground text-center py-8">
-                  Nenhuma atividade recente
-                </p>
-              ) : (
-                activities.map((activity) => (
-                  <div key={activity.id} className="activity-item">
-                    <div className="p-2 rounded-lg bg-primary/10">
-                      <activity.icon className="w-4 h-4 text-primary" />
+              
+              <div className="space-y-2">
+                {activities.length === 0 ? (
+                  <div className="text-center py-10">
+                    <div className="glass-icon glass-icon-lg mx-auto mb-4 bg-muted/30">
+                      <Clock className="w-6 h-6 text-muted-foreground/50" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-body text-sm text-foreground truncate">
-                        {activity.message}
-                      </p>
-                      <p className="font-body text-xs text-muted-foreground">
-                        {activity.time}
-                      </p>
-                    </div>
+                    <p className="font-body text-sm text-muted-foreground">
+                      Nenhuma atividade recente
+                    </p>
                   </div>
-                ))
-              )}
+                ) : (
+                  activities.map((activity, idx) => (
+                    <motion.div 
+                      key={activity.id} 
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: idx * 0.1 }}
+                      className="flex items-center gap-3 p-3 rounded-xl hover:bg-primary/5 transition-colors duration-200"
+                    >
+                      <div className="glass-icon glass-icon-sm">
+                        <activity.icon className="w-4 h-4 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-body text-sm text-foreground truncate">
+                          {activity.message}
+                        </p>
+                        <p className="font-body text-xs text-muted-foreground">
+                          {activity.time} atrás
+                        </p>
+                      </div>
+                    </motion.div>
+                  ))
+                )}
+              </div>
             </div>
           </motion.div>
         </div>
@@ -384,74 +437,111 @@ const Dashboard = () => {
           {/* Recent Orders */}
           <motion.div
             variants={itemVariants}
-            className="card-minimal p-6"
+            className="liquid-glass-card p-6"
           >
-            <h2 className="font-display text-lg font-medium mb-6">Pedidos Recentes</h2>
-            
-            {recentOrders.length === 0 ? (
-              <p className="font-body text-sm text-muted-foreground text-center py-8">
-                Nenhum pedido ainda
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {recentOrders.map((order) => (
-                  <div key={order.id} className="flex items-center justify-between py-3 border-b border-border/50 last:border-0">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-body text-sm font-medium truncate">
-                        {order.profiles?.full_name || 'Cliente'}
-                      </p>
-                      <p className="font-body text-xs text-muted-foreground">
-                        #{order.id.slice(0, 8)}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[order.status]}`}>
-                        {statusLabels[order.status]}
-                      </span>
-                      <span className="font-body text-sm font-medium">
-                        R$ {Number(order.total).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+            <div className="relative z-10">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="glass-icon glass-icon-sm">
+                  <ShoppingCart className="w-4 h-4 text-primary" />
+                </div>
+                <h2 className="font-display text-lg font-medium">Pedidos Recentes</h2>
               </div>
-            )}
+              
+              {recentOrders.length === 0 ? (
+                <div className="text-center py-10">
+                  <div className="glass-icon glass-icon-lg mx-auto mb-4 bg-muted/30">
+                    <ShoppingCart className="w-6 h-6 text-muted-foreground/50" />
+                  </div>
+                  <p className="font-body text-sm text-muted-foreground">
+                    Nenhum pedido ainda
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {recentOrders.map((order, idx) => {
+                    const badge = getStatusBadge(order.status);
+                    return (
+                      <motion.div 
+                        key={order.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: idx * 0.05 }}
+                        className="flex items-center justify-between p-3 rounded-xl hover:bg-primary/5 transition-colors duration-200"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="font-body text-sm font-medium truncate">
+                            {order.profiles?.full_name || 'Cliente'}
+                          </p>
+                          <p className="font-body text-xs text-muted-foreground">
+                            #{order.id.slice(0, 8)}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className={badge.class}>
+                            {badge.label}
+                          </span>
+                          <span className="font-display text-sm font-semibold">
+                            R$ {Number(order.total).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                          </span>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </motion.div>
 
           {/* Stock Alerts */}
           <motion.div
             variants={itemVariants}
-            className="card-minimal p-6"
+            className="liquid-glass-card p-6"
           >
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 rounded-xl bg-amber-100">
-                <AlertTriangle className="w-5 h-5 text-amber-600" />
+            <div className="relative z-10">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="glass-icon glass-icon-sm bg-gradient-to-br from-amber-500/20 to-orange-500/10">
+                  <AlertTriangle className="w-4 h-4 text-amber-600" />
+                </div>
+                <h2 className="font-display text-lg font-medium">Alertas de Estoque</h2>
               </div>
-              <h2 className="font-display text-lg font-medium">Alertas de Estoque</h2>
-            </div>
-            
-            {lowStockProducts.length === 0 ? (
-              <p className="font-body text-sm text-muted-foreground text-center py-8">
-                Estoque em dia
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {lowStockProducts.map((product) => (
-                  <div key={product.id} className="flex items-center justify-between py-3 border-b border-border/50 last:border-0">
-                    <p className="font-body text-sm truncate flex-1">
-                      {product.name}
-                    </p>
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                      product.stock_quantity === 0 
-                        ? 'bg-red-100 text-red-700' 
-                        : 'bg-amber-100 text-amber-700'
-                    }`}>
-                      {product.stock_quantity === 0 ? 'Esgotado' : `${product.stock_quantity} un`}
-                    </span>
+              
+              {lowStockProducts.length === 0 ? (
+                <div className="text-center py-10">
+                  <div className="glass-icon glass-icon-lg mx-auto mb-4 bg-green-500/10">
+                    <Package className="w-6 h-6 text-green-600" />
                   </div>
-                ))}
-              </div>
-            )}
+                  <p className="font-body text-sm text-muted-foreground">
+                    Estoque em dia
+                  </p>
+                  <p className="font-body text-xs text-green-600 mt-1">
+                    Todos os produtos com estoque adequado
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {lowStockProducts.map((product, idx) => (
+                    <motion.div 
+                      key={product.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.05 }}
+                      className="flex items-center justify-between p-3 rounded-xl hover:bg-primary/5 transition-colors duration-200"
+                    >
+                      <p className="font-body text-sm truncate flex-1 pr-4">
+                        {product.name}
+                      </p>
+                      <span className={
+                        product.stock_quantity === 0 
+                          ? 'glass-badge glass-badge-danger' 
+                          : 'glass-badge glass-badge-warning'
+                      }>
+                        {product.stock_quantity === 0 ? 'Esgotado' : `${product.stock_quantity} un`}
+                      </span>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </div>
           </motion.div>
         </div>
       </motion.div>
