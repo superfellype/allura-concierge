@@ -20,6 +20,23 @@ type SortOrder = "asc" | "desc";
 
 const ITEMS_PER_PAGE = 15;
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08 }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 16 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] as const }
+  }
+};
+
 const Estoque = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -103,67 +120,64 @@ const Estoque = () => {
   const outOfStockCount = products.filter(p => p.stock_quantity === 0).length;
 
   const getStockClass = (qty: number) => {
-    if (qty === 0) return "out-of-stock";
-    if (qty <= 5) return "low-stock";
-    return "bg-green-100 text-green-700";
+    if (qty === 0) return "status-badge-danger";
+    if (qty <= 5) return "status-badge-warning";
+    return "status-badge-success";
   };
 
   return (
     <AdminLayout title="Estoque">
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="stats-card"
-        >
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-primary/10">
+      {/* Stats - Liquid Glass */}
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6"
+      >
+        <motion.div variants={itemVariants} className="stats-card">
+          <div className="flex items-center gap-4">
+            <div className="glass-icon glass-icon-md">
               <Package className="w-5 h-5 text-primary" />
             </div>
             <div>
               <p className="font-body text-sm text-muted-foreground">Total de Produtos</p>
-              <p className="font-display text-2xl font-semibold">{products.length}</p>
+              <p className="glass-kpi glass-kpi-md">{products.length}</p>
             </div>
           </div>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="stats-card cursor-pointer hover:ring-2 hover:ring-amber-300"
+        <motion.div 
+          variants={itemVariants} 
+          className="stats-card cursor-pointer hover:ring-2 hover:ring-amber-300/50"
           onClick={() => setFilter(filter === "low" ? "all" : "low")}
         >
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-amber-100">
+          <div className="flex items-center gap-4">
+            <div className="glass-icon glass-icon-md" style={{ background: 'linear-gradient(135deg, hsl(38 90% 50% / 0.15), hsl(38 90% 50% / 0.05))' }}>
               <TrendingDown className="w-5 h-5 text-amber-600" />
             </div>
             <div>
               <p className="font-body text-sm text-muted-foreground">Estoque Baixo</p>
-              <p className="font-display text-2xl font-semibold text-amber-600">{lowStockCount}</p>
+              <p className="glass-kpi glass-kpi-md text-amber-600">{lowStockCount}</p>
             </div>
           </div>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="stats-card cursor-pointer hover:ring-2 hover:ring-red-300"
+        <motion.div 
+          variants={itemVariants} 
+          className="stats-card cursor-pointer hover:ring-2 hover:ring-red-300/50"
           onClick={() => setFilter(filter === "out" ? "all" : "out")}
         >
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-red-100">
+          <div className="flex items-center gap-4">
+            <div className="glass-icon glass-icon-md" style={{ background: 'linear-gradient(135deg, hsl(0 72% 51% / 0.15), hsl(0 72% 51% / 0.05))' }}>
               <AlertTriangle className="w-5 h-5 text-red-600" />
             </div>
             <div>
               <p className="font-body text-sm text-muted-foreground">Sem Estoque</p>
-              <p className="font-display text-2xl font-semibold text-red-600">{outOfStockCount}</p>
+              <p className="glass-kpi glass-kpi-md text-red-600">{outOfStockCount}</p>
             </div>
           </div>
         </motion.div>
-      </div>
+      </motion.div>
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
@@ -177,7 +191,7 @@ const Estoque = () => {
               setSearchQuery(e.target.value);
               setCurrentPage(1);
             }}
-            className="w-full pl-11 pr-4 py-3 liquid-glass rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+            className="glass-input pl-11"
           />
         </div>
         <select
@@ -186,7 +200,7 @@ const Estoque = () => {
             setFilter(e.target.value as any);
             setCurrentPage(1);
           }}
-          className="px-4 py-3 liquid-glass rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+          className="glass-input"
         >
           <option value="all">Todos os produtos</option>
           <option value="low">Estoque baixo (≤5)</option>
@@ -201,17 +215,17 @@ const Estoque = () => {
           <p className="font-body text-muted-foreground mt-2">Carregando...</p>
         </div>
       ) : filteredProducts.length === 0 ? (
-        <div className="liquid-card text-center py-12">
+        <div className="empty-state">
           <Package className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
           <p className="font-body text-muted-foreground">Nenhum produto encontrado</p>
         </div>
       ) : (
         <>
-          <div className="liquid-card overflow-hidden p-0">
+          <div className="liquid-glass-card overflow-hidden p-0">
             <div className="overflow-x-auto">
               <table className="admin-table">
                 <thead>
-                  <tr className="bg-secondary/30">
+                  <tr>
                     <th>Produto</th>
                     <th 
                       className="cursor-pointer hover:text-foreground"
@@ -288,20 +302,16 @@ const Estoque = () => {
                               }
                             }}
                             autoFocus
-                            className="w-20 px-2 py-1 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                            className="w-20 px-2 py-1 glass-input text-sm"
                           />
                         ) : (
-                          <span 
-                            className={`px-2.5 py-1 rounded-full text-xs font-medium ${getStockClass(product.stock_quantity)}`}
-                          >
+                          <span className={`status-badge ${getStockClass(product.stock_quantity)}`}>
                             {product.stock_quantity} un.
                           </span>
                         )}
                       </td>
                       <td>
-                        <span className={`px-2 py-1 rounded-full text-xs ${
-                          product.is_active ? 'bg-green-100 text-green-700' : 'bg-muted text-muted-foreground'
-                        }`}>
+                        <span className={`status-badge ${product.is_active ? 'status-badge-success' : 'status-badge-neutral'}`}>
                           {product.is_active ? 'Ativo' : 'Inativo'}
                         </span>
                       </td>

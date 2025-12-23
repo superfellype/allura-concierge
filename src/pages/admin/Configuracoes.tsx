@@ -1,8 +1,25 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Save, Store, Truck, CreditCard, Bell } from "lucide-react";
+import { Save, Store, Truck, CreditCard } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { toast } from "sonner";
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 16 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] as const }
+  }
+};
 
 const Configuracoes = () => {
   const [storeSettings, setStoreSettings] = useState({
@@ -23,7 +40,6 @@ const Configuracoes = () => {
 
   const handleSave = async () => {
     setSaving(true);
-    // Simulating API call
     await new Promise((resolve) => setTimeout(resolve, 1000));
     toast.success("Configurações salvas!");
     setSaving(false);
@@ -31,15 +47,16 @@ const Configuracoes = () => {
 
   return (
     <AdminLayout title="Configurações">
-      <div className="max-w-3xl space-y-6">
-        {/* Store Info */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="liquid-card"
-        >
+      <motion.div 
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="max-w-3xl space-y-6"
+      >
+        {/* Store Info - Liquid Glass */}
+        <motion.div variants={itemVariants} className="liquid-glass-card p-6">
           <div className="flex items-center gap-3 mb-6">
-            <div className="p-2.5 rounded-xl bg-primary/10">
+            <div className="glass-icon glass-icon-md">
               <Store className="w-5 h-5 text-primary" />
             </div>
             <h2 className="font-display text-xl font-medium">Informações da Loja</h2>
@@ -47,77 +64,72 @@ const Configuracoes = () => {
 
           <div className="space-y-4">
             <div>
-              <label className="font-body text-sm text-foreground/70 mb-1.5 block">
+              <label className="font-body text-sm text-muted-foreground mb-1.5 block">
                 Nome da Loja
               </label>
               <input
                 type="text"
                 value={storeSettings.storeName}
                 onChange={(e) => setStoreSettings({ ...storeSettings, storeName: e.target.value })}
-                className="w-full px-4 py-3 liquid-glass rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                className="glass-input"
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="font-body text-sm text-foreground/70 mb-1.5 block">
+                <label className="font-body text-sm text-muted-foreground mb-1.5 block">
                   E-mail
                 </label>
                 <input
                   type="email"
                   value={storeSettings.email}
                   onChange={(e) => setStoreSettings({ ...storeSettings, email: e.target.value })}
-                  className="w-full px-4 py-3 liquid-glass rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  className="glass-input"
                 />
               </div>
               <div>
-                <label className="font-body text-sm text-foreground/70 mb-1.5 block">
+                <label className="font-body text-sm text-muted-foreground mb-1.5 block">
                   Telefone
                 </label>
                 <input
                   type="text"
                   value={storeSettings.phone}
                   onChange={(e) => setStoreSettings({ ...storeSettings, phone: e.target.value })}
-                  className="w-full px-4 py-3 liquid-glass rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  className="glass-input"
                 />
               </div>
             </div>
 
             <div>
-              <label className="font-body text-sm text-foreground/70 mb-1.5 block">
+              <label className="font-body text-sm text-muted-foreground mb-1.5 block">
                 Endereço
               </label>
               <input
                 type="text"
                 value={storeSettings.address}
                 onChange={(e) => setStoreSettings({ ...storeSettings, address: e.target.value })}
-                className="w-full px-4 py-3 liquid-glass rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                className="glass-input"
               />
             </div>
 
             <div>
-              <label className="font-body text-sm text-foreground/70 mb-1.5 block">
+              <label className="font-body text-sm text-muted-foreground mb-1.5 block">
                 WhatsApp (número completo com DDD)
               </label>
               <input
                 type="text"
                 value={storeSettings.whatsapp}
                 onChange={(e) => setStoreSettings({ ...storeSettings, whatsapp: e.target.value })}
-                className="w-full px-4 py-3 liquid-glass rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                className="glass-input"
               />
             </div>
           </div>
         </motion.div>
 
-        {/* Shipping */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="liquid-card"
-        >
+        {/* Shipping - Liquid Glass */}
+        <motion.div variants={itemVariants} className="liquid-glass-card p-6">
           <div className="flex items-center gap-3 mb-6">
-            <div className="p-2.5 rounded-xl bg-blue-100">
+            <div className="glass-icon glass-icon-md" style={{ background: 'linear-gradient(135deg, hsl(210 80% 50% / 0.15), hsl(210 80% 50% / 0.05))' }}>
               <Truck className="w-5 h-5 text-blue-600" />
             </div>
             <h2 className="font-display text-xl font-medium">Frete e Entrega</h2>
@@ -126,18 +138,18 @@ const Configuracoes = () => {
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="font-body text-sm text-foreground/70 mb-1.5 block">
+                <label className="font-body text-sm text-muted-foreground mb-1.5 block">
                   Frete grátis acima de (R$)
                 </label>
                 <input
                   type="number"
                   value={shippingSettings.freeShippingMinimum}
                   onChange={(e) => setShippingSettings({ ...shippingSettings, freeShippingMinimum: e.target.value })}
-                  className="w-full px-4 py-3 liquid-glass rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  className="glass-input"
                 />
               </div>
               <div>
-                <label className="font-body text-sm text-foreground/70 mb-1.5 block">
+                <label className="font-body text-sm text-muted-foreground mb-1.5 block">
                   Custo padrão de frete (R$)
                 </label>
                 <input
@@ -145,34 +157,29 @@ const Configuracoes = () => {
                   step="0.01"
                   value={shippingSettings.defaultShippingCost}
                   onChange={(e) => setShippingSettings({ ...shippingSettings, defaultShippingCost: e.target.value })}
-                  className="w-full px-4 py-3 liquid-glass rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  className="glass-input"
                 />
               </div>
             </div>
 
             <div>
-              <label className="font-body text-sm text-foreground/70 mb-1.5 block">
+              <label className="font-body text-sm text-muted-foreground mb-1.5 block">
                 Prazo estimado de entrega (dias úteis)
               </label>
               <input
                 type="text"
                 value={shippingSettings.estimatedDays}
                 onChange={(e) => setShippingSettings({ ...shippingSettings, estimatedDays: e.target.value })}
-                className="w-full px-4 py-3 liquid-glass rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                className="glass-input"
               />
             </div>
           </div>
         </motion.div>
 
-        {/* Payment Info */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="liquid-card"
-        >
+        {/* Payment Info - Liquid Glass */}
+        <motion.div variants={itemVariants} className="liquid-glass-card p-6">
           <div className="flex items-center gap-3 mb-6">
-            <div className="p-2.5 rounded-xl bg-green-100">
+            <div className="glass-icon glass-icon-md" style={{ background: 'linear-gradient(135deg, hsl(142 70% 45% / 0.15), hsl(142 70% 45% / 0.05))' }}>
               <CreditCard className="w-5 h-5 text-green-600" />
             </div>
             <h2 className="font-display text-xl font-medium">Pagamentos</h2>
@@ -182,9 +189,9 @@ const Configuracoes = () => {
             Configure a integração com InfinitePay para processar pagamentos.
           </p>
 
-          <div className="p-4 rounded-xl bg-secondary/50 border border-border/50">
-            <p className="font-body text-sm text-foreground/70">
-              Status: <span className="text-yellow-600 font-medium">Pendente configuração</span>
+          <div className="liquid-glass-card p-4 border-l-4 border-l-amber-400">
+            <p className="font-body text-sm">
+              Status: <span className="text-amber-600 font-medium">Pendente configuração</span>
             </p>
             <p className="font-body text-xs text-muted-foreground mt-1">
               Entre em contato para configurar a integração com pagamentos.
@@ -194,16 +201,17 @@ const Configuracoes = () => {
 
         {/* Save Button */}
         <motion.button
+          variants={itemVariants}
           whileHover={{ scale: 1.01 }}
           whileTap={{ scale: 0.99 }}
           onClick={handleSave}
           disabled={saving}
-          className="w-full liquid-button py-4 text-primary-foreground font-body font-medium flex items-center justify-center gap-2"
+          className="w-full glass-btn py-4 flex items-center justify-center gap-2"
         >
           <Save className="w-4 h-4" />
           {saving ? "Salvando..." : "Salvar Configurações"}
         </motion.button>
-      </div>
+      </motion.div>
     </AdminLayout>
   );
 };

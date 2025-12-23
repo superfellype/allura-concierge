@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Search, Eye, Package, Truck, CheckCircle, X, MapPin, CreditCard, Calendar } from "lucide-react";
+import { Search, Eye, Package, Truck, CheckCircle, X, MapPin, CreditCard } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import AdminPagination from "@/components/admin/AdminPagination";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
@@ -39,13 +39,13 @@ interface Order {
 const statusFlow: OrderStatus[] = ["created", "pending_payment", "paid", "packing", "shipped", "delivered"];
 
 const statusColors: Record<OrderStatus, string> = {
-  created: "bg-muted text-muted-foreground",
-  pending_payment: "bg-amber-100 text-amber-700",
-  paid: "bg-green-100 text-green-700",
-  packing: "bg-blue-100 text-blue-700",
-  shipped: "bg-purple-100 text-purple-700",
-  delivered: "bg-emerald-100 text-emerald-700",
-  cancelled: "bg-red-100 text-red-700",
+  created: "status-badge-neutral",
+  pending_payment: "status-badge-warning",
+  paid: "status-badge-success",
+  packing: "status-badge-info",
+  shipped: "status-badge-info",
+  delivered: "status-badge-success",
+  cancelled: "status-badge-danger",
 };
 
 const statusLabels: Record<OrderStatus, string> = {
@@ -174,7 +174,7 @@ const Pedidos = () => {
 
   return (
     <AdminLayout title="Pedidos">
-      {/* Filters */}
+      {/* Filters - Liquid Glass */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <div className="relative flex-1">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -186,7 +186,7 @@ const Pedidos = () => {
               setSearchQuery(e.target.value);
               setCurrentPage(1);
             }}
-            className="w-full pl-11 pr-4 py-3 liquid-glass rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+            className="glass-input pl-11"
           />
         </div>
         <select
@@ -195,7 +195,7 @@ const Pedidos = () => {
             setStatusFilter(e.target.value);
             setCurrentPage(1);
           }}
-          className="px-4 py-3 liquid-glass rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+          className="glass-input"
         >
           <option value="all">Todos os status</option>
           {statusFlow.map((status) => (
@@ -214,7 +214,7 @@ const Pedidos = () => {
           <p className="font-body text-muted-foreground mt-2">Carregando...</p>
         </div>
       ) : filteredOrders.length === 0 ? (
-        <div className="liquid-card text-center py-12">
+        <div className="empty-state">
           <Package className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
           <p className="font-body text-muted-foreground">Nenhum pedido encontrado</p>
         </div>
@@ -227,13 +227,13 @@ const Pedidos = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05, duration: 0.4 }}
-                className="liquid-card"
+                className="liquid-glass-card p-5"
               >
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       <h3 className="font-body font-semibold">#{order.id.slice(0, 8)}</h3>
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[order.status]}`}>
+                      <span className={`status-badge ${statusColors[order.status]}`}>
                         {statusLabels[order.status]}
                       </span>
                     </div>
@@ -243,12 +243,12 @@ const Pedidos = () => {
                   </div>
 
                   <div className="flex items-center gap-4">
-                    <span className="font-display text-xl font-semibold">
+                    <span className="glass-kpi glass-kpi-md">
                       R$ {Number(order.total).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </span>
                     <button
                       onClick={() => openOrderDetail(order)}
-                      className="p-2 glass-button rounded-xl"
+                      className="glass-button p-2.5 rounded-xl"
                     >
                       <Eye className="w-4 h-4" />
                     </button>
@@ -256,13 +256,13 @@ const Pedidos = () => {
                 </div>
 
                 {order.status !== "delivered" && order.status !== "cancelled" && (
-                  <div className="mt-4 pt-4 border-t border-border/30 flex flex-wrap gap-2">
+                  <div className="mt-4 pt-4 border-t border-border/20 flex flex-wrap gap-2">
                     {getNextStatus(order.status) && (
                       <motion.button
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => updateStatus(order.id, getNextStatus(order.status)!)}
-                        className="px-4 py-2 liquid-button text-sm text-primary-foreground font-body flex items-center gap-2"
+                        className="glass-btn text-sm flex items-center gap-2"
                       >
                         {order.status === "paid" && <Package className="w-4 h-4" />}
                         {order.status === "packing" && <Truck className="w-4 h-4" />}
@@ -290,17 +290,17 @@ const Pedidos = () => {
         </>
       )}
 
-      {/* Order Detail Modal */}
+      {/* Order Detail Modal - Liquid Glass */}
       {selectedOrder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
-            className="absolute inset-0 bg-foreground/20 backdrop-blur-sm"
+            className="absolute inset-0 modal-overlay"
             onClick={() => setSelectedOrder(null)}
           />
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="relative z-10 w-full max-w-2xl liquid-card-strong p-6 max-h-[90vh] overflow-y-auto"
+            className="relative z-10 w-full max-w-2xl liquid-glass-card p-6 max-h-[90vh] overflow-y-auto"
           >
             <div className="flex items-start justify-between mb-6">
               <div>
@@ -313,7 +313,7 @@ const Pedidos = () => {
               </div>
               <button
                 onClick={() => setSelectedOrder(null)}
-                className="p-2 hover:bg-secondary rounded-xl transition-colors"
+                className="glass-button p-2 rounded-xl"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -323,13 +323,13 @@ const Pedidos = () => {
               {/* Status */}
               <div className="flex items-center gap-3">
                 <span className="font-body text-sm text-muted-foreground">Status:</span>
-                <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusColors[selectedOrder.status]}`}>
+                <span className={`status-badge ${statusColors[selectedOrder.status]}`}>
                   {statusLabels[selectedOrder.status]}
                 </span>
               </div>
 
               {/* Customer Info */}
-              <div className="p-4 rounded-xl bg-secondary/30">
+              <div className="liquid-glass-card p-4">
                 <h3 className="font-body font-medium mb-3 flex items-center gap-2">
                   <MapPin className="w-4 h-4" /> Cliente
                 </h3>
@@ -340,7 +340,7 @@ const Pedidos = () => {
               </div>
 
               {/* Shipping Address */}
-              <div className="p-4 rounded-xl bg-secondary/30">
+              <div className="liquid-glass-card p-4">
                 <h3 className="font-body font-medium mb-3 flex items-center gap-2">
                   <Truck className="w-4 h-4" /> Endereço de Entrega
                 </h3>
@@ -393,7 +393,7 @@ const Pedidos = () => {
               )}
 
               {/* Payment Info */}
-              <div className="p-4 rounded-xl bg-secondary/30">
+              <div className="liquid-glass-card p-4">
                 <h3 className="font-body font-medium mb-3 flex items-center gap-2">
                   <CreditCard className="w-4 h-4" /> Pagamento
                 </h3>
@@ -410,7 +410,7 @@ const Pedidos = () => {
               </div>
 
               {/* Order Summary */}
-              <div className="border-t border-border pt-4">
+              <div className="border-t border-border/20 pt-4">
                 <div className="flex justify-between mb-2">
                   <span className="font-body text-sm text-muted-foreground">Subtotal</span>
                   <span className="font-body">R$ {Number(selectedOrder.subtotal).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
@@ -419,9 +419,9 @@ const Pedidos = () => {
                   <span className="font-body text-sm text-muted-foreground">Frete</span>
                   <span className="font-body">R$ {Number(selectedOrder.shipping_cost).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                 </div>
-                <div className="flex justify-between pt-2 border-t border-border">
+                <div className="flex justify-between pt-2 border-t border-border/20">
                   <span className="font-body font-medium">Total</span>
-                  <span className="font-display text-xl font-semibold">
+                  <span className="glass-kpi glass-kpi-md">
                     R$ {Number(selectedOrder.total).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
@@ -429,34 +429,23 @@ const Pedidos = () => {
 
               {/* Notes */}
               {selectedOrder.notes && (
-                <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">
+                <div className="liquid-glass-card p-4 border-l-4 border-l-amber-400">
                   <h3 className="font-body font-medium mb-2">Observações</h3>
-                  <p className="font-body text-sm">{selectedOrder.notes}</p>
+                  <p className="font-body text-sm text-muted-foreground">{selectedOrder.notes}</p>
                 </div>
               )}
             </div>
 
-            <div className="mt-6 flex gap-3">
-              {selectedOrder.status !== "delivered" && selectedOrder.status !== "cancelled" && getNextStatus(selectedOrder.status) && (
-                <button
-                  onClick={() => updateStatus(selectedOrder.id, getNextStatus(selectedOrder.status)!)}
-                  className="flex-1 py-3 liquid-button rounded-xl text-primary-foreground font-body font-medium"
-                >
-                  Avançar para {statusLabels[getNextStatus(selectedOrder.status)!]}
-                </button>
-              )}
-              <button
-                onClick={() => setSelectedOrder(null)}
-                className="flex-1 py-3 glass-button rounded-xl font-body font-medium"
-              >
-                Fechar
-              </button>
-            </div>
+            <button
+              onClick={() => setSelectedOrder(null)}
+              className="mt-6 w-full glass-btn"
+            >
+              Fechar
+            </button>
           </motion.div>
         </div>
       )}
 
-      {/* Cancel Confirmation */}
       <ConfirmDialog
         open={cancelConfirm.open}
         onOpenChange={(open) => setCancelConfirm({ open, id: open ? cancelConfirm.id : null })}

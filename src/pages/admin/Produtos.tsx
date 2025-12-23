@@ -67,9 +67,9 @@ const Produtos = () => {
 
   const getStockStatus = (qty: number, threshold: number | null) => {
     const t = threshold || 5;
-    if (qty === 0) return { label: "Esgotado", class: "bg-destructive/10 text-destructive" };
-    if (qty <= t) return { label: `${qty} un.`, class: "bg-amber-100 text-amber-700" };
-    return { label: `${qty} un.`, class: "bg-secondary text-secondary-foreground" };
+    if (qty === 0) return { label: "Esgotado", class: "status-badge-danger" };
+    if (qty <= t) return { label: `${qty} un.`, class: "status-badge-warning" };
+    return { label: `${qty} un.`, class: "status-badge-neutral" };
   };
 
   return (
@@ -77,12 +77,20 @@ const Produtos = () => {
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <div className="relative flex-1">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input type="text" placeholder="Buscar por nome, categoria ou SKU..." value={searchQuery}
+          <input 
+            type="text" 
+            placeholder="Buscar por nome, categoria ou SKU..." 
+            value={searchQuery}
             onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-            className="w-full pl-11 pr-4 py-3 liquid-glass rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+            className="glass-input pl-11" 
+          />
         </div>
-        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => navigate("/admin/produtos/novo")}
-          className="liquid-button px-5 py-3 text-primary-foreground font-body font-medium flex items-center gap-2">
+        <motion.button 
+          whileHover={{ scale: 1.02 }} 
+          whileTap={{ scale: 0.98 }} 
+          onClick={() => navigate("/admin/produtos/novo")}
+          className="glass-btn flex items-center gap-2"
+        >
           <Plus className="w-4 h-4" /> Novo Produto
         </motion.button>
       </div>
@@ -93,19 +101,24 @@ const Produtos = () => {
           <p className="font-body text-muted-foreground mt-2">Carregando...</p>
         </div>
       ) : filteredProducts.length === 0 ? (
-        <div className="liquid-card text-center py-12">
+        <div className="empty-state">
           <Package className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
           <p className="font-body text-muted-foreground">Nenhum produto encontrado</p>
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {paginatedProducts.map((product, index) => {
               const stockStatus = getStockStatus(product.stock_quantity, product.low_stock_threshold);
               return (
-                <motion.div key={product.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05, duration: 0.4 }} className="liquid-card">
-                  <div className="aspect-square rounded-2xl bg-secondary/50 mb-4 overflow-hidden relative">
+                <motion.div 
+                  key={product.id} 
+                  initial={{ opacity: 0, y: 20 }} 
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05, duration: 0.4 }} 
+                  className="liquid-glass-card p-5"
+                >
+                  <div className="aspect-square rounded-2xl bg-secondary/30 mb-4 overflow-hidden relative">
                     {product.images?.[0] ? (
                       <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
                     ) : (
@@ -114,7 +127,7 @@ const Produtos = () => {
                       </div>
                     )}
                     {product.original_price && product.original_price > product.price && (
-                      <span className="absolute top-3 left-3 bg-destructive text-destructive-foreground px-2 py-1 rounded-full text-xs font-medium">
+                      <span className="absolute top-3 left-3 status-badge status-badge-danger">
                         -{Math.round((1 - product.price / product.original_price) * 100)}%
                       </span>
                     )}
@@ -125,7 +138,7 @@ const Produtos = () => {
                       <p className="font-body text-sm text-muted-foreground">{product.category}</p>
                       {product.sku && <p className="font-mono text-xs text-muted-foreground">SKU: {product.sku}</p>}
                     </div>
-                    <span className={`ml-2 px-2 py-1 rounded-full text-xs font-body ${product.is_active ? 'bg-green-100 text-green-700' : 'bg-muted text-muted-foreground'}`}>
+                    <span className={`ml-2 status-badge ${product.is_active ? 'status-badge-success' : 'status-badge-neutral'}`}>
                       {product.is_active ? 'Ativo' : 'Inativo'}
                     </span>
                   </div>
@@ -136,7 +149,7 @@ const Produtos = () => {
                         <span className="ml-2 text-sm text-muted-foreground line-through">R$ {product.original_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                       )}
                     </div>
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${stockStatus.class}`}>{stockStatus.label}</span>
+                    <span className={`status-badge ${stockStatus.class}`}>{stockStatus.label}</span>
                   </div>
                   {product.weight_grams && product.weight_grams > 0 && (
                     <div className="flex items-center gap-2 mb-3 text-xs text-muted-foreground">
@@ -147,12 +160,16 @@ const Produtos = () => {
                     </div>
                   )}
                   <div className="flex gap-2">
-                    <button onClick={() => navigate(`/admin/produtos/${product.id}`)}
-                      className="flex-1 py-2 glass-button rounded-xl flex items-center justify-center gap-2 font-body text-sm">
+                    <button 
+                      onClick={() => navigate(`/admin/produtos/${product.id}`)}
+                      className="flex-1 py-2.5 glass-button rounded-xl flex items-center justify-center gap-2 font-body text-sm"
+                    >
                       <Edit className="w-4 h-4" /> Editar
                     </button>
-                    <button onClick={() => setDeleteConfirm({ open: true, id: product.id })}
-                      className="p-2 text-destructive hover:bg-destructive/10 rounded-xl transition-colors">
+                    <button 
+                      onClick={() => setDeleteConfirm({ open: true, id: product.id })}
+                      className="p-2.5 text-destructive hover:bg-destructive/10 rounded-xl transition-colors"
+                    >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
@@ -164,9 +181,15 @@ const Produtos = () => {
         </>
       )}
 
-      <ConfirmDialog open={deleteConfirm.open} onOpenChange={(open) => setDeleteConfirm({ open, id: open ? deleteConfirm.id : null })}
-        title="Excluir Produto" description="Tem certeza que deseja excluir este produto? Esta ação não pode ser desfeita."
-        confirmText="Excluir" onConfirm={handleDelete} variant="destructive" />
+      <ConfirmDialog 
+        open={deleteConfirm.open} 
+        onOpenChange={(open) => setDeleteConfirm({ open, id: open ? deleteConfirm.id : null })}
+        title="Excluir Produto" 
+        description="Tem certeza que deseja excluir este produto? Esta ação não pode ser desfeita."
+        confirmText="Excluir" 
+        onConfirm={handleDelete} 
+        variant="destructive" 
+      />
     </AdminLayout>
   );
 };

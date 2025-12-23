@@ -37,6 +37,23 @@ const statusLabels: Record<string, string> = {
   cancelled: "Cancelado",
 };
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08 }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 16 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] as const }
+  }
+};
+
 const Clientes = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -102,56 +119,53 @@ const Clientes = () => {
 
   return (
     <AdminLayout title="Clientes">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="stats-card"
-        >
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 rounded-xl bg-primary/10">
+      {/* Stats Cards - Liquid Glass */}
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6"
+      >
+        <motion.div variants={itemVariants} className="stats-card">
+          <div className="flex items-center gap-4">
+            <div className="glass-icon glass-icon-md">
               <User className="w-5 h-5 text-primary" />
             </div>
-            <span className="font-body text-sm text-muted-foreground">Total de Clientes</span>
+            <div>
+              <p className="font-body text-sm text-muted-foreground">Total de Clientes</p>
+              <p className="glass-kpi glass-kpi-md">{totalCustomers}</p>
+            </div>
           </div>
-          <p className="font-display text-3xl font-semibold">{totalCustomers}</p>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="stats-card"
-        >
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 rounded-xl bg-green-100">
+        <motion.div variants={itemVariants} className="stats-card">
+          <div className="flex items-center gap-4">
+            <div className="glass-icon glass-icon-md" style={{ background: 'linear-gradient(135deg, hsl(142 70% 45% / 0.15), hsl(142 70% 45% / 0.05))' }}>
               <ShoppingBag className="w-5 h-5 text-green-600" />
             </div>
-            <span className="font-body text-sm text-muted-foreground">Clientes com Pedidos</span>
+            <div>
+              <p className="font-body text-sm text-muted-foreground">Clientes com Pedidos</p>
+              <p className="glass-kpi glass-kpi-md">{customersWithOrders}</p>
+            </div>
           </div>
-          <p className="font-display text-3xl font-semibold">{customersWithOrders}</p>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="stats-card"
-        >
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 rounded-xl bg-purple-100">
+        <motion.div variants={itemVariants} className="stats-card">
+          <div className="flex items-center gap-4">
+            <div className="glass-icon glass-icon-md" style={{ background: 'linear-gradient(135deg, hsl(270 70% 50% / 0.15), hsl(270 70% 50% / 0.05))' }}>
               <TrendingUp className="w-5 h-5 text-purple-600" />
             </div>
-            <span className="font-body text-sm text-muted-foreground">Ticket Médio</span>
+            <div>
+              <p className="font-body text-sm text-muted-foreground">Ticket Médio</p>
+              <p className="glass-kpi glass-kpi-md">
+                R$ {averageTicket.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
+              </p>
+            </div>
           </div>
-          <p className="font-display text-3xl font-semibold">
-            R$ {averageTicket.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
-          </p>
         </motion.div>
-      </div>
+      </motion.div>
 
-      {/* Search */}
+      {/* Search - Liquid Glass Input */}
       <div className="mb-6">
         <div className="relative max-w-md">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -163,7 +177,7 @@ const Clientes = () => {
               setSearchQuery(e.target.value);
               setCurrentPage(1);
             }}
-            className="w-full pl-11 pr-4 py-3 liquid-glass rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+            className="glass-input pl-11"
           />
         </div>
       </div>
@@ -175,17 +189,17 @@ const Clientes = () => {
           <p className="font-body text-muted-foreground mt-2">Carregando...</p>
         </div>
       ) : filteredCustomers.length === 0 ? (
-        <div className="liquid-card text-center py-12">
+        <div className="empty-state">
           <User className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
           <p className="font-body text-muted-foreground">Nenhum cliente encontrado</p>
         </div>
       ) : (
         <>
-          <div className="liquid-card overflow-hidden p-0">
+          <div className="liquid-glass-card overflow-hidden p-0">
             <div className="overflow-x-auto">
               <table className="admin-table">
                 <thead>
-                  <tr className="bg-secondary/30">
+                  <tr>
                     <th>Cliente</th>
                     <th>Telefone</th>
                     <th>Pedidos</th>
@@ -206,12 +220,12 @@ const Clientes = () => {
                     >
                       <td>
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+                          <div className="glass-icon glass-icon-sm">
                             {customer.avatar_url ? (
                               <img
                                 src={customer.avatar_url}
                                 alt={customer.full_name || ""}
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-cover rounded-2xl"
                               />
                             ) : (
                               <User className="w-4 h-4 text-primary" />
@@ -224,7 +238,7 @@ const Clientes = () => {
                         {customer.phone || "—"}
                       </td>
                       <td>
-                        <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-secondary">
+                        <span className="status-badge status-badge-neutral">
                           {customer.ordersCount} pedido(s)
                         </span>
                       </td>
@@ -254,26 +268,26 @@ const Clientes = () => {
         </>
       )}
 
-      {/* Customer Detail Modal */}
+      {/* Customer Detail Modal - Liquid Glass */}
       {selectedCustomer && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
-            className="absolute inset-0 bg-foreground/20 backdrop-blur-sm"
+            className="absolute inset-0 modal-overlay"
             onClick={() => setSelectedCustomer(null)}
           />
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="relative z-10 w-full max-w-lg liquid-card-strong p-6 max-h-[90vh] overflow-y-auto"
+            className="relative z-10 w-full max-w-lg liquid-glass-card p-6 max-h-[90vh] overflow-y-auto"
           >
             <div className="flex items-start justify-between mb-6">
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+                <div className="glass-icon glass-icon-lg">
                   {selectedCustomer.avatar_url ? (
                     <img
                       src={selectedCustomer.avatar_url}
                       alt={selectedCustomer.full_name || ""}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover rounded-2xl"
                     />
                   ) : (
                     <User className="w-8 h-8 text-primary" />
@@ -290,7 +304,7 @@ const Clientes = () => {
               </div>
               <button
                 onClick={() => setSelectedCustomer(null)}
-                className="p-2 hover:bg-secondary rounded-xl transition-colors"
+                className="glass-button p-2 rounded-xl"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -298,12 +312,12 @@ const Clientes = () => {
 
             {/* Customer Stats */}
             <div className="grid grid-cols-2 gap-4 mb-6">
-              <div className="p-4 rounded-xl bg-secondary/30 text-center">
-                <p className="font-display text-2xl font-semibold">{selectedCustomer.ordersCount}</p>
+              <div className="liquid-glass-card p-4 text-center">
+                <p className="glass-kpi glass-kpi-md">{selectedCustomer.ordersCount}</p>
                 <p className="font-body text-sm text-muted-foreground">Pedidos</p>
               </div>
-              <div className="p-4 rounded-xl bg-secondary/30 text-center">
-                <p className="font-display text-2xl font-semibold">
+              <div className="liquid-glass-card p-4 text-center">
+                <p className="glass-kpi glass-kpi-md">
                   R$ {selectedCustomer.totalSpent.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
                 </p>
                 <p className="font-body text-sm text-muted-foreground">Total Gasto</p>
@@ -357,7 +371,7 @@ const Clientes = () => {
 
             <button
               onClick={() => setSelectedCustomer(null)}
-              className="mt-6 w-full py-3 glass-button rounded-xl font-body font-medium"
+              className="mt-6 w-full glass-btn"
             >
               Fechar
             </button>
