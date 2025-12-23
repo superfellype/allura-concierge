@@ -5,44 +5,54 @@
 
 export function getUserFriendlyError(error: unknown): string {
   const message = getErrorMessage(error);
-  
+  const lower = message.toLowerCase();
+
   // Map specific error patterns to generic messages
-  if (message.includes('violates row-level security') || message.includes('violates row')) {
+  if (lower.includes('violates row-level security') || lower.includes('violates row')) {
     return 'Operação não autorizada';
   }
-  
-  if (message.includes('not found') || message.includes('no rows')) {
+
+  if (lower.includes('not found') || lower.includes('no rows')) {
     return 'Item não encontrado';
   }
-  
-  if (message.includes('duplicate') || message.includes('unique constraint') || message.includes('23505')) {
+
+  if (lower.includes('duplicate') || lower.includes('unique constraint') || lower.includes('23505')) {
     return 'Este item já existe';
   }
-  
-  if (message.includes('Invalid login credentials')) {
+
+  if (lower.includes('invalid login credentials')) {
     return 'Email ou senha incorretos';
   }
-  
-  if (message.includes('Email not confirmed')) {
+
+  if (lower.includes('email not confirmed')) {
     return 'Por favor, confirme seu email antes de entrar';
   }
-  
-  if (message.includes('User already registered')) {
+
+  if (lower.includes('user already registered')) {
     return 'Este email já está cadastrado';
   }
-  
-  if (message.includes('Password')) {
+
+  // Password reset / update specific errors
+  if (lower.includes('same_password') || lower.includes('new password should be different')) {
+    return 'A nova senha precisa ser diferente da senha atual';
+  }
+
+  if (lower.includes('one-time token not found') || lower.includes('email link is invalid') || lower.includes('has expired')) {
+    return 'Link de recuperação inválido ou expirado. Solicite um novo.';
+  }
+
+  if (lower.includes('password')) {
     return 'Senha inválida';
   }
-  
-  if (message.includes('network') || message.includes('fetch')) {
+
+  if (lower.includes('network') || lower.includes('fetch')) {
     return 'Erro de conexão. Tente novamente.';
   }
-  
-  if (message.includes('timeout')) {
+
+  if (lower.includes('timeout')) {
     return 'A operação demorou muito. Tente novamente.';
   }
-  
+
   // Default generic message
   return 'Erro ao processar solicitação';
 }
