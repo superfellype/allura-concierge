@@ -8,12 +8,12 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   DollarSign,
+  Clock,
+  AlertTriangle,
 } from "lucide-react";
 import {
   LineChart,
   Line,
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -37,11 +37,30 @@ interface RevenueData {
   pedidos: number;
 }
 
-interface TopProduct {
-  name: string;
-  vendas: number;
-  receita: number;
+interface ActivityItem {
+  id: string;
+  type: "order" | "product" | "customer";
+  message: string;
+  time: string;
+  icon: React.ElementType;
 }
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08 }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 16 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] as const }
+  }
+};
 
 const Dashboard = () => {
   const [stats, setStats] = useState<StatsCard[]>([
@@ -53,7 +72,8 @@ const Dashboard = () => {
 
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [revenueData, setRevenueData] = useState<RevenueData[]>([]);
-  const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
+  const [lowStockProducts, setLowStockProducts] = useState<any[]>([]);
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -65,7 +85,7 @@ const Dashboard = () => {
       fetchStats(),
       fetchRecentOrders(),
       fetchRevenueData(),
-      fetchTopProducts(),
+      fetchLowStock(),
     ]);
     setLoading(false);
   };
@@ -113,7 +133,7 @@ const Dashboard = () => {
       { title: "Clientes", value: String(customersCount || 0), change: "+8%", trend: "up", icon: Users },
       { 
         title: "Receita Mensal", 
-        value: `R$ ${monthlyRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 
+        value: `R$ ${monthlyRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`, 
         change: `${revenueChange >= 0 ? '+' : ''}${revenueChange}%`, 
         trend: revenueChange >= 0 ? "up" : "down", 
         icon: TrendingUp 
@@ -140,6 +160,16 @@ const Dashboard = () => {
         })
       );
       setRecentOrders(ordersWithProfiles);
+
+      // Build activities from orders
+      const orderActivities: ActivityItem[] = ordersWithProfiles.slice(0, 4).map(order => ({
+        id: order.id,
+        type: "order" as const,
+        message: `Novo pedido de ${order.profiles?.full_name || 'Cliente'}`,
+        time: formatTimeAgo(new Date(order.created_at)),
+        icon: ShoppingCart,
+      }));
+      setActivities(orderActivities);
     }
   };
 
@@ -162,7 +192,7 @@ const Dashboard = () => {
           new Date(o.created_at).toDateString() === date.toDateString()
         );
         return {
-          name: date.toLocaleDateString('pt-BR', { weekday: 'short' }),
+          name: date.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', ''),
           receita: dayOrders.reduce((sum, o) => sum + Number(o.total), 0),
           pedidos: dayOrders.length,
         };
@@ -172,35 +202,28 @@ const Dashboard = () => {
     }
   };
 
-  const fetchTopProducts = async () => {
-    const { data: orderItems } = await supabase
-      .from("order_items")
-      .select("product_id, quantity, total_price");
+  const fetchLowStock = async () => {
+    const { data } = await supabase
+      .from("products")
+      .select("id, name, stock_quantity, low_stock_threshold")
+      .eq("is_active", true)
+      .or("stock_quantity.lt.10,stock_quantity.eq.0")
+      .order("stock_quantity", { ascending: true })
+      .limit(5);
 
-    if (orderItems) {
-      const productSales: Record<string, { quantity: number; revenue: number }> = {};
-      orderItems.forEach(item => {
-        if (!productSales[item.product_id]) {
-          productSales[item.product_id] = { quantity: 0, revenue: 0 };
-        }
-        productSales[item.product_id].quantity += item.quantity;
-        productSales[item.product_id].revenue += Number(item.total_price);
-      });
+    setLowStockProducts(data || []);
+  };
 
-      const productIds = Object.keys(productSales);
-      const { data: products } = await supabase
-        .from("products")
-        .select("id, name")
-        .in("id", productIds);
+  const formatTimeAgo = (date: Date) => {
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
 
-      const topProds = products?.map(p => ({
-        name: p.name.length > 20 ? p.name.substring(0, 20) + '...' : p.name,
-        vendas: productSales[p.id]?.quantity || 0,
-        receita: productSales[p.id]?.revenue || 0,
-      })).sort((a, b) => b.vendas - a.vendas).slice(0, 5) || [];
-
-      setTopProducts(topProds);
-    }
+    if (diffMins < 60) return `${diffMins}min`;
+    if (diffHours < 24) return `${diffHours}h`;
+    return `${diffDays}d`;
   };
 
   const statusColors: Record<string, string> = {
@@ -225,185 +248,212 @@ const Dashboard = () => {
 
   return (
     <AdminLayout title="Dashboard">
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {stats.map((stat, index) => (
-          <motion.div
-            key={stat.title}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-            className="stats-card"
-          >
-            <div className="flex items-start justify-between mb-4">
-              <div className="p-2.5 rounded-xl bg-primary/10">
-                <stat.icon className="w-5 h-5 text-primary" />
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="space-y-6"
+      >
+        {/* Stats Grid with KPI Numbers */}
+        <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {stats.map((stat, index) => (
+            <motion.div
+              key={stat.title}
+              variants={itemVariants}
+              className="card-minimal p-5"
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-2.5 rounded-xl bg-primary/10">
+                  <stat.icon className="w-5 h-5 text-primary" />
+                </div>
+                <div className={`flex items-center gap-1 text-xs font-body ${
+                  stat.trend === 'up' ? 'text-green-600' : 'text-red-600'
+                }`}>
+                  {stat.change}
+                  {stat.trend === 'up' ? (
+                    <ArrowUpRight className="w-3 h-3" />
+                  ) : (
+                    <ArrowDownRight className="w-3 h-3" />
+                  )}
+                </div>
               </div>
-              <div className={`flex items-center gap-1 text-xs font-body ${
-                stat.trend === 'up' ? 'text-green-600' : 'text-red-600'
-              }`}>
-                {stat.change}
-                {stat.trend === 'up' ? (
-                  <ArrowUpRight className="w-3 h-3" />
-                ) : (
-                  <ArrowDownRight className="w-3 h-3" />
-                )}
-              </div>
-            </div>
-            <p className="font-display text-2xl font-semibold">{stat.value}</p>
-            <p className="font-body text-sm text-muted-foreground mt-1">{stat.title}</p>
-          </motion.div>
-        ))}
-      </div>
-
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Revenue Chart */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4, duration: 0.4 }}
-          className="chart-container"
-        >
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 rounded-xl bg-primary/10">
-              <DollarSign className="w-5 h-5 text-primary" />
-            </div>
-            <h2 className="font-display text-lg font-medium">Receita - Últimos 7 dias</h2>
-          </div>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={revenueData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis 
-                  dataKey="name" 
-                  stroke="hsl(var(--muted-foreground))"
-                  fontSize={12}
-                  tickLine={false}
-                />
-                <YAxis 
-                  stroke="hsl(var(--muted-foreground))"
-                  fontSize={12}
-                  tickLine={false}
-                  tickFormatter={(value) => `R$${value}`}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '12px',
-                    fontFamily: 'Inter'
-                  }}
-                  formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR')}`, 'Receita']}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="receita" 
-                  stroke="hsl(var(--primary))" 
-                  strokeWidth={3}
-                  dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2 }}
-                  activeDot={{ r: 6 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+              <p className="kpi-number">{stat.value}</p>
+              <p className="font-body text-sm text-muted-foreground mt-1">{stat.title}</p>
+            </motion.div>
+          ))}
         </motion.div>
 
-        {/* Top Products Chart */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5, duration: 0.4 }}
-          className="chart-container"
-        >
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 rounded-xl bg-green-100">
-              <Package className="w-5 h-5 text-green-600" />
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Revenue Chart - Takes 2 columns */}
+          <motion.div
+            variants={itemVariants}
+            className="lg:col-span-2 card-minimal p-6"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-primary/10">
+                  <DollarSign className="w-5 h-5 text-primary" />
+                </div>
+                <h2 className="font-display text-lg font-medium">Receita</h2>
+              </div>
+              <span className="font-body text-xs text-muted-foreground">Últimos 7 dias</span>
             </div>
-            <h2 className="font-display text-lg font-medium">Produtos Mais Vendidos</h2>
-          </div>
-          <div className="h-64">
-            {topProducts.length > 0 ? (
+            <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={topProducts} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <YAxis 
+                <LineChart data={revenueData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                  <XAxis 
                     dataKey="name" 
-                    type="category" 
                     stroke="hsl(var(--muted-foreground))"
                     fontSize={11}
-                    width={100}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis 
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={11}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(value) => value > 0 ? `${(value/1000).toFixed(0)}k` : '0'}
+                    width={35}
                   />
                   <Tooltip 
                     contentStyle={{ 
                       backgroundColor: 'hsl(var(--card))',
                       border: '1px solid hsl(var(--border))',
-                      borderRadius: '12px',
-                      fontFamily: 'Inter'
+                      borderRadius: '8px',
+                      fontFamily: 'Inter',
+                      fontSize: '13px'
                     }}
-                    formatter={(value: number, name: string) => [
-                      name === 'vendas' ? `${value} unidades` : `R$ ${value.toLocaleString('pt-BR')}`,
-                      name === 'vendas' ? 'Vendas' : 'Receita'
-                    ]}
+                    formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR')}`, 'Receita']}
                   />
-                  <Bar dataKey="vendas" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
-                </BarChart>
+                  <Line 
+                    type="monotone" 
+                    dataKey="receita" 
+                    stroke="hsl(var(--primary))" 
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 4, fill: 'hsl(var(--primary))' }}
+                  />
+                </LineChart>
               </ResponsiveContainer>
-            ) : (
-              <div className="h-full flex items-center justify-center text-muted-foreground font-body">
-                Nenhuma venda ainda
-              </div>
-            )}
-          </div>
-        </motion.div>
-      </div>
+            </div>
+          </motion.div>
 
-      {/* Recent Orders */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6, duration: 0.4 }}
-        className="liquid-card"
-      >
-        <h2 className="font-display text-xl font-medium mb-6">Pedidos Recentes</h2>
-        
-        {recentOrders.length === 0 ? (
-          <p className="font-body text-muted-foreground text-center py-8">
-            Nenhum pedido ainda
-          </p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Pedido</th>
-                  <th>Cliente</th>
-                  <th>Status</th>
-                  <th>Total</th>
-                  <th>Data</th>
-                </tr>
-              </thead>
-              <tbody>
+          {/* Activity Feed */}
+          <motion.div
+            variants={itemVariants}
+            className="card-minimal p-6"
+          >
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 rounded-xl bg-secondary">
+                <Clock className="w-5 h-5 text-muted-foreground" />
+              </div>
+              <h2 className="font-display text-lg font-medium">Atividade</h2>
+            </div>
+            
+            <div className="space-y-1">
+              {activities.length === 0 ? (
+                <p className="font-body text-sm text-muted-foreground text-center py-8">
+                  Nenhuma atividade recente
+                </p>
+              ) : (
+                activities.map((activity) => (
+                  <div key={activity.id} className="activity-item">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <activity.icon className="w-4 h-4 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-body text-sm text-foreground truncate">
+                        {activity.message}
+                      </p>
+                      <p className="font-body text-xs text-muted-foreground">
+                        {activity.time}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Bottom Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Recent Orders */}
+          <motion.div
+            variants={itemVariants}
+            className="card-minimal p-6"
+          >
+            <h2 className="font-display text-lg font-medium mb-6">Pedidos Recentes</h2>
+            
+            {recentOrders.length === 0 ? (
+              <p className="font-body text-sm text-muted-foreground text-center py-8">
+                Nenhum pedido ainda
+              </p>
+            ) : (
+              <div className="space-y-3">
                 {recentOrders.map((order) => (
-                  <tr key={order.id}>
-                    <td className="font-medium">#{order.id.slice(0, 8)}</td>
-                    <td>{order.profiles?.full_name || 'Cliente'}</td>
-                    <td>
+                  <div key={order.id} className="flex items-center justify-between py-3 border-b border-border/50 last:border-0">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-body text-sm font-medium truncate">
+                        {order.profiles?.full_name || 'Cliente'}
+                      </p>
+                      <p className="font-body text-xs text-muted-foreground">
+                        #{order.id.slice(0, 8)}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[order.status]}`}>
                         {statusLabels[order.status]}
                       </span>
-                    </td>
-                    <td>R$ {Number(order.total).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
-                    <td className="text-muted-foreground">
-                      {new Date(order.created_at).toLocaleDateString('pt-BR')}
-                    </td>
-                  </tr>
+                      <span className="font-body text-sm font-medium">
+                        R$ {Number(order.total).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                      </span>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+              </div>
+            )}
+          </motion.div>
+
+          {/* Stock Alerts */}
+          <motion.div
+            variants={itemVariants}
+            className="card-minimal p-6"
+          >
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 rounded-xl bg-amber-100">
+                <AlertTriangle className="w-5 h-5 text-amber-600" />
+              </div>
+              <h2 className="font-display text-lg font-medium">Alertas de Estoque</h2>
+            </div>
+            
+            {lowStockProducts.length === 0 ? (
+              <p className="font-body text-sm text-muted-foreground text-center py-8">
+                Estoque em dia
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {lowStockProducts.map((product) => (
+                  <div key={product.id} className="flex items-center justify-between py-3 border-b border-border/50 last:border-0">
+                    <p className="font-body text-sm truncate flex-1">
+                      {product.name}
+                    </p>
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                      product.stock_quantity === 0 
+                        ? 'bg-red-100 text-red-700' 
+                        : 'bg-amber-100 text-amber-700'
+                    }`}>
+                      {product.stock_quantity === 0 ? 'Esgotado' : `${product.stock_quantity} un`}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        </div>
       </motion.div>
     </AdminLayout>
   );

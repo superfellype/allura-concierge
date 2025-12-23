@@ -281,6 +281,124 @@
     );
     animation: shimmer 3s infinite;
   }
+
+  /* === NEW PREMIUM UTILITIES === */
+  
+  /* Hover Zoom for Images */
+  .hover-zoom {
+    @apply overflow-hidden;
+  }
+  
+  .hover-zoom img {
+    @apply transition-transform duration-500 ease-smooth;
+  }
+  
+  .hover-zoom:hover img {
+    @apply scale-105;
+  }
+
+  /* Luxury Button - Minimal radius, solid */
+  .btn-luxury {
+    @apply relative px-8 py-4 font-body font-medium tracking-wide overflow-hidden transition-all duration-300;
+    border-radius: 2px;
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+  }
+
+  .btn-luxury:hover {
+    box-shadow: 0 8px 24px hsl(var(--primary) / 0.35);
+    transform: translateY(-2px);
+  }
+
+  .btn-luxury:active {
+    transform: translateY(0);
+  }
+
+  /* Outline variant */
+  .btn-luxury-outline {
+    @apply relative px-8 py-4 font-body font-medium tracking-wide overflow-hidden transition-all duration-300 bg-transparent;
+    border-radius: 2px;
+    border: 1px solid hsl(var(--foreground));
+    color: hsl(var(--foreground));
+  }
+
+  .btn-luxury-outline:hover {
+    background: hsl(var(--foreground));
+    color: hsl(var(--background));
+  }
+
+  /* Link Underline Animation */
+  .link-underline-anim {
+    @apply relative inline-block font-body;
+  }
+
+  .link-underline-anim::after {
+    content: '';
+    @apply absolute bottom-0 left-0 w-full h-px bg-current origin-left scale-x-0 transition-transform duration-300 ease-smooth;
+  }
+
+  .link-underline-anim:hover::after {
+    @apply scale-x-100;
+  }
+
+  /* Card Minimal - No visible border, soft shadow only */
+  .card-minimal {
+    @apply bg-card rounded-2xl transition-all duration-300;
+    box-shadow: 0 2px 20px hsl(var(--foreground) / 0.04);
+  }
+
+  .card-minimal:hover {
+    box-shadow: 0 8px 40px hsl(var(--foreground) / 0.08);
+    transform: translateY(-4px);
+  }
+
+  /* Input with Animated Underline */
+  .input-underline {
+    @apply bg-transparent border-0 border-b border-border px-0 py-3 font-body text-foreground placeholder:text-muted-foreground focus:outline-none transition-all duration-300;
+    background: transparent;
+  }
+
+  .input-underline:focus {
+    border-color: hsl(var(--primary));
+    box-shadow: 0 2px 0 0 hsl(var(--primary));
+  }
+
+  /* KPI Number - Large serif display */
+  .kpi-number {
+    @apply font-display text-4xl md:text-5xl font-semibold tracking-tight;
+  }
+
+  /* KPI Small for secondary stats */
+  .kpi-number-sm {
+    @apply font-display text-2xl md:text-3xl font-semibold tracking-tight;
+  }
+
+  /* Activity Feed Item */
+  .activity-item {
+    @apply flex items-start gap-4 p-4 rounded-xl transition-colors duration-200 hover:bg-secondary/50;
+  }
+
+  /* Quick Action Button */
+  .quick-action {
+    @apply absolute inset-0 flex items-center justify-center bg-foreground/60 opacity-0 transition-opacity duration-300;
+  }
+
+  .hover-zoom:hover .quick-action {
+    @apply opacity-100;
+  }
+
+  /* Price Display */
+  .price-display {
+    @apply font-body text-sm text-muted-foreground;
+  }
+
+  .price-display .installment {
+    @apply text-lg font-semibold text-foreground;
+  }
+
+  .price-display .full-price {
+    @apply text-xs text-muted-foreground;
+  }
 }
 
 @layer utilities {
