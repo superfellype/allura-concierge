@@ -11,6 +11,7 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Cadastro from "./pages/Cadastro";
 import RecuperarSenha from "./pages/RecuperarSenha";
+import RedefinirSenha from "./pages/RedefinirSenha";
 import Carrinho from "./pages/Carrinho";
 import Checkout from "./pages/Checkout";
 import Produto from "./pages/Produto";
@@ -49,6 +50,7 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/cadastro" element={<Cadastro />} />
             <Route path="/recuperar-senha" element={<RecuperarSenha />} />
+            <Route path="/redefinir-senha" element={<RedefinirSenha />} />
             <Route path="/carrinho" element={<Carrinho />} />
             <Route path="/produto/:slug" element={<Produto />} />
             <Route path="/produtos" element={<ProdutosLista />} />

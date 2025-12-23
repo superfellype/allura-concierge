@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Mail, ArrowLeft, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getUserFriendlyError, safeLogError } from "@/lib/error-utils";
 import logoAllura from "@/assets/logo-allura.png";
 
 const RecuperarSenha = () => {
@@ -23,16 +24,16 @@ const RecuperarSenha = () => {
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/login`,
+        redirectTo: `${window.location.origin}/redefinir-senha`,
       });
 
       if (error) throw error;
 
       setSent(true);
       toast.success('Email enviado!');
-    } catch (error: any) {
-      console.error('Error:', error);
-      toast.error('Erro ao enviar email');
+    } catch (error: unknown) {
+      safeLogError("RecuperarSenha", error);
+      toast.error(getUserFriendlyError(error));
     } finally {
       setLoading(false);
     }
