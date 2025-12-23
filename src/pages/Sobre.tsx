@@ -3,18 +3,37 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import logoFlower from "@/assets/logo-allura-flower.png";
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.15 }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] as const }
+  }
+};
+
 const Sobre = () => {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-cream-50 via-cream-100/50 to-secondary/20 noise-bg">
       <Navbar />
       
-      <main className="pt-28 pb-20">
+      {/* Animated Background Blobs */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[20%] left-[10%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl animate-morph" />
+        <div className="absolute bottom-[20%] right-[10%] w-[400px] h-[400px] bg-accent/8 rounded-full blur-3xl animate-morph" style={{ animationDelay: "-4s" }} />
+      </div>
+      
+      <main className="relative z-10 pt-28 pb-20">
         {/* Hero */}
         <section className="relative py-20 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-b from-secondary/50 to-background" />
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-accent/8 rounded-full blur-3xl" />
-          
           <div className="relative z-10 container mx-auto px-6">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -23,11 +42,11 @@ const Sobre = () => {
               className="text-center max-w-2xl mx-auto"
             >
               <div className="flex justify-center mb-6">
-                <img src={logoFlower} alt="" className="w-12 h-12 object-contain" />
+                <div className="glass-icon w-16 h-16">
+                  <img src={logoFlower} alt="" className="w-10 h-10 object-contain" />
+                </div>
               </div>
-              <span className="font-body text-xs uppercase tracking-[0.25em] text-primary/80">
-                Nossa Essência
-              </span>
+              <span className="glass-badge mb-4">Nossa Essência</span>
               <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-medium mt-4 tracking-tight">
                 Design que flui<br />com você
               </h1>
@@ -48,15 +67,19 @@ const Sobre = () => {
               transition={{ duration: 0.6 }}
               className="text-center mb-16"
             >
-              <span className="font-body text-xs uppercase tracking-[0.25em] text-primary/80">
-                O que nos move
-              </span>
+              <span className="glass-badge mb-4">O que nos move</span>
               <h2 className="font-display text-3xl md:text-4xl font-medium mt-4">
                 Menos excesso. Mais intenção.
               </h2>
             </motion.div>
 
-            <div className="grid md:grid-cols-3 gap-8">
+            <motion.div 
+              variants={containerVariants}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              className="grid md:grid-cols-3 gap-8"
+            >
               {[
                 {
                   title: "Materiais Nobres",
@@ -73,34 +96,33 @@ const Sobre = () => {
               ].map((value, index) => (
                 <motion.div
                   key={value.title}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.1, duration: 0.5 }}
-                  className="liquid-card p-8 text-center"
+                  variants={itemVariants}
+                  className="liquid-glass-card p-8 text-center"
                 >
+                  <div className="glass-icon w-12 h-12 mx-auto mb-4">
+                    <span className="text-lg font-serif">{index + 1}</span>
+                  </div>
                   <h3 className="font-display text-xl font-medium mb-4">{value.title}</h3>
                   <p className="font-body text-muted-foreground leading-relaxed">
                     {value.description}
                   </p>
                 </motion.div>
               ))}
-            </div>
+            </motion.div>
           </div>
         </section>
 
         {/* Quote */}
         <section className="py-20 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-secondary/30 via-transparent to-secondary/30" />
           <div className="relative z-10 container mx-auto px-6">
             <motion.blockquote
               initial={{ opacity: 0, scale: 0.95 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
-              className="text-center max-w-3xl mx-auto"
+              className="liquid-glass-card p-12 text-center max-w-3xl mx-auto"
             >
-              <p className="font-display text-2xl md:text-3xl lg:text-4xl font-medium italic text-foreground/90 leading-relaxed">
+              <p className="font-display text-2xl md:text-3xl lg:text-4xl font-medium italic text-foreground/90 leading-relaxed glass-kpi">
                 "Um novo significado em cada escolha."
               </p>
               <footer className="mt-6 font-body text-sm text-muted-foreground">
@@ -118,11 +140,9 @@ const Sobre = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
-              className="liquid-card p-8 md:p-12 max-w-2xl mx-auto text-center"
+              className="liquid-glass-card p-8 md:p-12 max-w-2xl mx-auto text-center"
             >
-              <span className="font-body text-xs uppercase tracking-[0.25em] text-primary/80">
-                Onde nos encontrar
-              </span>
+              <span className="glass-badge mb-4">Onde nos encontrar</span>
               <h3 className="font-display text-2xl font-medium mt-4 mb-6">
                 Uberlândia, MG
               </h3>
@@ -136,7 +156,7 @@ const Sobre = () => {
                 href="https://wa.me/5534999281320" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 liquid-button px-6 py-3 text-primary-foreground font-body text-sm"
+                className="glass-btn inline-flex items-center gap-2 px-6 py-3"
               >
                 Fale conosco
               </a>

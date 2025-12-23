@@ -39,19 +39,18 @@ const RecuperarSenha = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      {/* Background Effects */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 -left-32 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-accent/5 rounded-full blur-3xl" />
-      </div>
+    <div className="min-h-screen flex items-center justify-center noise-bg overflow-hidden">
+      {/* Animated Background */}
+      <div className="fixed inset-0 bg-gradient-to-br from-[hsl(45_40%_97%)] via-[hsl(38_35%_95%)] to-[hsl(30_30%_93%)]" />
+      <div className="fixed top-[10%] left-[5%] w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl animate-morph" />
+      <div className="fixed bottom-[10%] right-[5%] w-[500px] h-[500px] bg-accent/8 rounded-full blur-3xl animate-morph" style={{ animationDelay: "-4s" }} />
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md relative z-10"
+        className="w-full max-w-md relative z-10 px-6"
       >
-        <div className="liquid-glass p-8 rounded-3xl">
+        <div className="liquid-glass-card p-8">
           {/* Logo */}
           <div className="text-center mb-8">
             <Link to="/">
@@ -70,7 +69,7 @@ const RecuperarSenha = () => {
               animate={{ opacity: 1, scale: 1 }}
               className="text-center py-8"
             >
-              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 rounded-full bg-green-100/80 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
                 <CheckCircle className="w-8 h-8 text-green-600" />
               </div>
               <h2 className="text-lg font-medium mb-2">Email Enviado!</h2>
@@ -79,7 +78,7 @@ const RecuperarSenha = () => {
               </p>
               <Link
                 to="/login"
-                className="liquid-button inline-flex items-center gap-2 px-6 py-3"
+                className="glass-btn inline-flex items-center gap-2 px-6 py-3"
               >
                 <ArrowLeft className="w-4 h-4" />
                 Voltar ao Login
@@ -100,7 +99,7 @@ const RecuperarSenha = () => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="seu@email.com"
-                      className="w-full pl-12 pr-4 py-3 rounded-xl bg-background/50 border border-border/50 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                      className="w-full pl-12 pr-4 py-3.5 glass-input rounded-xl"
                       required
                     />
                   </div>
@@ -111,7 +110,7 @@ const RecuperarSenha = () => {
                   disabled={loading}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="w-full liquid-button py-3 disabled:opacity-50"
+                  className="w-full glass-btn py-3.5 disabled:opacity-50"
                 >
                   {loading ? 'Enviando...' : 'Enviar Email'}
                 </motion.button>
