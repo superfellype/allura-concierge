@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Search, Plus, Minus, Trash2, Check, Package, User, CreditCard, Loader2 } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
@@ -54,7 +54,6 @@ const VendaManual = () => {
 
   const { results: searchResults, searching, search } = useProductSearch();
 
-  // Load customers
   useEffect(() => {
     const loadCustomers = async () => {
       const { data } = await supabase
@@ -69,7 +68,6 @@ const VendaManual = () => {
     loadCustomers();
   }, []);
 
-  // Debounced search
   useEffect(() => {
     const timer = setTimeout(() => {
       if (searchQuery) {
@@ -136,7 +134,7 @@ const VendaManual = () => {
   };
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const total = subtotal; // Add shipping logic if needed
+  const total = subtotal;
 
   const handleSubmit = async () => {
     if (cart.length === 0) {
@@ -154,15 +152,12 @@ const VendaManual = () => {
     try {
       let userId = selectedCustomer;
 
-      // If using temporary customer, we need to handle this differently
-      // For now, we'll require an existing customer
       if (!userId) {
         toast.error("Por favor, selecione um cliente existente");
         setSubmitting(false);
         return;
       }
 
-      // Validate stock before creating order
       for (const item of cart) {
         const { data: product } = await supabase
           .from("products")
@@ -177,7 +172,6 @@ const VendaManual = () => {
         }
       }
 
-      // Create order
       const { data: order, error: orderError } = await supabase
         .from("orders")
         .insert({
@@ -185,7 +179,7 @@ const VendaManual = () => {
           subtotal,
           total,
           shipping_cost: 0,
-          status: "paid", // Manual orders are immediately paid
+          status: "paid",
           payment_method: paymentMethod,
           origin: "manual",
           notes: notes || null,
@@ -203,7 +197,6 @@ const VendaManual = () => {
 
       if (orderError) throw orderError;
 
-      // Create order items (trigger will update stock)
       const orderItems = cart.map(item => ({
         order_id: order.id,
         product_id: item.product_id,
@@ -218,7 +211,6 @@ const VendaManual = () => {
 
       if (itemsError) throw itemsError;
 
-      // Create payment record
       const { error: paymentError } = await supabase
         .from("payments")
         .insert({
@@ -233,7 +225,6 @@ const VendaManual = () => {
 
       toast.success("Pedido criado com sucesso!");
       
-      // Reset form
       setCart([]);
       setSelectedCustomer("");
       setTempCustomerName("");
@@ -263,7 +254,7 @@ const VendaManual = () => {
                 placeholder="Buscar por nome ou SKU..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-11"
+                className="pl-11 glass-input"
               />
               {searching && (
                 <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />
@@ -275,7 +266,7 @@ const VendaManual = () => {
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="absolute top-full left-0 right-0 z-50 mt-2 liquid-card-strong p-2 max-h-80 overflow-y-auto"
+                className="absolute top-full left-0 right-0 z-50 mt-2 liquid-glass-card p-2 max-h-80 overflow-y-auto"
               >
                 {searchResults.map((product) => (
                   <button
@@ -283,7 +274,7 @@ const VendaManual = () => {
                     onClick={() => addToCart(product)}
                     className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-secondary/50 transition-colors text-left"
                   >
-                    <div className="w-12 h-12 rounded-lg bg-muted overflow-hidden flex-shrink-0">
+                    <div className="w-12 h-12 rounded-lg bg-muted/30 overflow-hidden flex-shrink-0">
                       {product.images?.[0] ? (
                         <img src={product.images[0]} alt="" className="w-full h-full object-cover" />
                       ) : (
@@ -309,21 +300,23 @@ const VendaManual = () => {
           </div>
 
           {/* Cart */}
-          <div className="liquid-card">
-            <h3 className="font-display text-lg font-medium mb-4 flex items-center gap-2">
-              <Package className="w-5 h-5" />
+          <div className="liquid-glass-card p-6">
+            <h3 className="font-display text-lg font-medium mb-5 flex items-center gap-2">
+              <div className="glass-icon w-9 h-9">
+                <Package className="w-4 h-4 text-primary" />
+              </div>
               Itens do Pedido
             </h3>
 
             {cart.length === 0 ? (
-              <p className="text-center py-8 text-muted-foreground font-body">
+              <p className="text-center py-10 text-muted-foreground font-body">
                 Busque e adicione produtos ao pedido
               </p>
             ) : (
               <div className="space-y-3">
                 {cart.map((item) => (
-                  <div key={item.product_id} className="flex items-center gap-3 p-3 rounded-xl bg-secondary/30">
-                    <div className="w-14 h-14 rounded-lg bg-muted overflow-hidden flex-shrink-0">
+                  <div key={item.product_id} className="flex items-center gap-3 p-4 rounded-xl bg-secondary/20">
+                    <div className="w-14 h-14 rounded-lg bg-muted/30 overflow-hidden flex-shrink-0">
                       {item.image ? (
                         <img src={item.image} alt="" className="w-full h-full object-cover" />
                       ) : (
@@ -342,7 +335,7 @@ const VendaManual = () => {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => updateQuantity(item.product_id, -1)}
-                        className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center hover:bg-secondary/80 transition-colors"
+                        className="w-8 h-8 rounded-full glass-btn-secondary flex items-center justify-center"
                         disabled={item.quantity <= 1}
                       >
                         <Minus className="w-3 h-3" />
@@ -350,7 +343,7 @@ const VendaManual = () => {
                       <span className="font-body font-medium w-8 text-center">{item.quantity}</span>
                       <button
                         onClick={() => updateQuantity(item.product_id, 1)}
-                        className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center hover:bg-secondary/80 transition-colors"
+                        className="w-8 h-8 rounded-full glass-btn-secondary flex items-center justify-center"
                         disabled={item.quantity >= item.stock}
                       >
                         <Plus className="w-3 h-3" />
@@ -375,17 +368,19 @@ const VendaManual = () => {
         {/* Order Summary */}
         <div className="space-y-6">
           {/* Customer */}
-          <div className="liquid-card">
-            <h3 className="font-display text-lg font-medium mb-4 flex items-center gap-2">
-              <User className="w-5 h-5" />
+          <div className="liquid-glass-card p-6">
+            <h3 className="font-display text-lg font-medium mb-5 flex items-center gap-2">
+              <div className="glass-icon w-9 h-9">
+                <User className="w-4 h-4 text-primary" />
+              </div>
               Cliente
             </h3>
 
             <div className="space-y-4">
               <div>
-                <Label>Cliente Existente</Label>
+                <Label className="font-body">Cliente Existente</Label>
                 <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
-                  <SelectTrigger>
+                  <SelectTrigger className="glass-input mt-1.5">
                     <SelectValue placeholder="Selecione um cliente" />
                   </SelectTrigger>
                   <SelectContent>
@@ -400,21 +395,23 @@ const VendaManual = () => {
 
               {!selectedCustomer && (
                 <>
-                  <div className="text-center text-sm text-muted-foreground">ou</div>
+                  <div className="text-center text-sm text-muted-foreground font-body">ou</div>
                   <div>
-                    <Label>Nome do Cliente</Label>
+                    <Label className="font-body">Nome do Cliente</Label>
                     <Input
                       value={tempCustomerName}
                       onChange={(e) => setTempCustomerName(e.target.value)}
                       placeholder="Nome completo"
+                      className="glass-input mt-1.5"
                     />
                   </div>
                   <div>
-                    <Label>Telefone</Label>
+                    <Label className="font-body">Telefone</Label>
                     <Input
                       value={tempCustomerPhone}
                       onChange={(e) => setTempCustomerPhone(e.target.value)}
                       placeholder="(00) 00000-0000"
+                      className="glass-input mt-1.5"
                     />
                   </div>
                 </>
@@ -423,17 +420,19 @@ const VendaManual = () => {
           </div>
 
           {/* Payment */}
-          <div className="liquid-card">
-            <h3 className="font-display text-lg font-medium mb-4 flex items-center gap-2">
-              <CreditCard className="w-5 h-5" />
+          <div className="liquid-glass-card p-6">
+            <h3 className="font-display text-lg font-medium mb-5 flex items-center gap-2">
+              <div className="glass-icon w-9 h-9">
+                <CreditCard className="w-4 h-4 text-primary" />
+              </div>
               Pagamento
             </h3>
 
             <div className="space-y-4">
               <div>
-                <Label>Método de Pagamento</Label>
+                <Label className="font-body">Método de Pagamento</Label>
                 <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                  <SelectTrigger>
+                  <SelectTrigger className="glass-input mt-1.5">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -447,39 +446,41 @@ const VendaManual = () => {
               </div>
 
               <div>
-                <Label>Observações</Label>
+                <Label className="font-body">Observações</Label>
                 <Input
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Observações do pedido..."
+                  className="glass-input mt-1.5"
                 />
               </div>
             </div>
           </div>
 
           {/* Summary */}
-          <div className="liquid-card-strong">
-            <h3 className="font-display text-lg font-medium mb-4">Resumo</h3>
+          <div className="liquid-glass-card p-6">
+            <h3 className="font-display text-lg font-medium mb-5">Resumo</h3>
             
-            <div className="space-y-2 mb-4">
+            <div className="space-y-3 mb-6">
               <div className="flex justify-between font-body text-sm">
                 <span className="text-muted-foreground">Subtotal</span>
                 <span>{formatFullPrice(subtotal)}</span>
               </div>
               <div className="flex justify-between font-body text-sm">
                 <span className="text-muted-foreground">Frete</span>
-                <span className="text-green-600">Grátis</span>
+                <span className="status-badge status-badge-success">Grátis</span>
               </div>
-              <div className="border-t border-border pt-2 flex justify-between font-display text-xl font-medium">
-                <span>Total</span>
-                <span className="text-primary">{formatFullPrice(total)}</span>
+              <div className="glass-divider" />
+              <div className="flex justify-between items-center">
+                <span className="font-display text-lg">Total</span>
+                <span className="glass-kpi text-2xl">{formatFullPrice(total)}</span>
               </div>
             </div>
 
             <Button
               onClick={handleSubmit}
               disabled={submitting || cart.length === 0}
-              className="w-full"
+              className="w-full glass-btn py-4"
               size="lg"
             >
               {submitting ? (

@@ -59,7 +59,6 @@ const Produto = () => {
 
       setProduct(data as Product);
 
-      // Fetch related products
       const { data: related } = await supabase
         .from('products')
         .select('id, name, slug, description, price, original_price, images, category, attributes, stock_quantity')
@@ -91,7 +90,6 @@ const Produto = () => {
     setAddingToCart(true);
 
     try {
-      // Check if item already in cart
       const { data: existingItem } = await supabase
         .from('cart_items')
         .select('id, quantity')
@@ -100,7 +98,6 @@ const Produto = () => {
         .maybeSingle();
 
       if (existingItem) {
-        // Update quantity
         const { error } = await supabase
           .from('cart_items')
           .update({ quantity: existingItem.quantity + quantity })
@@ -108,7 +105,6 @@ const Produto = () => {
 
         if (error) throw error;
       } else {
-        // Add new item
         const { error } = await supabase
           .from('cart_items')
           .insert({
@@ -132,16 +128,16 @@ const Produto = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background noise-bg">
         <Navbar />
         <main className="pt-32 pb-20 px-4">
           <div className="max-w-6xl mx-auto">
             <div className="animate-pulse grid md:grid-cols-2 gap-12">
-              <div className="aspect-square rounded-3xl bg-muted" />
+              <div className="aspect-square rounded-3xl bg-muted/30" />
               <div className="space-y-4">
-                <div className="h-8 bg-muted rounded w-3/4" />
-                <div className="h-6 bg-muted rounded w-1/4" />
-                <div className="h-24 bg-muted rounded" />
+                <div className="h-8 bg-muted/30 rounded w-3/4" />
+                <div className="h-6 bg-muted/30 rounded w-1/4" />
+                <div className="h-24 bg-muted/30 rounded" />
               </div>
             </div>
           </div>
@@ -158,7 +154,7 @@ const Produto = () => {
     : 0;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background noise-bg">
       <Navbar />
       
       <main className="pt-32 pb-20 px-4">
@@ -170,7 +166,7 @@ const Produto = () => {
           >
             <Link
               to="/"
-              className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+              className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors font-body"
             >
               <ArrowLeft className="w-4 h-4" />
               Voltar
@@ -184,8 +180,8 @@ const Produto = () => {
               animate={{ opacity: 1, x: 0 }}
               className="space-y-4"
             >
-              <div className="aspect-square rounded-3xl overflow-hidden liquid-glass p-2">
-                <div className="w-full h-full rounded-2xl overflow-hidden bg-muted">
+              <div className="aspect-square rounded-3xl overflow-hidden liquid-glass-card p-2">
+                <div className="w-full h-full rounded-[1.25rem] overflow-hidden bg-muted/20">
                   {product.images?.[selectedImage] ? (
                     <img
                       src={product.images[selectedImage]}
@@ -208,7 +204,7 @@ const Produto = () => {
                       onClick={() => setSelectedImage(index)}
                       className={`w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 border-2 transition-all ${
                         selectedImage === index
-                          ? 'border-primary'
+                          ? 'border-primary ring-2 ring-primary/20'
                           : 'border-transparent opacity-60 hover:opacity-100'
                       }`}
                     >
@@ -231,23 +227,23 @@ const Produto = () => {
               className="space-y-6"
             >
               <div>
-                <p className="text-sm text-muted-foreground uppercase tracking-wider mb-2">
+                <p className="text-sm text-muted-foreground uppercase tracking-wider mb-2 font-body">
                   {product.category}
                 </p>
-                <h1 className="text-3xl md:text-4xl font-serif mb-4">
+                <h1 className="font-display text-3xl md:text-4xl font-medium mb-5">
                   {product.name}
                 </h1>
                 
                 <div className="flex items-baseline gap-3">
-                  <span className="text-3xl font-medium text-primary">
+                  <span className="glass-kpi text-3xl">
                     {formatPrice(product.price)}
                   </span>
                   {product.original_price && (
                     <>
-                      <span className="text-lg text-muted-foreground line-through">
+                      <span className="text-lg text-muted-foreground line-through font-body">
                         {formatPrice(product.original_price)}
                       </span>
-                      <span className="text-sm bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                      <span className="status-badge status-badge-success">
                         -{discount}%
                       </span>
                     </>
@@ -256,7 +252,7 @@ const Produto = () => {
               </div>
 
               {product.description && (
-                <p className="text-muted-foreground leading-relaxed">
+                <p className="text-muted-foreground leading-relaxed font-body">
                   {product.description}
                 </p>
               )}
@@ -266,7 +262,7 @@ const Produto = () => {
                 <div className="space-y-4">
                   {Object.entries(product.attributes).map(([key, values]: [string, any]) => (
                     <div key={key}>
-                      <label className="text-sm font-medium mb-2 block capitalize">
+                      <label className="text-sm font-medium mb-2 block capitalize font-body">
                         {key}
                       </label>
                       <div className="flex flex-wrap gap-2">
@@ -274,10 +270,10 @@ const Produto = () => {
                           <button
                             key={value}
                             onClick={() => setSelectedAttributes(prev => ({ ...prev, [key]: value }))}
-                            className={`px-4 py-2 rounded-full text-sm transition-all ${
+                            className={`px-4 py-2.5 rounded-full text-sm transition-all font-body ${
                               selectedAttributes[key] === value
-                                ? 'bg-primary text-primary-foreground'
-                                : 'glass-button'
+                                ? 'glass-btn'
+                                : 'glass-btn-secondary'
                             }`}
                           >
                             {value}
@@ -291,22 +287,22 @@ const Produto = () => {
 
               {/* Quantity */}
               <div>
-                <label className="text-sm font-medium mb-2 block">
+                <label className="text-sm font-medium mb-3 block font-body">
                   Quantidade
                 </label>
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                    className="w-10 h-10 rounded-full glass-button flex items-center justify-center"
+                    className="w-11 h-11 rounded-full glass-btn-secondary flex items-center justify-center"
                   >
                     <Minus className="w-4 h-4" />
                   </button>
-                  <span className="w-12 text-center text-lg font-medium">
+                  <span className="w-12 text-center text-lg font-medium font-body">
                     {quantity}
                   </span>
                   <button
                     onClick={() => setQuantity(q => q + 1)}
-                    className="w-10 h-10 rounded-full glass-button flex items-center justify-center"
+                    className="w-11 h-11 rounded-full glass-btn-secondary flex items-center justify-center"
                   >
                     <Plus className="w-4 h-4" />
                   </button>
@@ -314,14 +310,14 @@ const Produto = () => {
               </div>
 
               {/* Stock Status */}
-              <div className="flex items-center gap-2 text-sm">
+              <div className="flex items-center gap-2 text-sm font-body">
                 {product.stock_quantity > 0 ? (
                   <>
                     <Check className="w-4 h-4 text-green-600" />
-                    <span className="text-green-600">Em estoque</span>
+                    <span className="text-green-600 font-medium">Em estoque</span>
                   </>
                 ) : (
-                  <span className="text-destructive">Fora de estoque</span>
+                  <span className="text-destructive font-medium">Fora de estoque</span>
                 )}
               </div>
 
@@ -330,28 +326,34 @@ const Produto = () => {
                 <button
                   onClick={handleAddToCart}
                   disabled={addingToCart || product.stock_quantity === 0}
-                  className="flex-1 liquid-button py-4 disabled:opacity-50"
+                  className="flex-1 glass-btn py-4 disabled:opacity-50"
                 >
                   {addingToCart ? 'Adicionando...' : 'Adicionar ao Carrinho'}
                 </button>
-                <button className="w-14 h-14 rounded-full glass-button flex items-center justify-center">
+                <button className="w-14 h-14 rounded-full glass-btn-secondary flex items-center justify-center">
                   <Heart className="w-5 h-5" />
                 </button>
               </div>
 
               {/* Benefits */}
-              <div className="grid grid-cols-3 gap-4 pt-6 border-t border-border/50">
+              <div className="grid grid-cols-3 gap-4 pt-8 border-t border-border/30">
                 <div className="text-center">
-                  <Truck className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-xs text-muted-foreground">Frete Grátis acima de R$299</p>
+                  <div className="glass-icon w-12 h-12 mx-auto mb-3">
+                    <Truck className="w-5 h-5 text-primary" />
+                  </div>
+                  <p className="text-xs text-muted-foreground font-body">Frete Grátis acima de R$299</p>
                 </div>
                 <div className="text-center">
-                  <ShieldCheck className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-xs text-muted-foreground">Pagamento Seguro</p>
+                  <div className="glass-icon w-12 h-12 mx-auto mb-3">
+                    <ShieldCheck className="w-5 h-5 text-primary" />
+                  </div>
+                  <p className="text-xs text-muted-foreground font-body">Pagamento Seguro</p>
                 </div>
                 <div className="text-center">
-                  <RotateCcw className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-xs text-muted-foreground">Troca em até 7 dias</p>
+                  <div className="glass-icon w-12 h-12 mx-auto mb-3">
+                    <RotateCcw className="w-5 h-5 text-primary" />
+                  </div>
+                  <p className="text-xs text-muted-foreground font-body">Troca em até 7 dias</p>
                 </div>
               </div>
             </motion.div>
@@ -363,9 +365,9 @@ const Produto = () => {
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="mt-20"
+              className="mt-24"
             >
-              <h2 className="text-2xl font-serif mb-8">Você também pode gostar</h2>
+              <h2 className="font-display text-2xl font-medium mb-10">Você também pode gostar</h2>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 {relatedProducts.map((item) => (
                   <Link
@@ -373,23 +375,25 @@ const Produto = () => {
                     to={`/produto/${item.slug}`}
                     className="group"
                   >
-                    <div className="aspect-square rounded-2xl overflow-hidden bg-muted mb-3">
-                      {item.images?.[0] ? (
-                        <img
-                          src={item.images[0]}
-                          alt={item.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <ShoppingBag className="w-8 h-8 text-muted-foreground" />
-                        </div>
-                      )}
+                    <div className="aspect-square rounded-2xl overflow-hidden liquid-glass-card p-1 mb-4">
+                      <div className="w-full h-full rounded-xl overflow-hidden bg-muted/20">
+                        {item.images?.[0] ? (
+                          <img
+                            src={item.images[0]}
+                            alt={item.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <ShoppingBag className="w-8 h-8 text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <h3 className="font-medium text-sm line-clamp-2 group-hover:text-primary transition-colors">
+                    <h3 className="font-medium text-sm line-clamp-2 group-hover:text-primary transition-colors font-body">
                       {item.name}
                     </h3>
-                    <p className="text-primary font-medium mt-1">
+                    <p className="text-primary font-medium mt-1 font-body">
                       {formatPrice(item.price)}
                     </p>
                   </Link>

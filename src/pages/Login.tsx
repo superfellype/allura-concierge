@@ -18,13 +18,10 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Get the redirect path from location state or default to home
   const from = (location.state as any)?.from?.pathname || "/";
 
-  // Redirect if already logged in - wait for auth loading to complete
   useEffect(() => {
     if (user && !authLoading) {
-      // If admin, go to admin dashboard, otherwise go to intended destination
       if (isAdmin) {
         navigate("/admin");
       } else {
@@ -50,7 +47,6 @@ const Login = () => {
       }
 
       toast.success("Bem-vinda de volta!");
-      // Navigation will be handled by the useEffect above
     } catch (error: unknown) {
       safeLogError('Login', error);
       toast.error(getUserFriendlyError(error));
@@ -60,35 +56,36 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center noise-bg">
-      {/* Background */}
-      <div className="fixed inset-0 bg-gradient-to-br from-[hsl(45_40%_97%)] via-[hsl(38_35%_95%)] to-[hsl(30_30%_93%)]" />
-      <div className="fixed top-[20%] right-[10%] w-[500px] h-[500px] bg-primary/6 rounded-full blur-3xl" />
-      <div className="fixed bottom-[20%] left-[10%] w-[400px] h-[400px] bg-accent/8 rounded-full blur-3xl" />
+    <div className="min-h-screen flex items-center justify-center noise-bg overflow-hidden">
+      {/* Animated Background */}
+      <div className="fixed inset-0 bg-gradient-to-br from-[hsl(var(--cream-100))] via-[hsl(var(--cream-200))] to-[hsl(var(--cream-300))]" />
+      <div className="fixed top-[15%] right-[10%] w-[500px] h-[500px] bg-primary/8 rounded-full blur-3xl animate-morph" />
+      <div className="fixed bottom-[15%] left-[10%] w-[400px] h-[400px] bg-accent/10 rounded-full blur-3xl animate-morph" style={{ animationDelay: "-3s" }} />
+      <div className="fixed top-[50%] left-[50%] -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-radial from-cream-200/40 to-transparent rounded-full blur-2xl" />
 
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0, y: 20, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         className="relative z-10 w-full max-w-md px-6"
       >
-        <div className="liquid-card p-8">
+        <div className="liquid-glass-card p-10">
           {/* Logo */}
-          <Link to="/" className="flex items-center justify-center gap-2 mb-8">
-            <img src={logoFlower} alt="" className="h-8 w-auto" />
-            <img src={logoAllura} alt="Allura" className="h-8 w-auto" />
+          <Link to="/" className="flex items-center justify-center gap-3 mb-10">
+            <img src={logoFlower} alt="" className="h-10 w-auto" />
+            <img src={logoAllura} alt="Allura" className="h-9 w-auto" />
           </Link>
 
-          <h1 className="font-display text-2xl font-medium text-center mb-2">
+          <h1 className="font-display text-3xl font-medium text-center mb-2">
             Bem-vinda de volta
           </h1>
-          <p className="font-body text-sm text-muted-foreground text-center mb-8">
+          <p className="font-body text-sm text-muted-foreground text-center mb-10">
             Entre para acessar sua conta
           </p>
 
-          <form onSubmit={handleLogin} className="space-y-5">
+          <form onSubmit={handleLogin} className="space-y-6">
             <div>
-              <label className="font-body text-sm text-foreground/70 mb-1.5 block">
+              <label className="font-body text-sm text-foreground/70 mb-2 block">
                 E-mail
               </label>
               <div className="relative">
@@ -98,14 +95,14 @@ const Login = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="w-full pl-11 pr-4 py-3 liquid-glass rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
+                  className="w-full pl-12 pr-4 py-4 glass-input rounded-2xl font-body text-sm"
                   placeholder="seu@email.com"
                 />
               </div>
             </div>
 
             <div>
-              <label className="font-body text-sm text-foreground/70 mb-1.5 block">
+              <label className="font-body text-sm text-foreground/70 mb-2 block">
                 Senha
               </label>
               <div className="relative">
@@ -115,7 +112,7 @@ const Login = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="w-full pl-11 pr-11 py-3 liquid-glass rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
+                  className="w-full pl-12 pr-12 py-4 glass-input rounded-2xl font-body text-sm"
                   placeholder="••••••••"
                 />
                 <button
@@ -142,14 +139,14 @@ const Login = () => {
               whileTap={{ scale: 0.99 }}
               type="submit"
               disabled={loading}
-              className="w-full liquid-button py-3.5 text-primary-foreground font-body font-medium flex items-center justify-center gap-2 disabled:opacity-70"
+              className="w-full glass-btn py-4 text-primary-foreground font-body font-medium flex items-center justify-center gap-2 disabled:opacity-70"
             >
               {loading ? "Entrando..." : "Entrar"}
               <ArrowRight className="w-4 h-4" />
             </motion.button>
           </form>
 
-          <p className="font-body text-sm text-muted-foreground text-center mt-6">
+          <p className="font-body text-sm text-muted-foreground text-center mt-8">
             Não tem conta?{" "}
             <Link to="/cadastro" className="text-primary hover:underline font-medium">
               Criar conta
@@ -159,7 +156,7 @@ const Login = () => {
 
         <Link
           to="/"
-          className="block text-center mt-6 font-body text-sm text-muted-foreground hover:text-foreground transition-colors"
+          className="block text-center mt-8 font-body text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           ← Voltar para a loja
         </Link>

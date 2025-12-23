@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Plus, Pencil, Trash2, Copy, Check, X, Percent, DollarSign } from "lucide-react";
+import { Plus, Pencil, Trash2, Copy, Percent, DollarSign } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,15 @@ import ConfirmDialog from "@/components/admin/ConfirmDialog";
 import { format } from "date-fns";
 
 type CouponFormInput = Omit<Coupon, 'id' | 'current_uses' | 'created_at' | 'updated_at'>;
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 10 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] as const }
+  }
+};
 
 const Cupons = () => {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -149,22 +158,22 @@ const Cupons = () => {
     const now = new Date();
     
     if (!coupon.is_active) {
-      return <span className="px-2 py-1 bg-muted text-muted-foreground text-xs rounded-full">Inativo</span>;
+      return <span className="status-badge status-badge-neutral">Inativo</span>;
     }
     
     if (coupon.starts_at && new Date(coupon.starts_at) > now) {
-      return <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">Agendado</span>;
+      return <span className="status-badge status-badge-info">Agendado</span>;
     }
     
     if (coupon.expires_at && new Date(coupon.expires_at) < now) {
-      return <span className="px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded-full">Expirado</span>;
+      return <span className="status-badge status-badge-warning">Expirado</span>;
     }
     
     if (coupon.max_uses && coupon.current_uses && coupon.current_uses >= coupon.max_uses) {
-      return <span className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full">Esgotado</span>;
+      return <span className="status-badge status-badge-danger">Esgotado</span>;
     }
     
-    return <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Ativo</span>;
+    return <span className="status-badge status-badge-success">Ativo</span>;
   };
 
   return (
@@ -172,7 +181,7 @@ const Cupons = () => {
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground font-body">
             Gerencie cupons de desconto para seus clientes.
           </p>
           <Dialog open={dialogOpen} onOpenChange={(open) => {
@@ -180,37 +189,37 @@ const Cupons = () => {
             if (!open) resetForm();
           }}>
             <DialogTrigger asChild>
-              <Button className="liquid-button">
+              <Button className="glass-btn">
                 <Plus className="w-4 h-4 mr-2" />
                 Novo Cupom
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto liquid-glass-card border-0">
               <DialogHeader>
-                <DialogTitle>
+                <DialogTitle className="font-display text-xl">
                   {editingCoupon ? 'Editar Cupom' : 'Novo Cupom'}
                 </DialogTitle>
               </DialogHeader>
-              <div className="space-y-4 mt-4">
+              <div className="space-y-5 mt-4">
                 <div>
-                  <Label htmlFor="code">Código do Cupom</Label>
+                  <Label htmlFor="code" className="font-body">Código do Cupom</Label>
                   <Input
                     id="code"
                     value={form.code}
                     onChange={(e) => setForm(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
                     placeholder="Ex: PRIMEIRACOMPRA"
-                    className="mt-1 uppercase"
+                    className="mt-1.5 glass-input uppercase"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="discount_type">Tipo de Desconto</Label>
+                    <Label htmlFor="discount_type" className="font-body">Tipo de Desconto</Label>
                     <Select
                       value={form.discount_type}
                       onValueChange={(value: "percentage" | "fixed") => setForm(prev => ({ ...prev, discount_type: value }))}
                     >
-                      <SelectTrigger className="mt-1">
+                      <SelectTrigger className="mt-1.5 glass-input">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -220,7 +229,7 @@ const Cupons = () => {
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="discount_value">Valor</Label>
+                    <Label htmlFor="discount_value" className="font-body">Valor</Label>
                     <Input
                       id="discount_value"
                       type="number"
@@ -228,14 +237,14 @@ const Cupons = () => {
                       step={form.discount_type === 'percentage' ? '1' : '0.01'}
                       value={form.discount_value}
                       onChange={(e) => setForm(prev => ({ ...prev, discount_value: parseFloat(e.target.value) || 0 }))}
-                      className="mt-1"
+                      className="mt-1.5 glass-input"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="min_order_value">Pedido Mínimo (R$)</Label>
+                    <Label htmlFor="min_order_value" className="font-body">Pedido Mínimo (R$)</Label>
                     <Input
                       id="min_order_value"
                       type="number"
@@ -244,11 +253,11 @@ const Cupons = () => {
                       value={form.min_order_value || ''}
                       onChange={(e) => setForm(prev => ({ ...prev, min_order_value: parseFloat(e.target.value) || 0 }))}
                       placeholder="0.00"
-                      className="mt-1"
+                      className="mt-1.5 glass-input"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="max_uses">Limite de Usos</Label>
+                    <Label htmlFor="max_uses" className="font-body">Limite de Usos</Label>
                     <Input
                       id="max_uses"
                       type="number"
@@ -256,14 +265,14 @@ const Cupons = () => {
                       value={form.max_uses || ''}
                       onChange={(e) => setForm(prev => ({ ...prev, max_uses: parseInt(e.target.value) || null }))}
                       placeholder="Ilimitado"
-                      className="mt-1"
+                      className="mt-1.5 glass-input"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="starts_at">Início</Label>
+                    <Label htmlFor="starts_at" className="font-body">Início</Label>
                     <Input
                       id="starts_at"
                       type="datetime-local"
@@ -272,11 +281,11 @@ const Cupons = () => {
                         ...prev, 
                         starts_at: e.target.value ? new Date(e.target.value).toISOString() : null 
                       }))}
-                      className="mt-1"
+                      className="mt-1.5 glass-input"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="expires_at">Expiração</Label>
+                    <Label htmlFor="expires_at" className="font-body">Expiração</Label>
                     <Input
                       id="expires_at"
                       type="datetime-local"
@@ -285,13 +294,13 @@ const Cupons = () => {
                         ...prev, 
                         expires_at: e.target.value ? new Date(e.target.value).toISOString() : null 
                       }))}
-                      className="mt-1"
+                      className="mt-1.5 glass-input"
                     />
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="is_active">Ativo</Label>
+                  <Label htmlFor="is_active" className="font-body">Ativo</Label>
                   <Switch
                     id="is_active"
                     checked={form.is_active}
@@ -306,13 +315,14 @@ const Cupons = () => {
                       setDialogOpen(false);
                       resetForm();
                     }}
+                    className="glass-btn-secondary"
                   >
                     Cancelar
                   </Button>
                   <Button
                     onClick={handleSubmit}
                     disabled={saving}
-                    className="liquid-button"
+                    className="glass-btn"
                   >
                     {saving ? 'Salvando...' : 'Salvar'}
                   </Button>
@@ -323,53 +333,54 @@ const Cupons = () => {
         </div>
 
         {/* Coupons List */}
-        <div className="liquid-glass rounded-2xl overflow-hidden">
+        <div className="liquid-glass-card rounded-2xl overflow-hidden">
           {loading ? (
-            <div className="p-8 text-center text-muted-foreground">
+            <div className="p-10 text-center text-muted-foreground font-body">
               Carregando cupons...
             </div>
           ) : coupons.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground">
+            <div className="p-10 text-center text-muted-foreground font-body">
               Nenhum cupom cadastrado.
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-muted/30">
+              <table className="admin-table w-full">
+                <thead>
                   <tr>
-                    <th className="text-left p-4 font-medium">Código</th>
-                    <th className="text-left p-4 font-medium">Desconto</th>
-                    <th className="text-left p-4 font-medium">Pedido Mín.</th>
-                    <th className="text-left p-4 font-medium">Usos</th>
-                    <th className="text-left p-4 font-medium">Validade</th>
-                    <th className="text-left p-4 font-medium">Status</th>
-                    <th className="text-right p-4 font-medium">Ações</th>
+                    <th className="text-left p-4 font-medium font-body">Código</th>
+                    <th className="text-left p-4 font-medium font-body">Desconto</th>
+                    <th className="text-left p-4 font-medium font-body">Pedido Mín.</th>
+                    <th className="text-left p-4 font-medium font-body">Usos</th>
+                    <th className="text-left p-4 font-medium font-body">Validade</th>
+                    <th className="text-left p-4 font-medium font-body">Status</th>
+                    <th className="text-right p-4 font-medium font-body">Ações</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border/50">
+                <tbody className="divide-y divide-border/30">
                   {coupons.map((coupon, index) => (
                     <motion.tr
                       key={coupon.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
+                      variants={itemVariants}
+                      initial="hidden"
+                      animate="visible"
                       transition={{ delay: index * 0.03 }}
-                      className="hover:bg-muted/30 transition-colors"
+                      className="hover:bg-secondary/30 transition-colors"
                     >
                       <td className="p-4">
                         <div className="flex items-center gap-2">
-                          <code className="px-2 py-1 bg-muted rounded font-mono text-sm">
+                          <code className="px-2.5 py-1 bg-muted/50 rounded-lg font-mono text-sm">
                             {coupon.code}
                           </code>
                           <button
                             onClick={() => copyCode(coupon.code)}
-                            className="text-muted-foreground hover:text-foreground"
+                            className="text-muted-foreground hover:text-foreground transition-colors"
                           >
                             <Copy className="w-4 h-4" />
                           </button>
                         </div>
                       </td>
                       <td className="p-4">
-                        <span className="flex items-center gap-1">
+                        <span className="flex items-center gap-1 font-body">
                           {coupon.discount_type === 'percentage' ? (
                             <Percent className="w-4 h-4 text-primary" />
                           ) : (
@@ -378,14 +389,14 @@ const Cupons = () => {
                           {formatDiscount(coupon)}
                         </span>
                       </td>
-                      <td className="p-4">
+                      <td className="p-4 font-body">
                         {coupon.min_order_value ? `R$ ${coupon.min_order_value.toFixed(2)}` : '-'}
                       </td>
-                      <td className="p-4">
+                      <td className="p-4 font-body">
                         {coupon.current_uses || 0}
                         {coupon.max_uses ? ` / ${coupon.max_uses}` : ''}
                       </td>
-                      <td className="p-4 text-sm">
+                      <td className="p-4 text-sm font-body">
                         {coupon.expires_at ? (
                           format(new Date(coupon.expires_at), 'dd/MM/yyyy')
                         ) : (
@@ -401,6 +412,7 @@ const Cupons = () => {
                             variant="ghost"
                             size="icon"
                             onClick={() => openEditDialog(coupon)}
+                            className="hover:bg-secondary/50"
                           >
                             <Pencil className="w-4 h-4" />
                           </Button>
@@ -408,7 +420,7 @@ const Cupons = () => {
                             variant="ghost"
                             size="icon"
                             onClick={() => setDeleteId(coupon.id)}
-                            className="text-destructive hover:text-destructive"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>

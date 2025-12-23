@@ -23,6 +23,32 @@ interface CartItem {
   };
 }
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] as const }
+  }
+};
+
+const _unused = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1, 
+    y: 0,
+    transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] }
+  }
+};
+
 const Carrinho = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -123,23 +149,25 @@ const Carrinho = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background noise-bg">
         <Navbar />
         <main className="pt-32 pb-20 px-4">
           <div className="max-w-2xl mx-auto text-center">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="liquid-glass p-12 rounded-3xl"
+              className="liquid-glass-card p-16"
             >
-              <ShoppingBag className="w-16 h-16 mx-auto mb-6 text-muted-foreground" />
-              <h1 className="text-2xl font-serif mb-4">Seu Carrinho</h1>
-              <p className="text-muted-foreground mb-8">
+              <div className="glass-icon w-20 h-20 mx-auto mb-8">
+                <ShoppingBag className="w-10 h-10 text-primary" />
+              </div>
+              <h1 className="font-display text-3xl mb-4">Seu Carrinho</h1>
+              <p className="text-muted-foreground mb-10 font-body">
                 Faça login para ver os itens do seu carrinho
               </p>
               <Link
                 to="/login"
-                className="liquid-button inline-flex items-center gap-2"
+                className="glass-btn inline-flex items-center gap-2 px-8 py-4"
               >
                 Fazer Login
                 <ArrowRight className="w-4 h-4" />
@@ -153,7 +181,7 @@ const Carrinho = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background noise-bg">
       <Navbar />
       
       <main className="pt-32 pb-20 px-4">
@@ -165,7 +193,7 @@ const Carrinho = () => {
           >
             <Link
               to="/"
-              className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+              className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors font-body"
             >
               <ArrowLeft className="w-4 h-4" />
               Continuar Comprando
@@ -176,49 +204,54 @@ const Carrinho = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-3xl md:text-4xl font-serif mb-8"
+            className="font-display text-4xl md:text-5xl font-medium mb-10"
           >
             Seu Carrinho
           </motion.h1>
 
           {loading ? (
-            <div className="liquid-glass p-12 rounded-3xl text-center">
-              <div className="animate-pulse">Carregando...</div>
+            <div className="liquid-glass-card p-16 text-center">
+              <div className="animate-pulse font-body">Carregando...</div>
             </div>
           ) : cartItems.length === 0 ? (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="liquid-glass p-12 rounded-3xl text-center"
+              className="liquid-glass-card p-16 text-center"
             >
-              <ShoppingBag className="w-16 h-16 mx-auto mb-6 text-muted-foreground" />
-              <h2 className="text-xl font-serif mb-4">Carrinho vazio</h2>
-              <p className="text-muted-foreground mb-8">
+              <div className="glass-icon w-20 h-20 mx-auto mb-8">
+                <ShoppingBag className="w-10 h-10 text-primary" />
+              </div>
+              <h2 className="font-display text-2xl mb-4">Carrinho vazio</h2>
+              <p className="text-muted-foreground mb-10 font-body">
                 Adicione peças incríveis ao seu carrinho
               </p>
-              <Link to="/" className="liquid-button inline-flex items-center gap-2">
+              <Link to="/" className="glass-btn inline-flex items-center gap-2 px-8 py-4">
                 Explorar Coleção
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </motion.div>
           ) : (
-            <div className="grid lg:grid-cols-3 gap-8">
+            <motion.div 
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              className="grid lg:grid-cols-3 gap-8"
+            >
               {/* Cart Items */}
               <div className="lg:col-span-2 space-y-4">
                 <AnimatePresence mode="popLayout">
-                  {cartItems.map((item, index) => (
+                  {cartItems.map((item) => (
                     <motion.div
                       key={item.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
+                      variants={itemVariants}
                       exit={{ opacity: 0, x: -100 }}
-                      transition={{ delay: index * 0.1 }}
-                      className="liquid-glass p-4 md:p-6 rounded-2xl"
+                      className="liquid-glass-card p-5 md:p-6"
                     >
                       <div className="flex gap-4 md:gap-6">
                         <Link
                           to={`/produto/${item.product.slug}`}
-                          className="w-24 h-24 md:w-32 md:h-32 rounded-xl overflow-hidden flex-shrink-0 bg-muted"
+                          className="w-24 h-24 md:w-32 md:h-32 rounded-2xl overflow-hidden flex-shrink-0 bg-muted/30"
                         >
                           {item.product.images?.[0] ? (
                             <img
@@ -236,13 +269,13 @@ const Carrinho = () => {
                         <div className="flex-1 min-w-0">
                           <Link
                             to={`/produto/${item.product.slug}`}
-                            className="font-serif text-lg hover:text-primary transition-colors line-clamp-2"
+                            className="font-display text-lg hover:text-primary transition-colors line-clamp-2"
                           >
                             {item.product.name}
                           </Link>
 
                           {Object.keys(item.attributes || {}).length > 0 && (
-                            <div className="mt-1 text-sm text-muted-foreground">
+                            <div className="mt-1 text-sm text-muted-foreground font-body">
                               {Object.entries(item.attributes).map(([key, value]) => (
                                 <span key={key} className="mr-3">
                                   {key}: {value}
@@ -251,7 +284,7 @@ const Carrinho = () => {
                             </div>
                           )}
 
-                          <p className="mt-2 text-lg font-medium text-primary">
+                          <p className="mt-3 text-xl font-medium text-primary font-body">
                             {formatPrice(item.product.price)}
                           </p>
 
@@ -260,17 +293,17 @@ const Carrinho = () => {
                               <button
                                 onClick={() => updateQuantity(item.id, item.quantity - 1)}
                                 disabled={updating === item.id || item.quantity <= 1}
-                                className="w-8 h-8 rounded-full glass-button flex items-center justify-center disabled:opacity-50"
+                                className="w-9 h-9 rounded-full glass-btn-secondary flex items-center justify-center disabled:opacity-50"
                               >
                                 <Minus className="w-4 h-4" />
                               </button>
-                              <span className="w-8 text-center font-medium">
+                              <span className="w-10 text-center font-medium font-body">
                                 {item.quantity}
                               </span>
                               <button
                                 onClick={() => updateQuantity(item.id, item.quantity + 1)}
                                 disabled={updating === item.id}
-                                className="w-8 h-8 rounded-full glass-button flex items-center justify-center disabled:opacity-50"
+                                className="w-9 h-9 rounded-full glass-btn-secondary flex items-center justify-center disabled:opacity-50"
                               >
                                 <Plus className="w-4 h-4" />
                               </button>
@@ -293,15 +326,13 @@ const Carrinho = () => {
 
               {/* Order Summary */}
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
+                variants={itemVariants}
                 className="lg:sticky lg:top-32"
               >
-                <div className="liquid-glass p-6 rounded-2xl">
-                  <h2 className="text-xl font-serif mb-6">Resumo do Pedido</h2>
+                <div className="liquid-glass-card p-8">
+                  <h2 className="font-display text-xl mb-8">Resumo do Pedido</h2>
 
-                  <div className="space-y-4 mb-6">
+                  <div className="space-y-4 mb-8 font-body">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Subtotal</span>
                       <span>{formatPrice(subtotal)}</span>
@@ -310,7 +341,7 @@ const Carrinho = () => {
                       <span className="text-muted-foreground">Frete</span>
                       <span>
                         {shipping === 0 ? (
-                          <span className="text-green-600">Grátis</span>
+                          <span className="status-badge status-badge-success">Grátis</span>
                         ) : (
                           formatPrice(shipping)
                         )}
@@ -321,27 +352,26 @@ const Carrinho = () => {
                         Frete grátis em compras acima de R$ 299
                       </p>
                     )}
-                    <div className="border-t border-border/50 pt-4">
-                      <div className="flex justify-between text-lg font-medium">
-                        <span>Total</span>
-                        <span className="text-primary">{formatPrice(total)}</span>
-                      </div>
+                    <div className="glass-divider" />
+                    <div className="flex justify-between text-lg font-medium">
+                      <span>Total</span>
+                      <span className="glass-kpi text-2xl">{formatPrice(total)}</span>
                     </div>
                   </div>
 
                   <button
                     onClick={() => navigate('/checkout')}
-                    className="w-full liquid-button py-4"
+                    className="w-full glass-btn py-4"
                   >
                     Finalizar Compra
                   </button>
 
-                  <p className="mt-4 text-xs text-center text-muted-foreground">
+                  <p className="mt-6 text-xs text-center text-muted-foreground font-body">
                     Pagamento seguro via InfinitePay
                   </p>
                 </div>
               </motion.div>
-            </div>
+            </motion.div>
           )}
         </div>
       </main>
