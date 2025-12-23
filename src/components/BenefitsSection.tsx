@@ -26,11 +26,12 @@ const benefits = [
 
 const BenefitsSection = () => {
   return (
-    <section className="relative py-16 overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-background to-secondary/20" />
+    <section className="relative py-20 overflow-hidden">
+      {/* Background */}
+      <div className="absolute inset-0 bg-gradient-to-b from-background via-secondary/20 to-background" />
       
       <div className="relative z-10 container mx-auto px-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
           {benefits.map((benefit, index) => (
             <motion.div
               key={benefit.title}
@@ -38,13 +39,24 @@ const BenefitsSection = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.1, duration: 0.5 }}
-              className="text-center"
+              whileHover={{ y: -5 }}
+              className="text-center group"
             >
-              <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 mb-4">
-                <benefit.icon className="w-6 h-6 text-primary" />
-              </div>
-              <h3 className="font-display text-sm font-medium mb-1">{benefit.title}</h3>
-              <p className="font-body text-xs text-muted-foreground">{benefit.description}</p>
+              {/* Icon Container */}
+              <motion.div
+                whileHover={{ scale: 1.1 }}
+                className="glass-icon w-16 h-16 mx-auto mb-4 group-hover:shadow-glow transition-all duration-300"
+              >
+                <benefit.icon className="w-7 h-7 text-primary" />
+              </motion.div>
+              
+              {/* Text */}
+              <h3 className="font-display text-sm md:text-base font-medium mb-1 group-hover:text-primary transition-colors">
+                {benefit.title}
+              </h3>
+              <p className="font-body text-xs md:text-sm text-muted-foreground">
+                {benefit.description}
+              </p>
             </motion.div>
           ))}
         </div>

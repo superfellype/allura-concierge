@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Search, Package, User, Clock, GripVertical, AlertCircle } from "lucide-react";
+import { Search, Package, User, Clock, GripVertical } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,13 +19,13 @@ interface Order {
 }
 
 const statusConfig: { status: OrderStatus; label: string; color: string; bgColor: string }[] = [
-  { status: "created", label: "Novos", color: "text-slate-700", bgColor: "bg-slate-100" },
-  { status: "pending_payment", label: "Aguardando", color: "text-amber-700", bgColor: "bg-amber-50" },
-  { status: "paid", label: "Pagos", color: "text-green-700", bgColor: "bg-green-50" },
-  { status: "packing", label: "Embalando", color: "text-blue-700", bgColor: "bg-blue-50" },
-  { status: "shipped", label: "Enviados", color: "text-purple-700", bgColor: "bg-purple-50" },
-  { status: "delivered", label: "Entregues", color: "text-emerald-700", bgColor: "bg-emerald-50" },
-  { status: "cancelled", label: "Cancelados", color: "text-red-700", bgColor: "bg-red-50" },
+  { status: "created", label: "Novos", color: "text-slate-700 dark:text-slate-300", bgColor: "bg-slate-100 dark:bg-slate-800/50" },
+  { status: "pending_payment", label: "Aguardando", color: "text-amber-700 dark:text-amber-400", bgColor: "bg-amber-50 dark:bg-amber-900/30" },
+  { status: "paid", label: "Pagos", color: "text-green-700 dark:text-green-400", bgColor: "bg-green-50 dark:bg-green-900/30" },
+  { status: "packing", label: "Embalando", color: "text-blue-700 dark:text-blue-400", bgColor: "bg-blue-50 dark:bg-blue-900/30" },
+  { status: "shipped", label: "Enviados", color: "text-purple-700 dark:text-purple-400", bgColor: "bg-purple-50 dark:bg-purple-900/30" },
+  { status: "delivered", label: "Entregues", color: "text-emerald-700 dark:text-emerald-400", bgColor: "bg-emerald-50 dark:bg-emerald-900/30" },
+  { status: "cancelled", label: "Cancelados", color: "text-red-700 dark:text-red-400", bgColor: "bg-red-50 dark:bg-red-900/30" },
 ];
 
 const PedidosKanban = () => {
@@ -161,7 +161,7 @@ const PedidosKanban = () => {
             placeholder="Buscar por ID ou cliente..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-11 pr-4 py-3 liquid-glass rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+            className="w-full pl-11 pr-4 py-3 glass-input rounded-xl font-body text-sm"
           />
         </div>
       </div>
@@ -169,7 +169,7 @@ const PedidosKanban = () => {
       {loading ? (
         <div className="text-center py-12">
           <div className="inline-block w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-          <p className="font-body text-muted-foreground mt-2">Carregando...</p>
+          <p className="font-body text-muted-foreground mt-3">Carregando pedidos...</p>
         </div>
       ) : (
         <div className="overflow-x-auto pb-4">
@@ -184,13 +184,13 @@ const PedidosKanban = () => {
                   className="w-72 flex-shrink-0"
                 >
                   {/* Column Header */}
-                  <div className={`rounded-t-xl px-4 py-3 ${column.bgColor}`}>
+                  <div className={`liquid-glass-strong rounded-t-xl px-4 py-3 ${column.bgColor}`}>
                     <div className="flex items-center justify-between">
-                      <h3 className={`font-body font-medium ${column.color}`}>
+                      <h3 className={`font-body font-semibold ${column.color}`}>
                         {column.label}
                       </h3>
                       <span
-                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${column.bgColor} ${column.color}`}
+                        className={`px-2.5 py-1 rounded-full text-xs font-bold ${column.bgColor} ${column.color}`}
                       >
                         {columnOrders.length}
                       </span>
@@ -198,11 +198,13 @@ const PedidosKanban = () => {
                   </div>
 
                   {/* Column Body */}
-                  <div className="bg-secondary/20 rounded-b-xl p-2 min-h-[60vh] space-y-2">
+                  <div className="bg-secondary/10 rounded-b-xl p-3 min-h-[60vh] space-y-3 border border-t-0 border-border/30">
                     {columnOrders.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-                        <Package className="w-8 h-8 mb-2 opacity-50" />
-                        <p className="text-sm">Nenhum pedido</p>
+                      <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                        <div className="glass-icon w-12 h-12 mb-3">
+                          <Package className="w-5 h-5 opacity-50" />
+                        </div>
+                        <p className="text-sm font-body">Nenhum pedido</p>
                       </div>
                     ) : (
                       columnOrders.map((order) => (
@@ -211,35 +213,37 @@ const PedidosKanban = () => {
                           layout
                           draggable
                           onDragStart={(e) => handleDragStart(e as any, order)}
-                          className="liquid-glass p-3 rounded-xl cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow"
+                          className="liquid-glass-card p-4 rounded-xl cursor-grab active:cursor-grabbing hover:shadow-lg transition-all group"
                         >
-                          <div className="flex items-start justify-between mb-2">
-                            <span className="font-body text-xs font-medium text-primary">
+                          <div className="flex items-start justify-between mb-3">
+                            <span className="font-mono text-xs font-bold text-primary">
                               #{order.id.slice(0, 8)}
                             </span>
-                            <GripVertical className="w-4 h-4 text-muted-foreground/50" />
+                            <GripVertical className="w-4 h-4 text-muted-foreground/30 group-hover:text-muted-foreground transition-colors" />
                           </div>
 
-                          <div className="flex items-center gap-2 mb-2">
-                            <User className="w-3 h-3 text-muted-foreground" />
+                          <div className="flex items-center gap-2 mb-3">
+                            <div className="glass-icon w-6 h-6">
+                              <User className="w-3 h-3 text-muted-foreground" />
+                            </div>
                             <span className="font-body text-sm truncate">
                               {order.profiles?.full_name || "Cliente"}
                             </span>
                           </div>
 
                           <div className="flex items-center justify-between">
-                            <span className="font-display text-sm font-semibold">
+                            <span className="font-display text-lg font-bold">
                               R$ {Number(order.total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                             </span>
-                            <div className="flex items-center gap-1 text-muted-foreground">
+                            <div className="flex items-center gap-1.5 text-muted-foreground">
                               <Clock className="w-3 h-3" />
-                              <span className="text-xs">{formatDate(order.created_at)}</span>
+                              <span className="text-xs font-body">{formatDate(order.created_at)}</span>
                             </div>
                           </div>
 
                           {order.payment_method && (
-                            <div className="mt-2 pt-2 border-t border-border/30">
-                              <span className="text-xs text-muted-foreground">
+                            <div className="mt-3 pt-3 border-t border-border/30">
+                              <span className="status-badge status-badge-info text-xs">
                                 {order.payment_method}
                               </span>
                             </div>
