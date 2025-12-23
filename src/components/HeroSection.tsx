@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowRight, ShoppingBag } from "lucide-react";
+import { ArrowRight, ShoppingBag, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 import logoFlower from "@/assets/logo-allura-flower.png";
 import logoBadge from "@/assets/logo-allura-badge.png";
@@ -9,19 +9,19 @@ const containerVariants = {
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.12,
-      delayChildren: 0.2
+      staggerChildren: 0.1,
+      delayChildren: 0.15
     }
   }
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 24 },
+  hidden: { opacity: 0, y: 20 },
   visible: {
     opacity: 1,
     y: 0,
     transition: {
-      duration: 0.7,
+      duration: 0.6,
       ease: [0.22, 1, 0.36, 1] as const
     }
   }
@@ -30,20 +30,27 @@ const itemVariants = {
 const HeroSection = () => {
   return (
     <section className="relative min-h-screen overflow-hidden">
-      {/* Gradient Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-cream-50 via-background to-cream-100" />
+      {/* Gradient Background - Deeper for Liquid Glass effect */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[hsl(30_25%_97%)] via-[hsl(35_30%_94%)] to-[hsl(25_20%_90%)]" />
       
-      {/* Subtle Morphing Blobs */}
+      {/* Animated Gradient Blobs */}
       <motion.div
-        animate={{ x: [0, 20, 0], y: [0, -15, 0] }}
-        transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute top-10 right-[15%] w-[600px] h-[600px] bg-gradient-to-br from-primary/10 to-accent/15 rounded-full blur-3xl animate-morph"
+        animate={{ 
+          x: [0, 30, 0], 
+          y: [0, -20, 0],
+          scale: [1, 1.05, 1]
+        }}
+        transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute top-0 right-[10%] w-[700px] h-[700px] bg-gradient-to-br from-primary/12 to-accent/18 rounded-full blur-3xl"
       />
       <motion.div
-        animate={{ x: [0, -15, 0], y: [0, 20, 0] }}
-        transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute bottom-10 left-[5%] w-[400px] h-[400px] bg-gradient-to-tr from-accent/15 to-primary/8 rounded-full blur-3xl animate-morph"
-        style={{ animationDelay: "-5s" }}
+        animate={{ 
+          x: [0, -20, 0], 
+          y: [0, 25, 0],
+          scale: [1, 1.08, 1]
+        }}
+        transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute bottom-0 left-[5%] w-[500px] h-[500px] bg-gradient-to-tr from-accent/15 to-primary/10 rounded-full blur-3xl"
       />
 
       {/* Noise Overlay */}
@@ -56,14 +63,14 @@ const HeroSection = () => {
           animate="visible"
           className="max-w-6xl mx-auto"
         >
-          {/* Floating Badge */}
+          {/* Floating Badge - Liquid Glass */}
           <motion.div variants={itemVariants} className="flex justify-center mb-10">
-            <div className="floating-badge group cursor-pointer">
-              <img src={logoFlower} alt="" className="w-5 h-5 object-contain" />
+            <div className="liquid-glass-card px-5 py-2.5 rounded-full inline-flex items-center gap-3 cursor-pointer group">
+              <Sparkles className="w-4 h-4 text-primary" />
               <span className="text-sm font-body font-medium text-foreground/80">
                 Primavera 2024
               </span>
-              <ArrowRight className="w-3 h-3 text-foreground/50 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="w-3.5 h-3.5 text-foreground/50 group-hover:translate-x-1 transition-transform" />
             </div>
           </motion.div>
 
@@ -86,16 +93,16 @@ const HeroSection = () => {
             Feitos à mão para acompanhar seus melhores momentos.
           </motion.p>
 
-          {/* CTA Buttons - Side by Side */}
+          {/* CTA Buttons - Glass Style */}
           <motion.div
             variants={itemVariants}
             className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-12"
           >
             <Link to="/produtos">
               <motion.button
-                whileHover={{ scale: 1.02 }}
+                whileHover={{ scale: 1.02, y: -2 }}
                 whileTap={{ scale: 0.98 }}
-                className="btn-luxury flex items-center gap-3"
+                className="glass-btn flex items-center gap-3"
               >
                 <ShoppingBag className="w-4 h-4" />
                 Explorar Coleção
@@ -103,24 +110,24 @@ const HeroSection = () => {
             </Link>
             <Link to="/sobre">
               <motion.button
-                whileHover={{ scale: 1.02 }}
+                whileHover={{ scale: 1.02, y: -2 }}
                 whileTap={{ scale: 0.98 }}
-                className="btn-luxury-outline"
+                className="glass-btn-secondary flex items-center gap-3"
               >
                 Conhecer a Allura
               </motion.button>
             </Link>
           </motion.div>
 
-          {/* Bento Grid - Refined */}
+          {/* Bento Grid - Liquid Glass Cards */}
           <motion.div
             variants={containerVariants}
-            className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mt-20"
+            className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5 mt-20"
           >
             {/* Large Feature Card */}
             <motion.div
               variants={itemVariants}
-              className="col-span-2 row-span-2 card-minimal hover-zoom relative overflow-hidden group cursor-pointer p-0 min-h-[400px]"
+              className="col-span-2 row-span-2 liquid-glass-card hover-zoom relative overflow-hidden group cursor-pointer p-0 min-h-[420px]"
             >
               <Link to="/produtos" className="block h-full">
                 <div className="absolute inset-0 bg-gradient-to-t from-foreground/80 via-foreground/30 to-transparent z-10" />
@@ -131,22 +138,22 @@ const HeroSection = () => {
                 />
                 {/* Quick Add Overlay */}
                 <div className="quick-action z-20">
-                  <span className="px-6 py-3 bg-background text-foreground font-body text-sm font-medium rounded-sm">
+                  <span className="glass-btn-secondary">
                     Ver Produto
                   </span>
                 </div>
                 <div className="absolute bottom-6 left-6 right-6 z-20">
-                  <span className="text-xs font-body uppercase tracking-[0.2em] text-primary-foreground/70">
+                  <span className="glass-badge text-primary-foreground/80 mb-3 inline-block">
                     Em Destaque
                   </span>
                   <h3 className="font-display text-2xl md:text-3xl font-medium text-primary-foreground mt-2">
                     Tote Bag Essencial
                   </h3>
-                  <div className="price-display mt-3">
-                    <span className="installment text-primary-foreground">
+                  <div className="mt-3">
+                    <span className="font-body text-lg font-semibold text-primary-foreground">
                       3x R$ 630,00
                     </span>
-                    <span className="full-price text-primary-foreground/70 ml-2">
+                    <span className="font-body text-sm text-primary-foreground/60 ml-2">
                       ou R$ 1.890,00 à vista
                     </span>
                   </div>
@@ -154,42 +161,44 @@ const HeroSection = () => {
               </Link>
             </motion.div>
 
-            {/* Stats Card */}
+            {/* Stats Card - Liquid Glass */}
             <motion.div
               variants={itemVariants}
-              className="card-minimal flex flex-col justify-center items-center text-center p-6"
+              className="liquid-glass-card flex flex-col justify-center items-center text-center p-6"
             >
-              <img src={logoBadge} alt="" className="w-14 h-14 object-contain mb-3 opacity-90" />
-              <span className="kpi-number-sm text-primary">100+</span>
-              <span className="font-body text-sm text-muted-foreground mt-1">
+              <img src={logoBadge} alt="" className="w-14 h-14 object-contain mb-4 opacity-90" />
+              <span className="glass-kpi glass-kpi-md text-primary">100+</span>
+              <span className="font-body text-sm text-muted-foreground mt-2">
                 Peças exclusivas
               </span>
             </motion.div>
 
-            {/* Craft Card */}
+            {/* Craft Card - Liquid Glass */}
             <motion.div
               variants={itemVariants}
-              className="card-minimal p-6 bg-secondary/30"
+              className="liquid-glass-card p-6"
             >
               <div className="flex flex-col h-full justify-between">
-                <img
-                  alt=""
-                  className="w-10 h-10 object-contain"
-                  src="/lovable-uploads/6351425d-e06d-44af-b34c-808f57aef673.png"
-                />
-                <div className="mt-4">
+                <div className="glass-icon glass-icon-md mb-4">
+                  <img
+                    alt=""
+                    className="w-6 h-6 object-contain"
+                    src="/lovable-uploads/6351425d-e06d-44af-b34c-808f57aef673.png"
+                  />
+                </div>
+                <div>
                   <h4 className="font-display text-lg font-medium">Feito à Mão</h4>
-                  <p className="font-body text-xs text-muted-foreground mt-1">
+                  <p className="font-body text-sm text-muted-foreground mt-1">
                     100% artesanal brasileiro
                   </p>
                 </div>
               </div>
             </motion.div>
 
-            {/* Quote Card */}
+            {/* Quote Card - Liquid Glass */}
             <motion.div
               variants={itemVariants}
-              className="card-minimal col-span-2 flex items-center p-6 md:p-8"
+              className="liquid-glass-card col-span-2 flex items-center p-6 md:p-8"
             >
               <blockquote className="font-display text-lg md:text-xl italic text-foreground/80 leading-relaxed">
                 "O luxo está nos detalhes que poucos percebem, mas todos sentem."
@@ -197,18 +206,18 @@ const HeroSection = () => {
             </motion.div>
           </motion.div>
 
-          {/* Trust Badges */}
+          {/* Trust Badges - Glass Style */}
           <motion.div
             variants={itemVariants}
-            className="flex flex-wrap items-center justify-center gap-6 md:gap-10 mt-16"
+            className="flex flex-wrap items-center justify-center gap-4 mt-16"
           >
             {["Couro Premium", "Entrega Segura", "Garantia Vitalícia", "Parcelamento"].map((badge, i) => (
               <motion.span
                 key={badge}
                 initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 0.5, y: 0 }}
-                transition={{ delay: 1.2 + i * 0.08 }}
-                className="font-body text-xs uppercase tracking-[0.15em] text-foreground/50 hover:text-foreground/80 transition-colors cursor-default"
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1 + i * 0.08 }}
+                className="glass-badge text-foreground/50 hover:text-foreground/80 transition-colors cursor-default"
               >
                 {badge}
               </motion.span>

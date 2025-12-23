@@ -753,33 +753,55 @@
     z-index: 0;
   }
 
+  /* Updated Stats Card with Liquid Glass */
   .stats-card {
-    @apply liquid-glass rounded-2xl p-5 transition-all duration-300;
+    @apply liquid-glass-card p-5 transition-all duration-300;
   }
 
   .stats-card:hover {
-    box-shadow: var(--shadow-elegant);
-    transform: translateY(-2px);
+    transform: translateY(-4px);
+    box-shadow: 
+      0 20px 60px hsl(16 60% 30% / 0.12),
+      0 8px 24px hsl(16 60% 30% / 0.08);
   }
 
+  /* Admin Navigation Item with Glow */
   .admin-nav-item {
-    @apply flex items-center gap-3 px-4 py-3 rounded-xl font-body text-sm text-foreground/70 transition-all duration-200;
+    @apply flex items-center gap-3 px-4 py-3 rounded-xl font-body text-sm transition-all duration-300;
+    color: hsl(var(--foreground) / 0.65);
   }
 
   .admin-nav-item:hover {
-    @apply bg-primary/5 text-foreground;
+    background: linear-gradient(
+      135deg,
+      hsl(16 60% 50% / 0.08) 0%,
+      hsl(16 60% 50% / 0.04) 100%
+    );
+    color: hsl(var(--foreground));
+    box-shadow: 0 0 20px hsl(16 60% 50% / 0.05);
   }
 
   .admin-nav-item.active {
-    @apply bg-primary/10 text-primary font-medium;
+    background: linear-gradient(
+      135deg,
+      hsl(16 60% 50% / 0.15) 0%,
+      hsl(16 60% 50% / 0.08) 100%
+    );
+    color: hsl(var(--primary));
+    font-weight: 500;
+    box-shadow: 
+      0 0 30px hsl(16 60% 50% / 0.15),
+      inset 0 1px 0 hsl(0 0% 100% / 0.3);
   }
 
+  /* Admin Table with Glass Effect */
   .admin-table {
     @apply w-full font-body text-sm;
   }
 
   .admin-table thead tr {
-    @apply border-b border-border/50;
+    background: hsl(30 25% 96% / 0.6);
+    backdrop-filter: blur(10px);
   }
 
   .admin-table th {
@@ -791,32 +813,92 @@
   }
 
   .admin-table tbody tr {
-    @apply border-b border-border/30 transition-colors;
+    @apply border-b border-border/20 transition-all duration-200;
   }
 
   .admin-table tbody tr:hover {
-    @apply bg-secondary/30;
+    background: hsl(16 60% 50% / 0.03);
   }
 
+  /* Glass Button */
   .glass-button {
-    @apply bg-secondary/50 hover:bg-secondary/80 border border-border/50 transition-all duration-200;
+    background: hsl(0 0% 100% / 0.5);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid hsl(0 0% 100% / 0.4);
+    @apply transition-all duration-200;
   }
 
   .glass-button:hover {
-    box-shadow: 0 4px 12px hsl(16 60% 30% / 0.08);
+    background: hsl(0 0% 100% / 0.7);
+    box-shadow: 0 4px 20px hsl(16 60% 30% / 0.1);
+    transform: translateY(-1px);
   }
 
   /* Low stock warning */
   .low-stock {
-    @apply bg-amber-100 text-amber-800;
+    background: hsl(38 90% 50% / 0.15);
+    color: hsl(38 90% 35%);
+    border: 1px solid hsl(38 90% 50% / 0.2);
   }
 
   .out-of-stock {
-    @apply bg-red-100 text-red-800;
+    background: hsl(0 72% 51% / 0.15);
+    color: hsl(0 72% 40%);
+    border: 1px solid hsl(0 72% 51% / 0.2);
   }
 
   /* Chart container styles */
   .chart-container {
-    @apply liquid-glass rounded-2xl p-6;
+    @apply liquid-glass-card p-6;
+  }
+
+  /* Modal Overlay with Blur */
+  .modal-overlay {
+    background: hsl(20 15% 10% / 0.3);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  /* Empty State Card */
+  .empty-state {
+    @apply liquid-glass-card text-center py-16;
+  }
+
+  /* Status Badges with Glass Effect */
+  .status-badge {
+    @apply px-3 py-1.5 rounded-full text-xs font-medium;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  .status-badge-success {
+    background: hsl(142 70% 45% / 0.15);
+    color: hsl(142 70% 30%);
+    border: 1px solid hsl(142 70% 45% / 0.25);
+  }
+
+  .status-badge-warning {
+    background: hsl(38 90% 50% / 0.15);
+    color: hsl(38 90% 30%);
+    border: 1px solid hsl(38 90% 50% / 0.25);
+  }
+
+  .status-badge-danger {
+    background: hsl(0 72% 51% / 0.15);
+    color: hsl(0 72% 35%);
+    border: 1px solid hsl(0 72% 51% / 0.25);
+  }
+
+  .status-badge-info {
+    background: hsl(210 80% 50% / 0.15);
+    color: hsl(210 80% 35%);
+    border: 1px solid hsl(210 80% 50% / 0.25);
+  }
+
+  .status-badge-neutral {
+    background: hsl(var(--muted) / 0.5);
+    color: hsl(var(--muted-foreground));
+    border: 1px solid hsl(var(--border));
   }
 }
