@@ -148,6 +148,14 @@ export default {
           "0%, 100%": { borderRadius: "60% 40% 30% 70% / 60% 30% 70% 40%" },
           "50%": { borderRadius: "30% 60% 70% 40% / 50% 60% 30% 60%" },
         },
+        "zoom-in": {
+          "0%": { opacity: "0", transform: "scale(0.98)" },
+          "100%": { opacity: "1", transform: "scale(1)" },
+        },
+        "slide-up": {
+          "0%": { opacity: "0", transform: "translateY(16px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -162,6 +170,8 @@ export default {
         "pulse-soft": "pulse-soft 3s ease-in-out infinite",
         "glow-pulse": "glow-pulse 2s ease-in-out infinite",
         "morph": "morph 8s ease-in-out infinite",
+        "zoom-in": "zoom-in 0.4s ease-out forwards",
+        "slide-up": "slide-up 0.5s ease-out forwards",
       },
       backdropBlur: {
         xs: "2px",
