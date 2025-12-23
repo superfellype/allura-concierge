@@ -13,6 +13,15 @@ import { categoriesService, Category, CategoryInput } from "@/services/categorie
 import { uploadService } from "@/services/upload.service";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
 
+const itemVariants = {
+  hidden: { opacity: 0, y: 10 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] as const }
+  }
+};
+
 const Categorias = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -149,7 +158,7 @@ const Categorias = () => {
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground font-body">
             Gerencie as categorias de produtos da loja.
           </p>
           <Dialog open={dialogOpen} onOpenChange={(open) => {
@@ -157,20 +166,20 @@ const Categorias = () => {
             if (!open) resetForm();
           }}>
             <DialogTrigger asChild>
-              <Button className="liquid-button">
+              <Button className="glass-btn">
                 <Plus className="w-4 h-4 mr-2" />
                 Nova Categoria
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-lg">
+            <DialogContent className="sm:max-w-lg liquid-glass-card border-0">
               <DialogHeader>
-                <DialogTitle>
+                <DialogTitle className="font-display text-xl">
                   {editingCategory ? 'Editar Categoria' : 'Nova Categoria'}
                 </DialogTitle>
               </DialogHeader>
-              <div className="space-y-4 mt-4">
+              <div className="space-y-5 mt-4">
                 <div>
-                  <Label htmlFor="name">Nome</Label>
+                  <Label htmlFor="name" className="font-body">Nome</Label>
                   <Input
                     id="name"
                     value={form.name}
@@ -182,38 +191,38 @@ const Categorias = () => {
                       }));
                     }}
                     placeholder="Ex: Bolsas"
-                    className="mt-1"
+                    className="mt-1.5 glass-input"
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="slug">Slug (URL)</Label>
+                  <Label htmlFor="slug" className="font-body">Slug (URL)</Label>
                   <Input
                     id="slug"
                     value={form.slug}
                     onChange={(e) => setForm(prev => ({ ...prev, slug: e.target.value }))}
                     placeholder="bolsas"
-                    className="mt-1"
+                    className="mt-1.5 glass-input"
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="description">Descrição</Label>
+                  <Label htmlFor="description" className="font-body">Descrição</Label>
                   <Textarea
                     id="description"
                     value={form.description || ''}
                     onChange={(e) => setForm(prev => ({ ...prev, description: e.target.value }))}
                     placeholder="Descrição da categoria..."
-                    className="mt-1"
+                    className="mt-1.5 glass-input min-h-[80px]"
                     rows={3}
                   />
                 </div>
 
                 <div>
-                  <Label>Imagem</Label>
-                  <div className="mt-1 flex items-center gap-4">
+                  <Label className="font-body">Imagem</Label>
+                  <div className="mt-1.5 flex items-center gap-4">
                     {form.image_url ? (
-                      <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-muted">
+                      <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-muted/30">
                         <img
                           src={form.image_url}
                           alt="Preview"
@@ -227,7 +236,7 @@ const Categorias = () => {
                         </button>
                       </div>
                     ) : (
-                      <label className="w-20 h-20 rounded-lg border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-primary transition-colors">
+                      <label className="w-20 h-20 rounded-xl border-2 border-dashed border-border/50 flex items-center justify-center cursor-pointer hover:border-primary/50 transition-colors">
                         <ImageIcon className="w-6 h-6 text-muted-foreground" />
                         <input
                           type="file"
@@ -241,7 +250,7 @@ const Categorias = () => {
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="is_active">Ativa</Label>
+                  <Label htmlFor="is_active" className="font-body">Ativa</Label>
                   <Switch
                     id="is_active"
                     checked={form.is_active}
@@ -256,13 +265,14 @@ const Categorias = () => {
                       setDialogOpen(false);
                       resetForm();
                     }}
+                    className="glass-btn-secondary"
                   >
                     Cancelar
                   </Button>
                   <Button
                     onClick={handleSubmit}
                     disabled={saving}
-                    className="liquid-button"
+                    className="glass-btn"
                   >
                     {saving ? 'Salvando...' : 'Salvar'}
                   </Button>
@@ -273,28 +283,29 @@ const Categorias = () => {
         </div>
 
         {/* Categories List */}
-        <div className="liquid-glass rounded-2xl overflow-hidden">
+        <div className="liquid-glass-card rounded-2xl overflow-hidden">
           {loading ? (
-            <div className="p-8 text-center text-muted-foreground">
+            <div className="p-10 text-center text-muted-foreground font-body">
               Carregando categorias...
             </div>
           ) : categories.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground">
+            <div className="p-10 text-center text-muted-foreground font-body">
               Nenhuma categoria cadastrada.
             </div>
           ) : (
-            <div className="divide-y divide-border/50">
+            <div className="divide-y divide-border/30">
               {categories.map((category, index) => (
                 <motion.div
                   key={category.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
+                  variants={itemVariants}
+                  initial="hidden"
+                  animate="visible"
                   transition={{ delay: index * 0.05 }}
-                  className="flex items-center gap-4 p-4 hover:bg-muted/30 transition-colors"
+                  className="flex items-center gap-4 p-4 hover:bg-secondary/30 transition-colors"
                 >
                   <GripVertical className="w-5 h-5 text-muted-foreground cursor-grab" />
                   
-                  <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                  <div className="w-12 h-12 rounded-xl overflow-hidden bg-muted/30 flex-shrink-0">
                     {category.image_url ? (
                       <img
                         src={category.image_url}
@@ -309,8 +320,8 @@ const Categorias = () => {
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-medium truncate">{category.name}</h3>
-                    <p className="text-sm text-muted-foreground truncate">
+                    <h3 className="font-medium truncate font-body">{category.name}</h3>
+                    <p className="text-sm text-muted-foreground truncate font-body">
                       /{category.slug}
                     </p>
                   </div>
@@ -318,10 +329,10 @@ const Categorias = () => {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => handleToggleActive(category.id, category.is_active)}
-                      className={`px-2 py-1 rounded-full text-xs font-medium transition-colors ${
+                      className={`status-badge ${
                         category.is_active
-                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                          : 'bg-muted text-muted-foreground'
+                          ? 'status-badge-success'
+                          : 'status-badge-neutral'
                       }`}
                     >
                       {category.is_active ? (
@@ -337,6 +348,7 @@ const Categorias = () => {
                       variant="ghost"
                       size="icon"
                       onClick={() => openEditDialog(category)}
+                      className="hover:bg-secondary/50"
                     >
                       <Pencil className="w-4 h-4" />
                     </Button>
@@ -345,7 +357,7 @@ const Categorias = () => {
                       variant="ghost"
                       size="icon"
                       onClick={() => setDeleteId(category.id)}
-                      className="text-destructive hover:text-destructive"
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>

@@ -17,6 +17,29 @@ const CATEGORIES = [
   { id: "clutches", label: "Clutches" },
 ];
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.05 }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 24 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] as const }
+  }
+};
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] }
+  }
+};
+
 const Produtos = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('categoria') || 'all');
@@ -59,7 +82,7 @@ const Produtos = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background noise-bg">
       <Navbar />
       
       <main className="pt-28 pb-20">
@@ -69,7 +92,7 @@ const Produtos = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="text-center mb-12"
+            className="text-center mb-14"
           >
             <span className="font-body text-xs uppercase tracking-[0.25em] text-primary/80">
               Nossa Coleção
@@ -83,32 +106,42 @@ const Produtos = () => {
           </motion.div>
 
           {/* Brand Filter Pills */}
-          <div className="flex flex-wrap justify-center gap-2 mb-8">
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="flex flex-wrap justify-center gap-2 mb-8"
+          >
             {BRANDS.map((brand) => (
               <button
                 key={brand.id}
                 onClick={() => handleBrandChange(brand.id)}
                 className={`px-5 py-2.5 rounded-full font-body text-sm font-medium transition-all duration-300 ${
                   selectedBrand === brand.id
-                    ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25"
-                    : "liquid-glass text-foreground hover:bg-primary/10"
+                    ? "glass-btn"
+                    : "glass-btn-secondary"
                 }`}
               >
                 {brand.label}
               </button>
             ))}
-          </div>
+          </motion.div>
 
           {/* Category Filter Bar */}
-          <div className="flex items-center justify-between mb-8">
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="flex items-center justify-between mb-10"
+          >
             <div className="hidden md:flex items-center gap-2">
               {CATEGORIES.map((category) => (
                 <button
                   key={category.id}
                   onClick={() => handleCategoryChange(category.id)}
-                  className={`px-4 py-2 rounded-full font-body text-sm transition-all ${
+                  className={`px-4 py-2.5 rounded-full font-body text-sm transition-all ${
                     selectedCategory === category.id
-                      ? "liquid-glass bg-primary/10 text-foreground"
+                      ? "liquid-glass-card bg-primary/10 text-foreground"
                       : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
                   }`}
                 >
@@ -120,7 +153,7 @@ const Produtos = () => {
             {/* Mobile Filter Button */}
             <button
               onClick={() => setShowFilters(true)}
-              className="md:hidden flex items-center gap-2 px-4 py-2 liquid-glass rounded-full font-body text-sm"
+              className="md:hidden flex items-center gap-2 px-4 py-2.5 liquid-glass-card rounded-full font-body text-sm"
             >
               <SlidersHorizontal className="w-4 h-4" />
               Filtrar
@@ -129,7 +162,7 @@ const Produtos = () => {
             <p className="font-body text-sm text-muted-foreground">
               {products.length} {products.length === 1 ? 'produto' : 'produtos'}
             </p>
-          </div>
+          </motion.div>
 
           {/* Mobile Filter Modal */}
           {showFilters && (
@@ -139,32 +172,32 @@ const Produtos = () => {
               exit={{ opacity: 0 }}
               className="fixed inset-0 z-50 md:hidden"
             >
-              <div className="absolute inset-0 bg-foreground/20 backdrop-blur-sm" onClick={() => setShowFilters(false)} />
+              <div className="absolute inset-0 modal-overlay" onClick={() => setShowFilters(false)} />
               <motion.div
                 initial={{ y: "100%" }}
                 animate={{ y: 0 }}
                 exit={{ y: "100%" }}
-                className="absolute bottom-0 left-0 right-0 liquid-glass rounded-t-3xl p-6"
+                className="absolute bottom-0 left-0 right-0 liquid-glass-card rounded-t-3xl p-8"
               >
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="font-display text-lg font-medium">Filtros</h3>
-                  <button onClick={() => setShowFilters(false)}>
+                <div className="flex items-center justify-between mb-8">
+                  <h3 className="font-display text-xl font-medium">Filtros</h3>
+                  <button onClick={() => setShowFilters(false)} className="p-2 hover:bg-secondary/50 rounded-full">
                     <X className="w-5 h-5" />
                   </button>
                 </div>
                 
                 {/* Brands */}
-                <div className="mb-6">
-                  <h4 className="font-body text-sm font-medium mb-3 text-muted-foreground">Marcas</h4>
+                <div className="mb-8">
+                  <h4 className="font-body text-sm font-medium mb-4 text-muted-foreground">Marcas</h4>
                   <div className="flex flex-wrap gap-2">
                     {BRANDS.map((brand) => (
                       <button
                         key={brand.id}
                         onClick={() => handleBrandChange(brand.id)}
-                        className={`px-4 py-2 rounded-full font-body text-sm transition-all ${
+                        className={`px-4 py-2.5 rounded-full font-body text-sm transition-all ${
                           selectedBrand === brand.id
-                            ? "bg-primary text-primary-foreground"
-                            : "liquid-glass text-foreground"
+                            ? "glass-btn"
+                            : "glass-btn-secondary"
                         }`}
                       >
                         {brand.label}
@@ -175,16 +208,16 @@ const Produtos = () => {
 
                 {/* Categories */}
                 <div>
-                  <h4 className="font-body text-sm font-medium mb-3 text-muted-foreground">Categorias</h4>
+                  <h4 className="font-body text-sm font-medium mb-4 text-muted-foreground">Categorias</h4>
                   <div className="flex flex-wrap gap-2">
                     {CATEGORIES.map((category) => (
                       <button
                         key={category.id}
                         onClick={() => handleCategoryChange(category.id)}
-                        className={`px-4 py-2 rounded-full font-body text-sm transition-all ${
+                        className={`px-4 py-2.5 rounded-full font-body text-sm transition-all ${
                           selectedCategory === category.id
-                            ? "liquid-glass bg-primary/10 text-foreground"
-                            : "liquid-glass text-muted-foreground"
+                            ? "liquid-glass-card bg-primary/10 text-foreground"
+                            : "liquid-glass-card text-muted-foreground"
                         }`}
                       >
                         {category.label}
@@ -215,19 +248,22 @@ const Produtos = () => {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {products.map((product, index) => (
+            <motion.div 
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+            >
+              {products.map((product) => (
                 <motion.article
                   key={product.id}
-                  initial={{ opacity: 0, y: 24 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05, duration: 0.5 }}
+                  variants={itemVariants}
                   whileHover={{ y: -6 }}
                   className="group"
                 >
                   <Link to={`/produto/${product.slug}`} className="block">
-                    <div className="relative aspect-[3/4] rounded-3xl overflow-hidden mb-4 liquid-glass p-1">
-                      <div className="absolute inset-1 rounded-[1.35rem] overflow-hidden">
+                    <div className="relative aspect-[3/4] rounded-3xl overflow-hidden mb-4 liquid-glass-card p-1.5">
+                      <div className="absolute inset-1.5 rounded-[1.25rem] overflow-hidden">
                         <div className="absolute inset-0 bg-gradient-to-t from-foreground/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10" />
                         <img
                           src={getProductImage(product)}
@@ -237,14 +273,14 @@ const Produtos = () => {
                         
                         {/* SKU Badge */}
                         {product.sku && (
-                          <span className="absolute top-3 left-3 px-2 py-1 bg-background/80 backdrop-blur-sm rounded-full text-xs font-mono text-foreground/80 z-20">
+                          <span className="absolute top-4 left-4 px-2.5 py-1 liquid-glass-card text-xs font-mono text-foreground/80 z-20">
                             #{product.sku}
                           </span>
                         )}
                         
                         {/* Brand Badge */}
                         {product.brand && product.brand !== "Outro" && (
-                          <span className="absolute top-3 right-3 px-2.5 py-1 bg-primary/90 backdrop-blur-sm rounded-full text-xs font-medium text-primary-foreground z-20">
+                          <span className="absolute top-4 right-4 status-badge status-badge-info z-20">
                             {product.brand}
                           </span>
                         )}
@@ -253,13 +289,13 @@ const Produtos = () => {
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.95 }}
                           onClick={(e) => e.preventDefault()}
-                          className="absolute bottom-3 right-3 p-2.5 liquid-glass rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 z-20"
+                          className="absolute bottom-4 right-4 p-2.5 liquid-glass-card rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 z-20"
                         >
                           <Heart className="w-4 h-4 text-foreground" />
                         </motion.button>
 
                         <motion.div
-                          className="absolute bottom-4 left-4 right-16 py-3 liquid-glass-strong text-center font-body text-sm font-medium rounded-2xl opacity-0 group-hover:opacity-100 transition-all duration-300 z-20"
+                          className="absolute bottom-4 left-4 right-16 py-3 liquid-glass-card text-center font-body text-sm font-medium rounded-2xl opacity-0 group-hover:opacity-100 transition-all duration-300 z-20"
                         >
                           Ver Detalhes
                         </motion.div>
@@ -284,7 +320,7 @@ const Produtos = () => {
                   </Link>
                 </motion.article>
               ))}
-            </div>
+            </motion.div>
           )}
         </div>
       </main>
