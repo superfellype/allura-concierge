@@ -45,6 +45,23 @@ interface ShippingAddress {
 
 const INFINITEPAY_HANDLE = 'andreybern';
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] as const }
+  }
+};
+
 const Checkout = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -320,11 +337,11 @@ const Checkout = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-gradient-to-br from-cream-50 via-cream-100/50 to-secondary/20 noise-bg">
         <Navbar />
         <main className="pt-32 pb-20 px-4">
           <div className="max-w-4xl mx-auto">
-            <div className="liquid-glass p-12 rounded-3xl text-center">
+            <div className="liquid-glass-card p-12 text-center">
               <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
               <p className="mt-4 text-muted-foreground">Carregando...</p>
             </div>
@@ -336,10 +353,16 @@ const Checkout = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-cream-50 via-cream-100/50 to-secondary/20 noise-bg">
       <Navbar />
       
-      <main className="pt-32 pb-20 px-4">
+      {/* Animated Background Blobs */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[20%] left-[10%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl animate-morph" />
+        <div className="absolute bottom-[20%] right-[10%] w-[400px] h-[400px] bg-accent/8 rounded-full blur-3xl animate-morph" style={{ animationDelay: "-4s" }} />
+      </div>
+      
+      <main className="relative z-10 pt-32 pb-20 px-4">
         <div className="max-w-6xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -364,17 +387,18 @@ const Checkout = () => {
             Finalizar Compra
           </motion.h1>
 
-          <div className="grid lg:grid-cols-2 gap-8">
+          <motion.div 
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="grid lg:grid-cols-2 gap-8"
+          >
             {/* Shipping Form */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="space-y-6"
-            >
-              <div className="liquid-glass p-6 rounded-2xl">
+            <motion.div variants={itemVariants} className="space-y-6">
+              {/* Address Section */}
+              <div className="liquid-glass-card p-6">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <div className="glass-icon w-10 h-10">
                     <MapPin className="w-5 h-5 text-primary" />
                   </div>
                   <h2 className="text-xl font-serif">Endereço de Entrega</h2>
@@ -389,7 +413,7 @@ const Checkout = () => {
                         value={address.cep}
                         onChange={(e) => handleCepChange(e.target.value)}
                         placeholder="00000-000"
-                        className="mt-1"
+                        className="mt-1 glass-input"
                       />
                     </div>
                     <div>
@@ -400,7 +424,7 @@ const Checkout = () => {
                         onChange={(e) => setAddress(prev => ({ ...prev, state: e.target.value }))}
                         placeholder="MG"
                         maxLength={2}
-                        className="mt-1"
+                        className="mt-1 glass-input"
                       />
                     </div>
                   </div>
@@ -412,7 +436,7 @@ const Checkout = () => {
                       value={address.city}
                       onChange={(e) => setAddress(prev => ({ ...prev, city: e.target.value }))}
                       placeholder="Uberlândia"
-                      className="mt-1"
+                      className="mt-1 glass-input"
                     />
                   </div>
 
@@ -423,7 +447,7 @@ const Checkout = () => {
                       value={address.neighborhood}
                       onChange={(e) => setAddress(prev => ({ ...prev, neighborhood: e.target.value }))}
                       placeholder="Centro"
-                      className="mt-1"
+                      className="mt-1 glass-input"
                     />
                   </div>
 
@@ -434,7 +458,7 @@ const Checkout = () => {
                       value={address.street}
                       onChange={(e) => setAddress(prev => ({ ...prev, street: e.target.value }))}
                       placeholder="Rua das Flores"
-                      className="mt-1"
+                      className="mt-1 glass-input"
                     />
                   </div>
 
@@ -446,7 +470,7 @@ const Checkout = () => {
                         value={address.number}
                         onChange={(e) => setAddress(prev => ({ ...prev, number: e.target.value }))}
                         placeholder="123"
-                        className="mt-1"
+                        className="mt-1 glass-input"
                       />
                     </div>
                     <div>
@@ -456,7 +480,7 @@ const Checkout = () => {
                         value={address.complement}
                         onChange={(e) => setAddress(prev => ({ ...prev, complement: e.target.value }))}
                         placeholder="Apto 101"
-                        className="mt-1"
+                        className="mt-1 glass-input"
                       />
                     </div>
                   </div>
@@ -464,16 +488,16 @@ const Checkout = () => {
               </div>
 
               {/* Shipping Options */}
-              <div className="liquid-glass p-6 rounded-2xl">
+              <div className="liquid-glass-card p-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <div className="glass-icon w-10 h-10">
                     <Truck className="w-5 h-5 text-primary" />
                   </div>
                   <h2 className="text-xl font-serif">Frete</h2>
                 </div>
 
                 {shippingService.checkFreeShipping(subtotal) ? (
-                  <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg text-green-700 dark:text-green-400 text-sm">
+                  <div className="p-4 bg-green-50/80 dark:bg-green-900/20 rounded-xl text-green-700 dark:text-green-400 text-sm backdrop-blur-sm border border-green-200/50">
                     🎉 Parabéns! Você ganhou <strong>frete grátis</strong> nesta compra.
                   </div>
                 ) : loadingShipping ? (
@@ -493,10 +517,10 @@ const Checkout = () => {
                     {shippingOptions.map((option) => (
                       <div
                         key={option.service}
-                        className={`flex items-center justify-between p-4 rounded-lg border transition-colors ${
+                        className={`flex items-center justify-between p-4 rounded-xl border transition-all ${
                           selectedShipping?.service === option.service
-                            ? 'border-primary bg-primary/5'
-                            : 'border-border hover:border-primary/50'
+                            ? 'border-primary bg-primary/5 shadow-sm'
+                            : 'border-border/50 hover:border-primary/50 bg-background/30'
                         }`}
                       >
                         <div className="flex items-center gap-3">
@@ -520,16 +544,16 @@ const Checkout = () => {
               </div>
 
               {/* Coupon */}
-              <div className="liquid-glass p-6 rounded-2xl">
+              <div className="liquid-glass-card p-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <div className="glass-icon w-10 h-10">
                     <Tag className="w-5 h-5 text-primary" />
                   </div>
                   <h2 className="text-xl font-serif">Cupom de Desconto</h2>
                 </div>
 
                 {couponValidation?.valid ? (
-                  <div className="flex items-center justify-between p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                  <div className="flex items-center justify-between p-4 bg-green-50/80 dark:bg-green-900/20 rounded-xl backdrop-blur-sm border border-green-200/50">
                     <div>
                       <p className="font-medium text-green-700 dark:text-green-400">
                         {couponValidation.coupon?.code}
@@ -553,12 +577,13 @@ const Checkout = () => {
                       placeholder="Digite o código do cupom"
                       value={couponCode}
                       onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                      className="uppercase"
+                      className="uppercase glass-input"
                     />
                     <Button
                       onClick={handleApplyCoupon}
                       disabled={validatingCoupon || !couponCode.trim()}
                       variant="outline"
+                      className="glass-btn-secondary"
                     >
                       {validatingCoupon ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Aplicar'}
                     </Button>
@@ -567,9 +592,9 @@ const Checkout = () => {
               </div>
 
               {/* Payment Info */}
-              <div className="liquid-glass p-6 rounded-2xl">
+              <div className="liquid-glass-card p-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <div className="glass-icon w-10 h-10">
                     <CreditCard className="w-5 h-5 text-primary" />
                   </div>
                   <h2 className="text-xl font-serif">Pagamento</h2>
@@ -589,18 +614,14 @@ const Checkout = () => {
             </motion.div>
 
             {/* Order Summary */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-            >
-              <div className="liquid-glass p-6 rounded-2xl lg:sticky lg:top-32">
+            <motion.div variants={itemVariants}>
+              <div className="liquid-glass-card p-6 lg:sticky lg:top-32">
                 <h2 className="text-xl font-serif mb-6">Resumo do Pedido</h2>
 
                 <div className="space-y-4 mb-6">
                   {cartItems.map((item) => (
                     <div key={item.id} className="flex gap-4">
-                      <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                      <div className="w-16 h-16 rounded-xl overflow-hidden bg-muted/50 flex-shrink-0 border border-border/30">
                         {item.product.images?.[0] && (
                           <img
                             src={item.product.images[0]}
@@ -620,7 +641,9 @@ const Checkout = () => {
                   ))}
                 </div>
 
-                <div className="space-y-3 border-t border-border/50 pt-4 mb-6">
+                <div className="glass-divider mb-4" />
+
+                <div className="space-y-3 mb-6">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Subtotal</span>
                     <span>{formatPrice(subtotal)}</span>
@@ -643,17 +666,19 @@ const Checkout = () => {
                       )}
                     </span>
                   </div>
+
+                  <div className="glass-divider" />
                   
-                  <div className="flex justify-between text-lg font-medium pt-2 border-t border-border/50">
+                  <div className="flex justify-between text-lg font-medium pt-2">
                     <span>Total</span>
-                    <span className="text-primary">{formatPrice(total)}</span>
+                    <span className="glass-kpi text-2xl">{formatPrice(total)}</span>
                   </div>
                 </div>
 
                 <button
                   onClick={handleCheckout}
                   disabled={processing}
-                  className="w-full liquid-button py-4 disabled:opacity-50"
+                  className="w-full glass-btn py-4 disabled:opacity-50"
                 >
                   {processing ? (
                     <span className="flex items-center justify-center gap-2">
@@ -670,7 +695,7 @@ const Checkout = () => {
                 </p>
               </div>
             </motion.div>
-          </div>
+          </motion.div>
         </div>
       </main>
 

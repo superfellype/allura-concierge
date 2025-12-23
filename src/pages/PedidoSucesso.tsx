@@ -67,21 +67,27 @@ const PedidoSucesso = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-cream-50 via-cream-100/50 to-secondary/20 noise-bg">
       <Navbar />
       
-      <main className="pt-32 pb-20 px-4">
+      {/* Animated Background Blobs */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[20%] left-[10%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl animate-morph" />
+        <div className="absolute bottom-[20%] right-[10%] w-[400px] h-[400px] bg-accent/8 rounded-full blur-3xl animate-morph" style={{ animationDelay: "-4s" }} />
+      </div>
+      
+      <main className="relative z-10 pt-32 pb-20 px-4">
         <div className="max-w-2xl mx-auto">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="liquid-glass p-8 md:p-12 rounded-3xl text-center"
+            className="liquid-glass-card p-8 md:p-12 text-center"
           >
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.2, type: "spring" }}
-              className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6"
+              className="w-20 h-20 rounded-full bg-green-100/80 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-6 backdrop-blur-sm"
             >
               <CheckCircle className="w-10 h-10 text-green-600" />
             </motion.div>
@@ -106,8 +112,8 @@ const PedidoSucesso = () => {
 
             {loading ? (
               <div className="animate-pulse space-y-4">
-                <div className="h-6 bg-muted rounded w-1/2 mx-auto" />
-                <div className="h-4 bg-muted rounded w-1/3 mx-auto" />
+                <div className="h-6 bg-muted/50 rounded w-1/2 mx-auto" />
+                <div className="h-4 bg-muted/50 rounded w-1/3 mx-auto" />
               </div>
             ) : order ? (
               <motion.div
@@ -116,7 +122,7 @@ const PedidoSucesso = () => {
                 transition={{ delay: 0.5 }}
                 className="space-y-6"
               >
-                <div className="bg-muted/30 rounded-2xl p-6 text-left space-y-4">
+                <div className="bg-muted/20 backdrop-blur-sm rounded-2xl p-6 text-left space-y-4 border border-border/30">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Número do Pedido</span>
                     <span className="font-mono text-sm">{order.id.slice(0, 8).toUpperCase()}</span>
@@ -124,24 +130,26 @@ const PedidoSucesso = () => {
                   
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Total</span>
-                    <span className="text-lg font-medium text-primary">{formatPrice(order.total)}</span>
+                    <span className="glass-kpi text-xl">{formatPrice(order.total)}</span>
                   </div>
 
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Status</span>
-                    <span className="inline-flex items-center gap-2 text-sm">
-                      <Clock className="w-4 h-4 text-amber-500" />
+                    <span className="status-badge status-badge-warning">
+                      <Clock className="w-3 h-3" />
                       Aguardando Pagamento
                     </span>
                   </div>
 
-                  <div className="pt-4 border-t border-border/50">
+                  <div className="glass-divider" />
+
+                  <div>
                     <p className="text-sm text-muted-foreground mb-1">Entregar em:</p>
                     <p className="text-sm">
-                      {order.shipping_address.street}, {order.shipping_address.number}
+                      {order.shipping_address?.street}, {order.shipping_address?.number}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {order.shipping_address.city} - {order.shipping_address.state}
+                      {order.shipping_address?.city} - {order.shipping_address?.state}
                     </p>
                   </div>
                 </div>
@@ -165,14 +173,14 @@ const PedidoSucesso = () => {
             >
               <Link
                 to="/minha-conta"
-                className="glass-button px-6 py-3 inline-flex items-center justify-center gap-2"
+                className="glass-btn-secondary px-6 py-3 inline-flex items-center justify-center gap-2"
               >
                 <Package className="w-4 h-4" />
                 Meus Pedidos
               </Link>
               <Link
                 to="/"
-                className="liquid-button px-6 py-3 inline-flex items-center justify-center gap-2"
+                className="glass-btn px-6 py-3 inline-flex items-center justify-center gap-2"
               >
                 <Home className="w-4 h-4" />
                 Continuar Comprando
