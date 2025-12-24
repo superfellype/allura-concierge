@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, MapPin, CreditCard, Truck, ShieldCheck, Tag, Loader2 } from "lucide-react";
+import { ArrowLeft, MapPin, CreditCard, Truck, ShieldCheck, Tag, Loader2, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -15,6 +15,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { shippingService, ShippingOption, ProductDimensions } from "@/services/shipping.service";
 import { couponsService, CouponValidation } from "@/services/coupons.service";
 import { paymentsService } from "@/services/payments.service";
+
+type PaymentProvider = 'stripe' | 'infinitepay';
 
 interface CartItem {
   id: string;
@@ -90,6 +92,9 @@ const Checkout = () => {
   const [couponCode, setCouponCode] = useState('');
   const [couponValidation, setCouponValidation] = useState<CouponValidation | null>(null);
   const [validatingCoupon, setValidatingCoupon] = useState(false);
+
+  // Payment provider state
+  const [paymentProvider, setPaymentProvider] = useState<PaymentProvider>('stripe');
 
   useEffect(() => {
     if (!user) {
@@ -265,7 +270,7 @@ const Checkout = () => {
           shipping_cost: shippingCost,
           total,
           shipping_address: JSON.parse(JSON.stringify(address)),
-          payment_method: 'infinitepay',
+          payment_method: paymentProvider,
           coupon_id: couponValidation?.coupon?.id || null
         }])
         .select()
@@ -303,7 +308,8 @@ const Checkout = () => {
       await paymentsService.create({
         order_id: order.id,
         amount: total,
-        method: 'checkout_link'
+        method: paymentProvider === 'stripe' ? 'card' : 'checkout_link',
+        provider: paymentProvider
       });
 
       // Clear cart
@@ -312,21 +318,44 @@ const Checkout = () => {
         .delete()
         .eq('user_id', user?.id);
 
-      // Create InfinitePay checkout link
-      const paymentGateway = createPaymentGateway(INFINITEPAY_HANDLE);
-      
-      const checkoutUrl = paymentGateway.createCheckoutLink({
-        handle: INFINITEPAY_HANDLE,
-        items: cartItems.map(item => ({
-          name: item.product.name,
-          quantity: item.quantity,
-          price: item.product.price
-        })),
-        redirect_url: `https://comallura.com/pedido/sucesso`
-      });
+      if (paymentProvider === 'stripe') {
+        // Call Stripe checkout edge function
+        const { data: stripeData, error: stripeError } = await supabase.functions.invoke('create-checkout-session', {
+          body: {
+            order_id: order.id,
+            items: cartItems.map(item => ({
+              product_id: item.product_id,
+              product_name: item.product.name,
+              quantity: item.quantity,
+              unit_price: item.product.price,
+              image_url: item.product.images?.[0] ? `https://comallura.com${item.product.images[0]}` : undefined
+            }))
+          }
+        });
 
-      // Redirect to InfinitePay
-      window.location.href = checkoutUrl;
+        if (stripeError) throw stripeError;
+        
+        if (stripeData?.url) {
+          window.location.href = stripeData.url;
+        } else {
+          throw new Error('Falha ao criar sessão de pagamento');
+        }
+      } else {
+        // InfinitePay checkout
+        const paymentGateway = createPaymentGateway(INFINITEPAY_HANDLE);
+        
+        const checkoutUrl = paymentGateway.createCheckoutLink({
+          handle: INFINITEPAY_HANDLE,
+          items: cartItems.map(item => ({
+            name: item.product.name,
+            quantity: item.quantity,
+            price: item.product.price
+          })),
+          redirect_url: `https://comallura.com/pedido/sucesso?orderId=${order.id}`
+        });
+
+        window.location.href = checkoutUrl;
+      }
 
     } catch (error: any) {
       console.error('Error creating order:', error);
@@ -591,18 +620,65 @@ const Checkout = () => {
                 )}
               </div>
 
-              {/* Payment Info */}
+              {/* Payment Options */}
               <div className="liquid-glass-card p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="glass-icon w-10 h-10">
                     <CreditCard className="w-5 h-5 text-primary" />
                   </div>
-                  <h2 className="text-xl font-serif">Pagamento</h2>
+                  <h2 className="text-xl font-serif">Forma de Pagamento</h2>
                 </div>
 
-                <p className="text-muted-foreground text-sm">
-                  Você será redirecionado para o checkout seguro da InfinitePay para finalizar o pagamento com Pix ou cartão de crédito.
-                </p>
+                <RadioGroup
+                  value={paymentProvider}
+                  onValueChange={(value) => setPaymentProvider(value as PaymentProvider)}
+                  className="space-y-3"
+                >
+                  {/* Stripe Option */}
+                  <div
+                    className={`flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer ${
+                      paymentProvider === 'stripe'
+                        ? 'border-primary bg-primary/5 shadow-sm'
+                        : 'border-border/50 hover:border-primary/50 bg-background/30'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <RadioGroupItem value="stripe" id="stripe" />
+                      <label htmlFor="stripe" className="cursor-pointer flex-1">
+                        <div className="flex items-center gap-2">
+                          <CreditCard className="w-4 h-4 text-primary" />
+                          <p className="font-medium">Cartão de Crédito</p>
+                          <span className="text-xs bg-green-500/10 text-green-700 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <Sparkles className="w-3 h-3" />
+                            Recomendado
+                          </span>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Pague de forma segura com Stripe
+                        </p>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* InfinitePay Option */}
+                  <div
+                    className={`flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer ${
+                      paymentProvider === 'infinitepay'
+                        ? 'border-primary bg-primary/5 shadow-sm'
+                        : 'border-border/50 hover:border-primary/50 bg-background/30'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <RadioGroupItem value="infinitepay" id="infinitepay" />
+                      <label htmlFor="infinitepay" className="cursor-pointer flex-1">
+                        <p className="font-medium">Pix ou Cartão (InfinitePay)</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Pague com Pix ou cartão via InfinitePay
+                        </p>
+                      </label>
+                    </div>
+                  </div>
+                </RadioGroup>
 
                 <div className="mt-4 flex items-center gap-4 text-sm text-muted-foreground">
                   <div className="flex items-center gap-2">
@@ -684,6 +760,11 @@ const Checkout = () => {
                     <span className="flex items-center justify-center gap-2">
                       <Loader2 className="w-4 h-4 animate-spin" />
                       Processando...
+                    </span>
+                  ) : paymentProvider === 'stripe' ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <CreditCard className="w-4 h-4" />
+                      Pagar com Cartão
                     </span>
                   ) : (
                     'Pagar com InfinitePay'

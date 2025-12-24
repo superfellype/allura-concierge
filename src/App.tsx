@@ -34,6 +34,8 @@ import PedidosKanban from "./pages/admin/PedidosKanban";
 import VendaManual from "./pages/admin/VendaManual";
 import Clientes from "./pages/admin/Clientes";
 import Configuracoes from "./pages/admin/Configuracoes";
+import Pagamentos from "./pages/admin/Pagamentos";
+import PedidoCancelado from "./pages/PedidoCancelado";
 
 const queryClient = new QueryClient();
 
@@ -56,6 +58,7 @@ const App = () => (
             <Route path="/produtos" element={<ProdutosLista />} />
             <Route path="/sobre" element={<Sobre />} />
             <Route path="/pedido/sucesso" element={<PedidoSucesso />} />
+            <Route path="/pedido/cancelado" element={<PedidoCancelado />} />
 
             {/* Protected User Routes */}
             <Route path="/minha-conta" element={<ProtectedRoute><MinhaConta /></ProtectedRoute>} />
@@ -74,6 +77,7 @@ const App = () => (
             <Route path="/admin/kanban" element={<ProtectedRoute requireAdmin><PedidosKanban /></ProtectedRoute>} />
             <Route path="/admin/venda-manual" element={<ProtectedRoute requireAdmin><VendaManual /></ProtectedRoute>} />
             <Route path="/admin/clientes" element={<ProtectedRoute requireAdmin><Clientes /></ProtectedRoute>} />
+            <Route path="/admin/pagamentos" element={<ProtectedRoute requireAdmin><Pagamentos /></ProtectedRoute>} />
             <Route path="/admin/configuracoes" element={<ProtectedRoute requireAdmin><Configuracoes /></ProtectedRoute>} />
 
             {/* Catch-all */}

@@ -46,6 +46,7 @@ const navGroups = [
     items: [
       { name: "Pedidos", href: "/admin/pedidos", icon: ShoppingCart },
       { name: "Kanban", href: "/admin/kanban", icon: Kanban },
+      { name: "Pagamentos", href: "/admin/pagamentos", icon: DollarSign },
       { name: "Cupons", href: "/admin/cupons", icon: Ticket },
     ],
   },
