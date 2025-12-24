@@ -106,6 +106,7 @@ serve(async (req) => {
       success_url: successUrl,
       cancel_url: cancelUrl,
       metadata: {
+        orderId: order_id,
         order_id: order_id,
         user_id: user.id,
       },
