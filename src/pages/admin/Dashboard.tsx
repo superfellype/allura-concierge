@@ -19,6 +19,7 @@ import {
   Zap,
   ArrowRight,
   BarChart3,
+  Wallet,
 } from "lucide-react";
 import {
   XAxis,
@@ -115,6 +116,7 @@ const Dashboard = () => {
   const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [expenseStats, setExpenseStats] = useState({ totalMonth: 0, totalLastMonth: 0, byCategory: {} as Record<string, number> });
+  const [costStats, setCostStats] = useState({ totalStockCost: 0, totalSalesValue: 0, avgMargin: 0, productsWithoutCost: 0 });
 
   useEffect(() => {
     fetchAllData();
@@ -128,8 +130,50 @@ const Dashboard = () => {
       fetchLowStock(),
       fetchTopProducts(),
       fetchExpenseStats(),
+      fetchCostStats(),
     ]);
     setLoading(false);
+  };
+
+  const fetchCostStats = async () => {
+    const { data: products } = await supabase
+      .from("products")
+      .select("id, price, cost_price, stock_quantity, is_active")
+      .eq("is_active", true);
+
+    if (products) {
+      let totalStockCost = 0;
+      let totalSalesValue = 0;
+      let totalMargin = 0;
+      let productsWithCost = 0;
+      let productsWithoutCost = 0;
+
+      products.forEach(p => {
+        const costPrice = Number(p.cost_price) || 0;
+        const salePrice = Number(p.price) || 0;
+        const stock = Number(p.stock_quantity) || 0;
+
+        totalStockCost += costPrice * stock;
+        totalSalesValue += salePrice * stock;
+
+        if (costPrice > 0 && salePrice > 0) {
+          const margin = ((salePrice - costPrice) / salePrice) * 100;
+          totalMargin += margin;
+          productsWithCost++;
+        } else if (costPrice === 0) {
+          productsWithoutCost++;
+        }
+      });
+
+      const avgMargin = productsWithCost > 0 ? totalMargin / productsWithCost : 0;
+
+      setCostStats({
+        totalStockCost,
+        totalSalesValue,
+        avgMargin,
+        productsWithoutCost,
+      });
+    }
   };
 
   const fetchExpenseStats = async () => {
@@ -615,7 +659,7 @@ const Dashboard = () => {
         </div>
 
         {/* Bottom Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
           {/* Recent Orders */}
           <motion.div
             variants={itemVariants}
@@ -731,6 +775,60 @@ const Dashboard = () => {
                   }
                 </div>
               )}
+            </div>
+          </motion.div>
+
+          {/* Cost Summary Card */}
+          <motion.div
+            variants={itemVariants}
+            className="p-6 rounded-2xl border border-border/40 bg-card/60 backdrop-blur-xl"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500/15 to-cyan-500/5 flex items-center justify-center">
+                  <Wallet className="w-5 h-5 text-cyan-600" />
+                </div>
+                <h2 className="font-display text-lg font-semibold">Custos</h2>
+              </div>
+              <Link to="/admin/custos" className="text-primary text-xs font-medium hover:underline flex items-center gap-1">
+                Ver detalhes <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
+            
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-br from-cyan-500/10 to-cyan-500/5 border border-cyan-500/20">
+                <div>
+                  <p className="font-body text-xs text-muted-foreground">Custo em Estoque</p>
+                  <p className="font-display text-lg font-bold text-cyan-600">
+                    R$ {costStats.totalStockCost.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="font-body text-xs text-muted-foreground">Valor de Venda</p>
+                  <p className="font-display text-lg font-bold text-emerald-600">
+                    R$ {costStats.totalSalesValue.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 rounded-xl bg-muted/50">
+                  <p className="font-body text-xs text-muted-foreground mb-1">Margem Média</p>
+                  <p className={`font-display text-xl font-bold ${
+                    costStats.avgMargin >= 30 ? 'text-emerald-600' : costStats.avgMargin >= 15 ? 'text-amber-600' : 'text-rose-600'
+                  }`}>
+                    {costStats.avgMargin.toFixed(1)}%
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-muted/50">
+                  <p className="font-body text-xs text-muted-foreground mb-1">Sem Custo</p>
+                  <p className={`font-display text-xl font-bold ${
+                    costStats.productsWithoutCost > 0 ? 'text-amber-600' : 'text-emerald-600'
+                  }`}>
+                    {costStats.productsWithoutCost}
+                  </p>
+                </div>
+              </div>
             </div>
           </motion.div>
 
