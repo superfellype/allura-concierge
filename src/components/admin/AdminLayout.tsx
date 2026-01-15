@@ -14,7 +14,6 @@ import {
   Boxes,
   Kanban,
   FolderTree,
-  
   Ticket,
   PlusCircle,
   DollarSign,
@@ -22,6 +21,7 @@ import {
   Receipt,
   FileSpreadsheet,
   MessageCircle,
+  Palette,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import logoAllura from "@/assets/logo-allura-text.png";
@@ -70,6 +70,7 @@ const navGroups = [
   {
     label: "Sistema",
     items: [
+      { name: "Personalização", href: "/admin/personalizacao", icon: Palette },
       { name: "Configurações", href: "/admin/configuracoes", icon: Settings },
     ],
   },
