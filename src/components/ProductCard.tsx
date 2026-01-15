@@ -54,12 +54,6 @@ const ProductCard = ({
             </div>
           )}
           
-          {/* SKU Badge */}
-          {sku && (
-            <span className="absolute top-3 left-3 bg-background/80 backdrop-blur-sm text-foreground text-xs font-mono px-2 py-1 rounded-full">
-              #{sku}
-            </span>
-          )}
           
           {/* Brand Badge */}
           {brand && brand !== "Outro" && (

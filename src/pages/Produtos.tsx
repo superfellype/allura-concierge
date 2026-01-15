@@ -265,12 +265,6 @@ const Produtos = () => {
                           className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-700 ease-out"
                         />
                         
-                        {/* SKU Badge */}
-                        {product.sku && (
-                          <span className="absolute top-4 left-4 px-2.5 py-1 liquid-glass-card text-xs font-mono text-foreground/80 z-20">
-                            #{product.sku}
-                          </span>
-                        )}
                         
                         {/* Brand Badge */}
                         {product.brand && product.brand !== "Outro" && (

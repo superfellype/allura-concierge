@@ -9,11 +9,9 @@ import {
 import AdminLayout from "@/components/admin/AdminLayout";
 import ImageUpload from "@/components/admin/ImageUpload";
 import CategorySelect from "@/components/admin/CategorySelect";
-import CollectionSelect from "@/components/admin/CollectionSelect";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { categoriesService } from "@/services/categories.service";
-import { collectionsService } from "@/services/collections.service";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getUserFriendlyError, safeLogError } from "@/lib/error-utils";
@@ -38,7 +36,6 @@ interface ProductFormData {
   is_active: boolean;
   is_featured: boolean;
   categoryIds: string[];
-  collectionIds: string[];
   brand: string;
   color: string;
 }
@@ -68,7 +65,6 @@ const initialFormData: ProductFormData = {
   is_active: true,
   is_featured: false,
   categoryIds: [],
-  collectionIds: [],
   brand: "Outro",
   color: "",
 };
@@ -109,10 +105,6 @@ const ProdutoEditar = () => {
     const { data: productCategories } = await categoriesService.getProductCategories(productId);
     const categoryIds = productCategories?.map(pc => pc.category_id) || [];
 
-    // Load collections
-    const { data: productCollections } = await collectionsService.getProductCollections(productId);
-    const collectionIds = productCollections?.map(pc => pc.collection_id) || [];
-
     setFormData({
       name: product.name,
       slug: product.slug,
@@ -132,7 +124,6 @@ const ProdutoEditar = () => {
       is_active: product.is_active,
       is_featured: product.is_featured,
       categoryIds,
-      collectionIds,
       brand: product.brand || "Outro",
       color: product.color || "",
     });
@@ -290,7 +281,6 @@ const ProdutoEditar = () => {
       // Update category associations
       if (productId) {
         await categoriesService.setProductCategories(productId, formData.categoryIds);
-        await collectionsService.setProductCollections(productId, formData.collectionIds);
       }
 
       toast.success(isNew ? "Produto criado!" : "Produto atualizado!");
@@ -352,10 +342,9 @@ const ProdutoEditar = () => {
 
       if (error) throw error;
 
-      // Copy category and collection associations
+      // Copy category associations
       if (data.id) {
         await categoriesService.setProductCategories(data.id, formData.categoryIds);
-        await collectionsService.setProductCollections(data.id, formData.collectionIds);
       }
 
       toast.success("Produto duplicado!");
@@ -639,28 +628,18 @@ const ProdutoEditar = () => {
 
           {/* Categorization Tab */}
           <TabsContent value="categorization">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="liquid-card space-y-4">
-                <h3 className="font-display text-lg font-medium flex items-center gap-2">
-                  <Tag className="w-5 h-5 text-primary" />
-                  Categorias
-                </h3>
-                <CategorySelect
-                  selectedIds={formData.categoryIds}
-                  onChange={(ids) => updateField('categoryIds', ids)}
-                />
-              </div>
-
-              <div className="liquid-card space-y-4">
-                <h3 className="font-display text-lg font-medium flex items-center gap-2">
-                  <Tag className="w-5 h-5 text-accent" />
-                  Coleções
-                </h3>
-                <CollectionSelect
-                  selectedIds={formData.collectionIds}
-                  onChange={(ids) => updateField('collectionIds', ids)}
-                />
-              </div>
+            <div className="liquid-card space-y-4">
+              <h3 className="font-display text-lg font-medium flex items-center gap-2">
+                <Tag className="w-5 h-5 text-primary" />
+                Categorias
+              </h3>
+              <CategorySelect
+                selectedIds={formData.categoryIds}
+                onChange={(ids) => updateField('categoryIds', ids)}
+              />
+              <p className="text-sm text-muted-foreground">
+                Selecione as categorias em que este produto deve aparecer.
+              </p>
             </div>
           </TabsContent>
 

@@ -1,12 +1,17 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Search, Eye, Package, Truck, CheckCircle, X, MapPin, CreditCard } from "lucide-react";
+import { Search, Eye, Package, Truck, CheckCircle, X, MapPin, CreditCard, Filter, Calendar, ChevronDown } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import AdminPagination from "@/components/admin/AdminPagination";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Database } from "@/integrations/supabase/types";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Badge } from "@/components/ui/badge";
 
 type OrderStatus = Database["public"]["Enums"]["order_status"];
 
@@ -32,6 +37,7 @@ interface Order {
   payment_method: string | null;
   payment_id: string | null;
   notes: string | null;
+  origin: string | null;
   profiles: { full_name: string | null; phone: string | null } | null;
   items?: OrderItem[];
 }
@@ -65,8 +71,11 @@ const Pedidos = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [originFilter, setOriginFilter] = useState<string>("all");
+  const [dateFilter, setDateFilter] = useState<string>("all");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [cancelConfirm, setCancelConfirm] = useState<{ open: boolean; id: string | null }>({
     open: false,
     id: null,
@@ -159,12 +168,39 @@ const Pedidos = () => {
     return statusFlow[currentIndex + 1];
   };
 
+  const getDateFilterRange = () => {
+    const now = new Date();
+    switch (dateFilter) {
+      case "today":
+        return new Date(now.setHours(0, 0, 0, 0));
+      case "week":
+        return new Date(now.setDate(now.getDate() - 7));
+      case "month":
+        return new Date(now.setMonth(now.getMonth() - 1));
+      case "quarter":
+        return new Date(now.setMonth(now.getMonth() - 3));
+      default:
+        return null;
+    }
+  };
+
   const filteredOrders = orders.filter((order) => {
     const matchesSearch = order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       order.profiles?.full_name?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || order.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesOrigin = originFilter === "all" || order.origin === originFilter;
+    
+    const dateRange = getDateFilterRange();
+    const matchesDate = !dateRange || new Date(order.created_at) >= dateRange;
+    
+    return matchesSearch && matchesStatus && matchesOrigin && matchesDate;
   });
+
+  const activeFiltersCount = [
+    statusFilter !== "all",
+    originFilter !== "all", 
+    dateFilter !== "all"
+  ].filter(Boolean).length;
 
   const totalPages = Math.ceil(filteredOrders.length / ITEMS_PER_PAGE);
   const paginatedOrders = filteredOrders.slice(
@@ -174,37 +210,145 @@ const Pedidos = () => {
 
   return (
     <AdminLayout title="Pedidos">
-      {/* Filters - Liquid Glass */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        <div className="relative flex-1">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Buscar por ID ou cliente..."
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="glass-input pl-11"
-          />
+      {/* Filters */}
+      <div className="space-y-4 mb-6">
+        <div className="flex flex-col sm:flex-row gap-3">
+          {/* Search */}
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Buscar por ID ou cliente..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="pl-11"
+            />
+          </div>
+
+          {/* Quick Status Filter */}
+          <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os status</SelectItem>
+              {statusFlow.map((status) => (
+                <SelectItem key={status} value={status}>{statusLabels[status]}</SelectItem>
+              ))}
+              <SelectItem value="cancelled">Cancelado</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Advanced Filters Popover */}
+          <Popover open={filtersOpen} onOpenChange={setFiltersOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="gap-2 relative">
+                <Filter className="w-4 h-4" />
+                Filtros
+                {activeFiltersCount > 0 && (
+                  <Badge variant="secondary" className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs">
+                    {activeFiltersCount}
+                  </Badge>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80" align="end">
+              <div className="space-y-4">
+                <h4 className="font-medium text-sm">Filtros Avançados</h4>
+                
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1.5 block">Origem</label>
+                  <Select value={originFilter} onValueChange={setOriginFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Origem" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas</SelectItem>
+                      <SelectItem value="site">Site</SelectItem>
+                      <SelectItem value="manual">Venda Manual</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1.5 block">Período</label>
+                  <Select value={dateFilter} onValueChange={setDateFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Período" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todo o período</SelectItem>
+                      <SelectItem value="today">Hoje</SelectItem>
+                      <SelectItem value="week">Últimos 7 dias</SelectItem>
+                      <SelectItem value="month">Últimos 30 dias</SelectItem>
+                      <SelectItem value="quarter">Últimos 3 meses</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex gap-2 pt-2 border-t">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="flex-1"
+                    onClick={() => {
+                      setStatusFilter("all");
+                      setOriginFilter("all");
+                      setDateFilter("all");
+                    }}
+                  >
+                    Limpar
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    className="flex-1"
+                    onClick={() => setFiltersOpen(false)}
+                  >
+                    Aplicar
+                  </Button>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
-        <select
-          value={statusFilter}
-          onChange={(e) => {
-            setStatusFilter(e.target.value);
-            setCurrentPage(1);
-          }}
-          className="glass-input"
-        >
-          <option value="all">Todos os status</option>
-          {statusFlow.map((status) => (
-            <option key={status} value={status}>
-              {statusLabels[status]}
-            </option>
-          ))}
-          <option value="cancelled">Cancelado</option>
-        </select>
+
+        {/* Active Filters Tags */}
+        {activeFiltersCount > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {statusFilter !== "all" && (
+              <Badge variant="secondary" className="gap-1">
+                Status: {statusLabels[statusFilter as OrderStatus] || statusFilter}
+                <button onClick={() => setStatusFilter("all")} className="ml-1 hover:text-destructive">
+                  <X className="w-3 h-3" />
+                </button>
+              </Badge>
+            )}
+            {originFilter !== "all" && (
+              <Badge variant="secondary" className="gap-1">
+                Origem: {originFilter === "site" ? "Site" : "Manual"}
+                <button onClick={() => setOriginFilter("all")} className="ml-1 hover:text-destructive">
+                  <X className="w-3 h-3" />
+                </button>
+              </Badge>
+            )}
+            {dateFilter !== "all" && (
+              <Badge variant="secondary" className="gap-1">
+                Período: {dateFilter === "today" ? "Hoje" : dateFilter === "week" ? "7 dias" : dateFilter === "month" ? "30 dias" : "3 meses"}
+                <button onClick={() => setDateFilter("all")} className="ml-1 hover:text-destructive">
+                  <X className="w-3 h-3" />
+                </button>
+              </Badge>
+            )}
+          </div>
+        )}
+
+        {/* Results count */}
+        <p className="text-sm text-muted-foreground">
+          {filteredOrders.length} pedido(s) encontrado(s)
+        </p>
       </div>
 
       {/* Orders List */}

@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
-import { Search, User, ShoppingBag, TrendingUp, Eye, Package, Calendar } from "lucide-react";
+import { Search, User, ShoppingBag, TrendingUp, Eye, Package, Calendar, Filter, X, ArrowUpDown } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import AdminPagination from "@/components/admin/AdminPagination";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Badge } from "@/components/ui/badge";
 
 interface CustomerOrder {
   id: string;
@@ -52,6 +56,9 @@ const Clientes = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [orderFilter, setOrderFilter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<string>("recent");
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   useEffect(() => {
     fetchCustomers();
@@ -89,10 +96,35 @@ const Clientes = () => {
     setLoading(false);
   };
 
-  const filteredCustomers = customers.filter((c) =>
-    c.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.phone?.includes(searchQuery)
-  );
+  const filteredCustomers = customers
+    .filter((c) => {
+      const matchesSearch = c.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.phone?.includes(searchQuery);
+      
+      const matchesOrder = orderFilter === "all" ||
+        (orderFilter === "with_orders" && c.ordersCount > 0) ||
+        (orderFilter === "without_orders" && c.ordersCount === 0);
+      
+      return matchesSearch && matchesOrder;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case "name":
+          return (a.full_name || "").localeCompare(b.full_name || "");
+        case "orders":
+          return b.ordersCount - a.ordersCount;
+        case "spent":
+          return b.totalSpent - a.totalSpent;
+        case "recent":
+        default:
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
+    });
+
+  const activeFiltersCount = [
+    orderFilter !== "all",
+    sortBy !== "recent"
+  ].filter(Boolean).length;
 
   const totalPages = Math.ceil(filteredCustomers.length / ITEMS_PER_PAGE);
   const paginatedCustomers = filteredCustomers.slice(
@@ -154,21 +186,100 @@ const Clientes = () => {
           </div>
         </motion.div>
 
-        {/* Search */}
-        <motion.div variants={itemVariants}>
-          <div className="relative max-w-md">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Buscar por nome ou telefone..."
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="w-full pl-11 pr-4 py-3 rounded-xl border border-border/40 bg-card/60 backdrop-blur-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
-            />
+        {/* Search & Filters */}
+        <motion.div variants={itemVariants} className="space-y-3">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Buscar por nome ou telefone..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="pl-11"
+              />
+            </div>
+
+            {/* Quick Order Filter */}
+            <Select value={orderFilter} onValueChange={(v) => { setOrderFilter(v); setCurrentPage(1); }}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Pedidos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="with_orders">Com pedidos</SelectItem>
+                <SelectItem value="without_orders">Sem pedidos</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Advanced Filters */}
+            <Popover open={filtersOpen} onOpenChange={setFiltersOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="gap-2 relative">
+                  <ArrowUpDown className="w-4 h-4" />
+                  Ordenar
+                  {sortBy !== "recent" && (
+                    <Badge variant="secondary" className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs">
+                      1
+                    </Badge>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64" align="end">
+                <div className="space-y-4">
+                  <h4 className="font-medium text-sm">Ordenar por</h4>
+                  
+                  <div className="space-y-2">
+                    {[
+                      { id: "recent", label: "Mais recentes" },
+                      { id: "name", label: "Nome (A-Z)" },
+                      { id: "orders", label: "Mais pedidos" },
+                      { id: "spent", label: "Maior gasto" },
+                    ].map((option) => (
+                      <button
+                        key={option.id}
+                        onClick={() => { setSortBy(option.id); setFiltersOpen(false); }}
+                        className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                          sortBy === option.id ? 'bg-primary/10 text-primary' : 'hover:bg-secondary'
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
+
+          {/* Active Filters Tags */}
+          {activeFiltersCount > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {orderFilter !== "all" && (
+                <Badge variant="secondary" className="gap-1">
+                  {orderFilter === "with_orders" ? "Com pedidos" : "Sem pedidos"}
+                  <button onClick={() => setOrderFilter("all")} className="ml-1 hover:text-destructive">
+                    <X className="w-3 h-3" />
+                  </button>
+                </Badge>
+              )}
+              {sortBy !== "recent" && (
+                <Badge variant="secondary" className="gap-1">
+                  Ordenado: {sortBy === "name" ? "Nome" : sortBy === "orders" ? "Pedidos" : "Gasto"}
+                  <button onClick={() => setSortBy("recent")} className="ml-1 hover:text-destructive">
+                    <X className="w-3 h-3" />
+                  </button>
+                </Badge>
+              )}
+            </div>
+          )}
+
+          <p className="text-sm text-muted-foreground">
+            {filteredCustomers.length} cliente(s) encontrado(s)
+          </p>
         </motion.div>
 
         {/* Customers List */}
