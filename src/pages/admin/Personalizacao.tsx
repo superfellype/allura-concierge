@@ -7,6 +7,7 @@ import {
   CreditCard, Truck, ShoppingCart, Globe
 } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
+import SingleImageUpload from "@/components/admin/SingleImageUpload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -254,39 +255,30 @@ export default function Personalizacao() {
                     <Image className="w-5 h-5 text-primary" />
                     Logos
                   </CardTitle>
-                  <CardDescription>URLs das imagens de logo</CardDescription>
+                  <CardDescription>Imagens de logo da sua loja</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Logo Principal (URL)</Label>
-                      <Input
-                        value={formData.logo_url || ''}
-                        onChange={(e) => handleChange('logo_url', e.target.value)}
-                        placeholder="https://..."
-                      />
-                      {formData.logo_url && (
-                        <img src={formData.logo_url} alt="Logo" className="h-12 mt-2 object-contain" />
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Logo Texto (URL)</Label>
-                      <Input
-                        value={formData.logo_text_url || ''}
-                        onChange={(e) => handleChange('logo_text_url', e.target.value)}
-                        placeholder="https://..."
-                      />
-                      {formData.logo_text_url && (
-                        <img src={formData.logo_text_url} alt="Logo Text" className="h-8 mt-2 object-contain" />
-                      )}
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Favicon (URL)</Label>
-                    <Input
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <SingleImageUpload
+                      value={formData.logo_url || ''}
+                      onChange={(url) => handleChange('logo_url', url)}
+                      folder="logos"
+                      label="Logo Principal"
+                      aspectRatio="square"
+                    />
+                    <SingleImageUpload
+                      value={formData.logo_text_url || ''}
+                      onChange={(url) => handleChange('logo_text_url', url)}
+                      folder="logos"
+                      label="Logo Texto"
+                      aspectRatio="logo"
+                    />
+                    <SingleImageUpload
                       value={formData.favicon_url || ''}
-                      onChange={(e) => handleChange('favicon_url', e.target.value)}
-                      placeholder="https://..."
+                      onChange={(url) => handleChange('favicon_url', url)}
+                      folder="logos"
+                      label="Favicon"
+                      aspectRatio="square"
                     />
                   </div>
                 </CardContent>
@@ -371,14 +363,13 @@ export default function Personalizacao() {
                       />
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Imagem de Fundo (URL)</Label>
-                    <Input
-                      value={formData.hero_image_url || ''}
-                      onChange={(e) => handleChange('hero_image_url', e.target.value)}
-                      placeholder="https://..."
-                    />
-                  </div>
+                  <SingleImageUpload
+                    value={formData.hero_image_url || ''}
+                    onChange={(url) => handleChange('hero_image_url', url)}
+                    folder="hero"
+                    label="Imagem de Fundo"
+                    aspectRatio="banner"
+                  />
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Texto do Botão</Label>
@@ -879,17 +870,13 @@ export default function Personalizacao() {
                       Separe as palavras por vírgula
                     </p>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Imagem OG para Redes Sociais (URL)</Label>
-                    <Input
-                      value={formData.seo_og_image || ''}
-                      onChange={(e) => handleChange('seo_og_image', e.target.value)}
-                      placeholder="https://..."
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Tamanho recomendado: 1200x630px
-                    </p>
-                  </div>
+                  <SingleImageUpload
+                    value={formData.seo_og_image || ''}
+                    onChange={(url) => handleChange('seo_og_image', url)}
+                    folder="seo"
+                    label="Imagem OG para Redes Sociais (1200x630px)"
+                    aspectRatio="banner"
+                  />
                 </CardContent>
               </Card>
             </motion.div>

@@ -43,6 +43,45 @@ class UploadService {
     }
   }
 
+  async uploadImage(file: File, folder: string = 'general'): Promise<{ url: string | null; error: string | null }> {
+    try {
+      const fileExt = file.name.split('.').pop()?.toLowerCase();
+      const allowedTypes = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+      
+      if (!fileExt || !allowedTypes.includes(fileExt)) {
+        return { url: null, error: 'Tipo de arquivo não permitido. Use: JPG, PNG, WEBP ou GIF' };
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        return { url: null, error: 'Arquivo muito grande. Máximo: 5MB' };
+      }
+
+      const fileName = `${folder}-${Date.now()}.${fileExt}`;
+      const filePath = `${folder}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from(BUCKET_NAME)
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        return { url: null, error: uploadError.message };
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from(BUCKET_NAME)
+        .getPublicUrl(filePath);
+
+      return { url: publicUrl, error: null };
+    } catch (error: any) {
+      console.error('Upload service error:', error);
+      return { url: null, error: error.message || 'Erro no upload' };
+    }
+  }
+
   async uploadMultipleImages(files: File[], productId?: string): Promise<{ urls: string[]; errors: string[] }> {
     const results = await Promise.all(
       files.map(file => this.uploadProductImage(file, productId))
