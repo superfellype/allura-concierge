@@ -184,7 +184,7 @@ const Colecoes = () => {
                 Nova Coleção
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto modal-overlay liquid-glass-card border-0">
+            <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto bg-card border border-border shadow-xl" onPointerDownOutside={(e) => e.preventDefault()}>
               <DialogHeader>
                 <DialogTitle className="font-display text-xl">
                   {editingCollection ? 'Editar Coleção' : 'Nova Coleção'}
