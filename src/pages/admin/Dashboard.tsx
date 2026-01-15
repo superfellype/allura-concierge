@@ -33,6 +33,7 @@ import {
 } from "recharts";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
+import { expensesService } from "@/services/expenses.service";
 
 interface KPICard {
   title: string;
@@ -113,7 +114,7 @@ const Dashboard = () => {
   const [lowStockProducts, setLowStockProducts] = useState<any[]>([]);
   const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
   const [loading, setLoading] = useState(true);
-  const [totalExpenses, setTotalExpenses] = useState(0);
+  const [expenseStats, setExpenseStats] = useState({ totalMonth: 0, totalLastMonth: 0, byCategory: {} as Record<string, number> });
 
   useEffect(() => {
     fetchAllData();
@@ -126,8 +127,14 @@ const Dashboard = () => {
       fetchRevenueData(),
       fetchLowStock(),
       fetchTopProducts(),
+      fetchExpenseStats(),
     ]);
     setLoading(false);
+  };
+
+  const fetchExpenseStats = async () => {
+    const stats = await expensesService.getStats();
+    setExpenseStats(stats);
   };
 
   const fetchKPIs = async () => {
@@ -144,20 +151,8 @@ const Dashboard = () => {
       .from("orders")
       .select("total, created_at, status");
 
-    // Get expenses for this month
     const thisMonth = new Date().getMonth();
     const thisYear = new Date().getFullYear();
-    const startOfMonth = new Date(thisYear, thisMonth, 1).toISOString();
-    const endOfMonth = new Date(thisYear, thisMonth + 1, 0, 23, 59, 59).toISOString();
-
-    const { data: expenses } = await supabase
-      .from("expenses")
-      .select("amount")
-      .gte("date", startOfMonth.split('T')[0])
-      .lte("date", endOfMonth.split('T')[0]);
-
-    const monthlyExpenses = expenses?.reduce((sum, e) => sum + Number(e.amount), 0) || 0;
-    setTotalExpenses(monthlyExpenses);
 
     const today = new Date();
     const todayStr = today.toDateString();
@@ -195,8 +190,8 @@ const Dashboard = () => {
       ? Math.round(((monthlyRevenue - lastMonthRevenue) / lastMonthRevenue) * 100)
       : monthlyRevenue > 0 ? 100 : 0;
 
-    // Net revenue
-    const netRevenue = monthlyRevenue - monthlyExpenses;
+    // Net revenue uses expenseStats loaded separately
+    const netRevenue = monthlyRevenue - expenseStats.totalMonth;
 
     // Average ticket
     const paidOrders = orders?.filter(o => o.status !== 'cancelled' && o.status !== 'created') || [];
@@ -620,7 +615,7 @@ const Dashboard = () => {
         </div>
 
         {/* Bottom Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Recent Orders */}
           <motion.div
             variants={itemVariants}
@@ -669,7 +664,7 @@ const Dashboard = () => {
                         <span className={`text-xs font-medium px-2 py-1 rounded-lg ${badge.class}`}>
                           {badge.label}
                         </span>
-                        <span className="font-display text-sm font-semibold min-w-[80px] text-right">
+                        <span className="font-display text-sm font-semibold min-w-[70px] text-right">
                           R$ {Number(order.total).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
                         </span>
                       </div>
@@ -680,7 +675,66 @@ const Dashboard = () => {
             )}
           </motion.div>
 
-          {/* Activity / Quick Actions */}
+          {/* Expenses Summary Card */}
+          <motion.div
+            variants={itemVariants}
+            className="p-6 rounded-2xl border border-border/40 bg-card/60 backdrop-blur-xl"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-500/15 to-rose-500/5 flex items-center justify-center">
+                  <Receipt className="w-5 h-5 text-rose-600" />
+                </div>
+                <h2 className="font-display text-lg font-semibold">Despesas</h2>
+              </div>
+              <Link to="/admin/despesas" className="text-primary text-xs font-medium hover:underline flex items-center gap-1">
+                Gerenciar <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="p-4 rounded-xl bg-gradient-to-br from-rose-500/10 to-rose-500/5 border border-rose-500/20">
+                <p className="font-body text-xs text-muted-foreground mb-1">Este mês</p>
+                <p className="font-display text-2xl font-bold text-rose-600">
+                  R$ {expenseStats.totalMonth.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                </p>
+                {expenseStats.totalLastMonth > 0 && (
+                  <div className={`flex items-center gap-1 text-xs mt-1 ${
+                    expenseStats.totalMonth > expenseStats.totalLastMonth 
+                      ? 'text-rose-600' 
+                      : 'text-emerald-600'
+                  }`}>
+                    {expenseStats.totalMonth > expenseStats.totalLastMonth ? (
+                      <TrendingUp className="w-3 h-3" />
+                    ) : (
+                      <TrendingDown className="w-3 h-3" />
+                    )}
+                    {Math.abs(((expenseStats.totalMonth - expenseStats.totalLastMonth) / expenseStats.totalLastMonth) * 100).toFixed(0)}% vs mês anterior
+                  </div>
+                )}
+              </div>
+
+              {Object.keys(expenseStats.byCategory).length > 0 && (
+                <div className="space-y-2">
+                  <p className="font-body text-xs text-muted-foreground">Por categoria</p>
+                  {Object.entries(expenseStats.byCategory)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 3)
+                    .map(([category, amount]) => (
+                      <div key={category} className="flex items-center justify-between">
+                        <span className="font-body text-sm">{category}</span>
+                        <span className="font-body text-sm font-medium">
+                          R$ {amount.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                        </span>
+                      </div>
+                    ))
+                  }
+                </div>
+              )}
+            </div>
+          </motion.div>
+
+          {/* Quick Actions */}
           <motion.div
             variants={itemVariants}
             className="p-6 rounded-2xl border border-border/40 bg-card/60 backdrop-blur-xl"
