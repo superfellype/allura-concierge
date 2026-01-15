@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import logoFlower from "@/assets/logo-allura-flower.png";
 import { supabase } from "@/integrations/supabase/client";
 import { formatPrice } from "@/lib/payment/infinitepay-adapter";
+import { calculateDiscount, formatInstallment } from "@/lib/price-utils";
 
 interface Product {
   id: string;
@@ -159,6 +160,13 @@ const FeaturedProducts = () => {
                       className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-700 ease-out"
                     />
                     
+                    {/* Discount Badge */}
+                    {product.original_price && product.original_price > product.price && (
+                      <span className="absolute top-3 left-3 px-2.5 py-1 bg-destructive text-destructive-foreground text-xs font-medium rounded-full z-20 shadow-lg">
+                        -{calculateDiscount(product.price, product.original_price)}%
+                      </span>
+                    )}
+                    
                     {/* Wishlist Button */}
                     <motion.button
                       whileHover={{ scale: 1.1 }}
@@ -183,15 +191,20 @@ const FeaturedProducts = () => {
                   <h3 className="font-display text-lg font-medium mt-1 group-hover:text-primary transition-colors duration-300">
                     {product.name}
                   </h3>
-                  <div className="flex items-center gap-2 mt-1">
-                    <p className="font-body text-sm text-foreground/70">
-                      {formatPrice(product.price)}
-                    </p>
-                    {product.original_price && product.original_price > product.price && (
-                      <p className="font-body text-xs text-muted-foreground line-through">
-                        {formatPrice(product.original_price)}
+                  <div className="mt-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-body text-sm font-medium text-foreground">
+                        {formatPrice(product.price)}
                       </p>
-                    )}
+                      {product.original_price && product.original_price > product.price && (
+                        <p className="font-body text-xs text-muted-foreground line-through">
+                          {formatPrice(product.original_price)}
+                        </p>
+                      )}
+                    </div>
+                    <p className="font-body text-xs text-muted-foreground mt-0.5">
+                      ou {formatInstallment(product.price, 3)}
+                    </p>
                   </div>
                 </div>
               </Link>

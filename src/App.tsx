@@ -36,6 +36,11 @@ import Clientes from "./pages/admin/Clientes";
 import Configuracoes from "./pages/admin/Configuracoes";
 import Pagamentos from "./pages/admin/Pagamentos";
 import PedidoCancelado from "./pages/PedidoCancelado";
+import NotasKanban from "./pages/admin/NotasKanban";
+import Notas from "./pages/admin/Notas";
+import Despesas from "./pages/admin/Despesas";
+import Relatorios from "./pages/admin/Relatorios";
+import WhatsApp from "./pages/admin/WhatsApp";
 
 const queryClient = new QueryClient();
 
@@ -79,6 +84,11 @@ const App = () => (
             <Route path="/admin/clientes" element={<ProtectedRoute requireAdmin><Clientes /></ProtectedRoute>} />
             <Route path="/admin/pagamentos" element={<ProtectedRoute requireAdmin><Pagamentos /></ProtectedRoute>} />
             <Route path="/admin/configuracoes" element={<ProtectedRoute requireAdmin><Configuracoes /></ProtectedRoute>} />
+            <Route path="/admin/notas-kanban" element={<ProtectedRoute requireAdmin><NotasKanban /></ProtectedRoute>} />
+            <Route path="/admin/notas" element={<ProtectedRoute requireAdmin><Notas /></ProtectedRoute>} />
+            <Route path="/admin/despesas" element={<ProtectedRoute requireAdmin><Despesas /></ProtectedRoute>} />
+            <Route path="/admin/relatorios" element={<ProtectedRoute requireAdmin><Relatorios /></ProtectedRoute>} />
+            <Route path="/admin/whatsapp" element={<ProtectedRoute requireAdmin><WhatsApp /></ProtectedRoute>} />
 
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
