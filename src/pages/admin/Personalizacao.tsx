@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import SingleImageUpload from "@/components/admin/SingleImageUpload";
+import SiteSettingsLivePreview from "@/components/admin/SiteSettingsLivePreview";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -178,163 +179,165 @@ export default function Personalizacao() {
           </motion.div>
         )}
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid grid-cols-4 lg:grid-cols-8 gap-1 h-auto p-1 bg-muted/50">
-            <TabsTrigger value="identity" className="gap-2 text-xs sm:text-sm py-2">
-              <Palette className="w-4 h-4" />
-              <span className="hidden sm:inline">Identidade</span>
-            </TabsTrigger>
-            <TabsTrigger value="home" className="gap-2 text-xs sm:text-sm py-2">
-              <Home className="w-4 h-4" />
-              <span className="hidden sm:inline">Home</span>
-            </TabsTrigger>
-            <TabsTrigger value="contact" className="gap-2 text-xs sm:text-sm py-2">
-              <Phone className="w-4 h-4" />
-              <span className="hidden sm:inline">Contato</span>
-            </TabsTrigger>
-            <TabsTrigger value="social" className="gap-2 text-xs sm:text-sm py-2">
-              <Share2 className="w-4 h-4" />
-              <span className="hidden sm:inline">Redes</span>
-            </TabsTrigger>
-            <TabsTrigger value="footer" className="gap-2 text-xs sm:text-sm py-2">
-              <FileText className="w-4 h-4" />
-              <span className="hidden sm:inline">Rodapé</span>
-            </TabsTrigger>
-            <TabsTrigger value="pages" className="gap-2 text-xs sm:text-sm py-2">
-              <Globe className="w-4 h-4" />
-              <span className="hidden sm:inline">Páginas</span>
-            </TabsTrigger>
-            <TabsTrigger value="seo" className="gap-2 text-xs sm:text-sm py-2">
-              <Search className="w-4 h-4" />
-              <span className="hidden sm:inline">SEO</span>
-            </TabsTrigger>
-            <TabsTrigger value="ecommerce" className="gap-2 text-xs sm:text-sm py-2">
-              <ShoppingCart className="w-4 h-4" />
-              <span className="hidden sm:inline">Loja</span>
-            </TabsTrigger>
-          </TabsList>
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-6 items-start">
+          <div className="min-w-0">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+              <TabsList className="grid grid-cols-4 lg:grid-cols-8 gap-1 h-auto p-1 bg-muted/50">
+                <TabsTrigger value="identity" className="gap-2 text-xs sm:text-sm py-2">
+                  <Palette className="w-4 h-4" />
+                  <span className="hidden sm:inline">Identidade</span>
+                </TabsTrigger>
+                <TabsTrigger value="home" className="gap-2 text-xs sm:text-sm py-2">
+                  <Home className="w-4 h-4" />
+                  <span className="hidden sm:inline">Home</span>
+                </TabsTrigger>
+                <TabsTrigger value="contact" className="gap-2 text-xs sm:text-sm py-2">
+                  <Phone className="w-4 h-4" />
+                  <span className="hidden sm:inline">Contato</span>
+                </TabsTrigger>
+                <TabsTrigger value="social" className="gap-2 text-xs sm:text-sm py-2">
+                  <Share2 className="w-4 h-4" />
+                  <span className="hidden sm:inline">Redes</span>
+                </TabsTrigger>
+                <TabsTrigger value="footer" className="gap-2 text-xs sm:text-sm py-2">
+                  <FileText className="w-4 h-4" />
+                  <span className="hidden sm:inline">Rodapé</span>
+                </TabsTrigger>
+                <TabsTrigger value="pages" className="gap-2 text-xs sm:text-sm py-2">
+                  <Globe className="w-4 h-4" />
+                  <span className="hidden sm:inline">Páginas</span>
+                </TabsTrigger>
+                <TabsTrigger value="seo" className="gap-2 text-xs sm:text-sm py-2">
+                  <Search className="w-4 h-4" />
+                  <span className="hidden sm:inline">SEO</span>
+                </TabsTrigger>
+                <TabsTrigger value="ecommerce" className="gap-2 text-xs sm:text-sm py-2">
+                  <ShoppingCart className="w-4 h-4" />
+                  <span className="hidden sm:inline">Loja</span>
+                </TabsTrigger>
+              </TabsList>
 
-          {/* IDENTITY TAB */}
-          <TabsContent value="identity" className="space-y-6">
-            <motion.div variants={itemVariants}>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Type className="w-5 h-5 text-primary" />
-                    Marca
-                  </CardTitle>
-                  <CardDescription>Nome e slogan da sua loja</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Nome da Marca</Label>
-                      <Input
-                        value={formData.brand_name || ''}
-                        onChange={(e) => handleChange('brand_name', e.target.value)}
-                        placeholder="Nome da sua loja"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Slogan / Tagline</Label>
-                      <Input
-                        value={formData.brand_tagline || ''}
-                        onChange={(e) => handleChange('brand_tagline', e.target.value)}
-                        placeholder="Frase de efeito"
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+              {/* IDENTITY TAB */}
+              <TabsContent value="identity" className="space-y-6">
+                <motion.div variants={itemVariants}>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Type className="w-5 h-5 text-primary" />
+                        Marca
+                      </CardTitle>
+                      <CardDescription>Nome e slogan da sua loja</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Nome da Marca</Label>
+                          <Input
+                            value={formData.brand_name || ''}
+                            onChange={(e) => handleChange('brand_name', e.target.value)}
+                            placeholder="Nome da sua loja"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Slogan / Tagline</Label>
+                          <Input
+                            value={formData.brand_tagline || ''}
+                            onChange={(e) => handleChange('brand_tagline', e.target.value)}
+                            placeholder="Frase de efeito"
+                          />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
 
-            <motion.div variants={itemVariants}>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Image className="w-5 h-5 text-primary" />
-                    Logos
-                  </CardTitle>
-                  <CardDescription>Imagens de logo da sua loja</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <SingleImageUpload
-                      value={formData.logo_url || ''}
-                      onChange={(url) => handleChange('logo_url', url)}
-                      folder="logos"
-                      label="Logo Principal"
-                      aspectRatio="square"
-                    />
-                    <SingleImageUpload
-                      value={formData.logo_text_url || ''}
-                      onChange={(url) => handleChange('logo_text_url', url)}
-                      folder="logos"
-                      label="Logo Texto"
-                      aspectRatio="logo"
-                    />
-                    <SingleImageUpload
-                      value={formData.favicon_url || ''}
-                      onChange={(url) => handleChange('favicon_url', url)}
-                      folder="logos"
-                      label="Favicon"
-                      aspectRatio="square"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            <motion.div variants={itemVariants}>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Palette className="w-5 h-5 text-primary" />
-                    Cores
-                  </CardTitle>
-                  <CardDescription>Cores principais do site</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Cor Primária</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          type="color"
-                          value={formData.primary_color || '#d97706'}
-                          onChange={(e) => handleChange('primary_color', e.target.value)}
-                          className="w-14 h-10 p-1 cursor-pointer"
+                <motion.div variants={itemVariants}>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Image className="w-5 h-5 text-primary" />
+                        Logos
+                      </CardTitle>
+                      <CardDescription>Imagens de logo da sua loja</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <SingleImageUpload
+                          value={formData.logo_url || ''}
+                          onChange={(url) => handleChange('logo_url', url)}
+                          folder="logos"
+                          label="Logo Principal"
+                          aspectRatio="square"
                         />
-                        <Input
-                          value={formData.primary_color || '#d97706'}
-                          onChange={(e) => handleChange('primary_color', e.target.value)}
-                          placeholder="#d97706"
-                          className="flex-1"
+                        <SingleImageUpload
+                          value={formData.logo_text_url || ''}
+                          onChange={(url) => handleChange('logo_text_url', url)}
+                          folder="logos"
+                          label="Logo Texto"
+                          aspectRatio="logo"
+                        />
+                        <SingleImageUpload
+                          value={formData.favicon_url || ''}
+                          onChange={(url) => handleChange('favicon_url', url)}
+                          folder="logos"
+                          label="Favicon"
+                          aspectRatio="square"
                         />
                       </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Cor de Destaque</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          type="color"
-                          value={formData.accent_color || '#fbbf24'}
-                          onChange={(e) => handleChange('accent_color', e.target.value)}
-                          className="w-14 h-10 p-1 cursor-pointer"
-                        />
-                        <Input
-                          value={formData.accent_color || '#fbbf24'}
-                          onChange={(e) => handleChange('accent_color', e.target.value)}
-                          placeholder="#fbbf24"
-                          className="flex-1"
-                        />
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                <motion.div variants={itemVariants}>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Palette className="w-5 h-5 text-primary" />
+                        Cores
+                      </CardTitle>
+                      <CardDescription>Cores principais do site</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Cor Primária</Label>
+                          <div className="flex gap-2">
+                            <Input
+                              type="color"
+                              value={formData.primary_color || '#d97706'}
+                              onChange={(e) => handleChange('primary_color', e.target.value)}
+                              className="w-14 h-10 p-1 cursor-pointer"
+                            />
+                            <Input
+                              value={formData.primary_color || '#d97706'}
+                              onChange={(e) => handleChange('primary_color', e.target.value)}
+                              placeholder="#d97706"
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Cor de Destaque</Label>
+                          <div className="flex gap-2">
+                            <Input
+                              type="color"
+                              value={formData.accent_color || '#fbbf24'}
+                              onChange={(e) => handleChange('accent_color', e.target.value)}
+                              className="w-14 h-10 p-1 cursor-pointer"
+                            />
+                            <Input
+                              value={formData.accent_color || '#fbbf24'}
+                              onChange={(e) => handleChange('accent_color', e.target.value)}
+                              placeholder="#fbbf24"
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </TabsContent>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </TabsContent>
 
           {/* HOME TAB */}
           <TabsContent value="home" className="space-y-6">
@@ -1006,6 +1009,12 @@ export default function Personalizacao() {
             </motion.div>
           </TabsContent>
         </Tabs>
+      </div>
+
+      <div className="hidden lg:block">
+        <SiteSettingsLivePreview settings={formData} />
+      </div>
+    </div>
       </motion.div>
     </AdminLayout>
   );
