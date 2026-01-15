@@ -192,19 +192,17 @@ const FeaturedProducts = () => {
                     {product.name}
                   </h3>
                   <div className="mt-1">
-                    <div className="flex items-center gap-2">
-                      <p className="font-body text-sm font-medium text-foreground">
-                        {formatPrice(product.price)}
-                      </p>
-                      {product.original_price && product.original_price > product.price && (
-                        <p className="font-body text-xs text-muted-foreground line-through">
-                          {formatPrice(product.original_price)}
-                        </p>
-                      )}
-                    </div>
-                    <p className="font-body text-xs text-muted-foreground mt-0.5">
-                      ou {formatInstallment(product.price, 3)}
+                    <p className="font-body text-sm font-medium text-foreground">
+                      {formatInstallment(product.price, 3)}
                     </p>
+                    <p className="font-body text-xs text-muted-foreground mt-0.5">
+                      ou {formatPrice(product.price)} à vista
+                    </p>
+                    {product.original_price && product.original_price > product.price && (
+                      <p className="font-body text-xs text-muted-foreground/60 line-through">
+                        de {formatPrice(product.original_price)}
+                      </p>
+                    )}
                   </div>
                 </div>
               </Link>
