@@ -273,6 +273,117 @@ export type Database = {
         }
         Relationships: []
       }
+      expenses: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string | null
+          description: string
+          expense_date: string
+          id: string
+          notes: string | null
+          payment_method: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          category: string
+          created_at?: string | null
+          description: string
+          expense_date?: string
+          id?: string
+          notes?: string | null
+          payment_method?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string | null
+          description?: string
+          expense_date?: string
+          id?: string
+          notes?: string | null
+          payment_method?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      kanban_notes: {
+        Row: {
+          color: string | null
+          column_id: string
+          content: string | null
+          created_at: string | null
+          display_order: number | null
+          id: string
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          column_id?: string
+          content?: string | null
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          column_id?: string
+          content?: string | null
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notes: {
+        Row: {
+          color: string | null
+          content: string | null
+          created_at: string | null
+          id: string
+          is_completed: boolean | null
+          reminder_at: string | null
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          content?: string | null
+          created_at?: string | null
+          id?: string
+          is_completed?: boolean | null
+          reminder_at?: string | null
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          content?: string | null
+          created_at?: string | null
+          id?: string
+          is_completed?: boolean | null
+          reminder_at?: string | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           attributes: Json | null
@@ -499,6 +610,7 @@ export type Database = {
           attributes: Json | null
           brand: Database["public"]["Enums"]["product_brand"] | null
           category: string
+          color: string | null
           cost_price: number | null
           created_at: string
           description: string | null
@@ -524,6 +636,7 @@ export type Database = {
           attributes?: Json | null
           brand?: Database["public"]["Enums"]["product_brand"] | null
           category: string
+          color?: string | null
           cost_price?: number | null
           created_at?: string
           description?: string | null
@@ -549,6 +662,7 @@ export type Database = {
           attributes?: Json | null
           brand?: Database["public"]["Enums"]["product_brand"] | null
           category?: string
+          color?: string | null
           cost_price?: number | null
           created_at?: string
           description?: string | null
