@@ -42,6 +42,7 @@ import Despesas from "./pages/admin/Despesas";
 import Relatorios from "./pages/admin/Relatorios";
 import WhatsApp from "./pages/admin/WhatsApp";
 import Personalizacao from "./pages/admin/Personalizacao";
+import Custos from "./pages/admin/Custos";
 
 const queryClient = new QueryClient();
 
@@ -91,6 +92,7 @@ const App = () => (
             <Route path="/admin/relatorios" element={<ProtectedRoute requireAdmin><Relatorios /></ProtectedRoute>} />
             <Route path="/admin/whatsapp" element={<ProtectedRoute requireAdmin><WhatsApp /></ProtectedRoute>} />
             <Route path="/admin/personalizacao" element={<ProtectedRoute requireAdmin><Personalizacao /></ProtectedRoute>} />
+            <Route path="/admin/custos" element={<ProtectedRoute requireAdmin><Custos /></ProtectedRoute>} />
 
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
