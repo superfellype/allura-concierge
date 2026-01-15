@@ -274,8 +274,15 @@ const Produtos = () => {
                         
                         {/* Brand Badge */}
                         {product.brand && product.brand !== "Outro" && (
-                          <span className="absolute top-4 right-4 status-badge status-badge-info z-20">
+                          <span className="absolute top-4 right-4 bg-primary/90 backdrop-blur-sm text-primary-foreground text-xs font-medium px-2.5 py-1 rounded-full z-20">
                             {product.brand}
+                          </span>
+                        )}
+
+                        {/* Discount Badge */}
+                        {product.original_price && product.original_price > product.price && (
+                          <span className="absolute bottom-4 left-4 bg-green-100 text-green-700 text-xs font-medium px-2 py-1 rounded-full z-20">
+                            -{Math.round((1 - product.price / product.original_price) * 100)}%
                           </span>
                         )}
                         
@@ -289,7 +296,7 @@ const Produtos = () => {
                         </motion.button>
 
                         <motion.div
-                          className="absolute bottom-4 left-4 right-16 py-3 liquid-glass-card text-center font-body text-sm font-medium rounded-2xl opacity-0 group-hover:opacity-100 transition-all duration-300 z-20"
+                          className="absolute bottom-12 left-4 right-16 py-3 liquid-glass-card text-center font-body text-sm font-medium rounded-2xl opacity-0 group-hover:opacity-100 transition-all duration-300 z-20"
                         >
                           Ver Detalhes
                         </motion.div>
@@ -302,13 +309,18 @@ const Produtos = () => {
                       <h3 className="font-display text-lg font-medium mt-1 group-hover:text-primary transition-colors duration-300">
                         {product.name}
                       </h3>
-                      <div className="mt-2 space-y-0.5">
+                    <div className="mt-2 space-y-0.5">
                         <p className="font-body text-sm text-primary font-medium">
                           {formatInstallmentPrice(product.price)}
                         </p>
                         <p className="font-body text-xs text-muted-foreground">
                           ou {formatFullPrice(product.price)} à vista
                         </p>
+                        {product.original_price && product.original_price > product.price && (
+                          <p className="font-body text-xs text-muted-foreground line-through">
+                            {formatFullPrice(product.original_price)}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </Link>

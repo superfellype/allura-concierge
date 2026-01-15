@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Search, Plus, Minus, Trash2, Check, Package, User, CreditCard, Loader2, MapPin, UserPlus } from "lucide-react";
+import { Search, Plus, Minus, Trash2, Check, Package, User, CreditCard, Loader2, MapPin, UserPlus, Percent, ChevronDown } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -17,6 +17,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 interface CartItem {
   product_id: string;
@@ -35,12 +40,58 @@ interface Customer {
   user_id: string;
 }
 
+// Payment methods with installment options
 const PAYMENT_METHODS = [
-  { id: "pix", label: "PIX", defaultTax: 0 },
-  { id: "credit_card", label: "Cartão de Crédito", defaultTax: 3.5 },
-  { id: "debit_card", label: "Cartão de Débito", defaultTax: 1.5 },
-  { id: "cash", label: "Dinheiro", defaultTax: 0 },
-  { id: "payment_link", label: "Link de Pagamento", defaultTax: 4.0 },
+  { 
+    id: "pix", 
+    label: "PIX", 
+    icon: "💳",
+    installments: [{ qty: 1, tax: 0, label: "À vista" }]
+  },
+  { 
+    id: "credit_card", 
+    label: "Cartão de Crédito",
+    icon: "💳",
+    installments: [
+      { qty: 1, tax: 2.5, label: "À vista" },
+      { qty: 2, tax: 3.5, label: "2x" },
+      { qty: 3, tax: 4.0, label: "3x" },
+      { qty: 4, tax: 4.5, label: "4x" },
+      { qty: 5, tax: 5.0, label: "5x" },
+      { qty: 6, tax: 5.5, label: "6x" },
+      { qty: 7, tax: 6.0, label: "7x" },
+      { qty: 8, tax: 6.5, label: "8x" },
+      { qty: 9, tax: 7.0, label: "9x" },
+      { qty: 10, tax: 7.5, label: "10x" },
+      { qty: 11, tax: 8.0, label: "11x" },
+      { qty: 12, tax: 8.5, label: "12x" },
+    ]
+  },
+  { 
+    id: "debit_card", 
+    label: "Cartão de Débito",
+    icon: "💳",
+    installments: [{ qty: 1, tax: 1.5, label: "À vista" }]
+  },
+  { 
+    id: "cash", 
+    label: "Dinheiro",
+    icon: "💵",
+    installments: [{ qty: 1, tax: 0, label: "À vista" }]
+  },
+  { 
+    id: "payment_link", 
+    label: "Link de Pagamento",
+    icon: "🔗",
+    installments: [
+      { qty: 1, tax: 3.0, label: "À vista" },
+      { qty: 2, tax: 4.0, label: "2x" },
+      { qty: 3, tax: 4.5, label: "3x" },
+      { qty: 4, tax: 5.0, label: "4x" },
+      { qty: 5, tax: 5.5, label: "5x" },
+      { qty: 6, tax: 6.0, label: "6x" },
+    ]
+  },
 ];
 
 const VendaManual = () => {
@@ -62,12 +113,19 @@ const VendaManual = () => {
     zip: ""
   });
   const [paymentMethod, setPaymentMethod] = useState("pix");
-  const [manualTaxPercentage, setManualTaxPercentage] = useState(0);
+  const [selectedInstallment, setSelectedInstallment] = useState(1);
+  const [customTax, setCustomTax] = useState<number | null>(null);
+  const [showCustomTax, setShowCustomTax] = useState(false);
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [creatingCustomer, setCreatingCustomer] = useState(false);
+  const [addressOpen, setAddressOpen] = useState(false);
 
   const { results: searchResults, searching, search } = useProductSearch();
+
+  const selectedMethod = PAYMENT_METHODS.find(m => m.id === paymentMethod)!;
+  const selectedInstallmentData = selectedMethod.installments.find(i => i.qty === selectedInstallment) || selectedMethod.installments[0];
+  const effectiveTax = customTax !== null ? customTax : selectedInstallmentData.tax;
 
   useEffect(() => {
     const loadCustomers = async () => {
@@ -94,6 +152,13 @@ const VendaManual = () => {
     }, 300);
     return () => clearTimeout(timer);
   }, [searchQuery, search]);
+
+  // Reset installment when payment method changes
+  useEffect(() => {
+    setSelectedInstallment(1);
+    setCustomTax(null);
+    setShowCustomTax(false);
+  }, [paymentMethod]);
 
   const addToCart = (product: typeof searchResults[0]) => {
     const existing = cart.find(item => item.product_id === product.id);
@@ -149,16 +214,9 @@ const VendaManual = () => {
   };
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const selectedMethod = PAYMENT_METHODS.find(m => m.id === paymentMethod);
-  const effectiveTax = manualTaxPercentage || selectedMethod?.defaultTax || 0;
   const { gross, tax, net } = calculateNetAmount(subtotal, effectiveTax);
-  const total = subtotal; // Net amount for display, but we charge full subtotal
-
-  const handlePaymentMethodChange = (method: string) => {
-    setPaymentMethod(method);
-    const m = PAYMENT_METHODS.find(p => p.id === method);
-    setManualTaxPercentage(m?.defaultTax || 0);
-  };
+  const total = subtotal;
+  const installmentValue = selectedInstallment > 1 ? total / selectedInstallment : total;
 
   const handleCreateCustomer = async () => {
     if (!tempCustomerName.trim()) {
@@ -169,10 +227,8 @@ const VendaManual = () => {
     setCreatingCustomer(true);
 
     try {
-      // Create a temporary user ID for manual sales (not a real auth user)
       const tempUserId = crypto.randomUUID();
 
-      // Create profile for this customer
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .insert({
@@ -191,7 +247,6 @@ const VendaManual = () => {
 
       if (profileError) throw profileError;
 
-      // Update customers list and select the new customer
       const newCustomer: Customer = {
         id: profile.id,
         full_name: profile.full_name,
@@ -232,10 +287,8 @@ const VendaManual = () => {
     try {
       let userId = selectedCustomer;
 
-      // If no customer selected but has temp data, create customer first
       if (!userId && tempCustomerName) {
         await handleCreateCustomer();
-        // Wait for state to update
         await new Promise(resolve => setTimeout(resolve, 100));
         userId = selectedCustomer;
       }
@@ -260,6 +313,10 @@ const VendaManual = () => {
         }
       }
 
+      const paymentLabel = selectedInstallment > 1 
+        ? `${selectedMethod.label} ${selectedInstallment}x`
+        : selectedMethod.label;
+
       const { data: order, error: orderError } = await supabase
         .from("orders")
         .insert({
@@ -268,9 +325,9 @@ const VendaManual = () => {
           total,
           shipping_cost: 0,
           status: "paid",
-          payment_method: paymentMethod,
+          payment_method: paymentLabel,
           origin: "manual",
-          notes: notes || null,
+          notes: notes ? `${notes} | Taxa: ${effectiveTax}%` : `Taxa: ${effectiveTax}%`,
           shipping_address: {
             street: "Retirada na loja",
             number: "",
@@ -304,9 +361,14 @@ const VendaManual = () => {
         .insert({
           order_id: order.id,
           amount: total,
-          method: paymentMethod,
+          method: paymentLabel,
           status: "paid",
           provider: "manual",
+          metadata: {
+            installments: selectedInstallment,
+            tax_percentage: effectiveTax,
+            net_amount: net
+          }
         });
 
       if (paymentError) throw paymentError;
@@ -321,7 +383,9 @@ const VendaManual = () => {
       setTempCustomerBirthDate("");
       setTempCustomerAddress({ street: "", number: "", neighborhood: "", city: "", state: "", zip: "" });
       setPaymentMethod("pix");
-      setManualTaxPercentage(0);
+      setSelectedInstallment(1);
+      setCustomTax(null);
+      setShowCustomTax(false);
       setNotes("");
 
     } catch (error) {
@@ -346,7 +410,7 @@ const VendaManual = () => {
                 placeholder="Buscar por nome ou SKU..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-11 glass-input"
+                className="pl-11 h-12 text-base"
               />
               {searching && (
                 <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />
@@ -358,13 +422,13 @@ const VendaManual = () => {
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="absolute top-full left-0 right-0 z-50 mt-2 liquid-glass-card p-2 max-h-80 overflow-y-auto"
+                className="absolute top-full left-0 right-0 z-50 mt-2 bg-card border border-border rounded-xl shadow-xl p-2 max-h-80 overflow-y-auto"
               >
                 {searchResults.map((product) => (
                   <button
                     key={product.id}
                     onClick={() => addToCart(product)}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-secondary/50 transition-colors text-left"
+                    className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/50 transition-colors text-left"
                   >
                     <div className="w-12 h-12 rounded-lg bg-muted/30 overflow-hidden flex-shrink-0">
                       {product.images?.[0] ? (
@@ -376,13 +440,13 @@ const VendaManual = () => {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-body font-medium truncate">{product.name}</p>
-                      <p className="font-body text-xs text-muted-foreground">
+                      <p className="font-medium truncate">{product.name}</p>
+                      <p className="text-xs text-muted-foreground">
                         {product.sku && `SKU: ${product.sku} • `}
                         Estoque: {product.stock_quantity}
                       </p>
                     </div>
-                    <span className="font-body font-medium text-primary">
+                    <span className="font-medium text-primary">
                       {formatFullPrice(product.price)}
                     </span>
                   </button>
@@ -392,22 +456,34 @@ const VendaManual = () => {
           </div>
 
           {/* Cart */}
-          <div className="liquid-glass-card p-6">
-            <h3 className="font-display text-lg font-medium mb-5 flex items-center gap-2">
-              <div className="glass-icon w-9 h-9">
-                <Package className="w-4 h-4 text-primary" />
+          <div className="bg-card border border-border rounded-2xl p-6">
+            <h3 className="text-lg font-semibold mb-5 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Package className="w-5 h-5 text-primary" />
               </div>
               Itens do Pedido
+              {cart.length > 0 && (
+                <span className="text-sm font-normal text-muted-foreground">
+                  ({cart.reduce((sum, item) => sum + item.quantity, 0)} itens)
+                </span>
+              )}
             </h3>
 
             {cart.length === 0 ? (
-              <p className="text-center py-10 text-muted-foreground font-body">
-                Busque e adicione produtos ao pedido
-              </p>
+              <div className="text-center py-12 text-muted-foreground">
+                <Package className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                <p>Busque e adicione produtos ao pedido</p>
+              </div>
             ) : (
               <div className="space-y-3">
                 {cart.map((item) => (
-                  <div key={item.product_id} className="flex items-center gap-3 p-4 rounded-xl bg-secondary/20">
+                  <motion.div 
+                    key={item.product_id} 
+                    layout
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-center gap-3 p-4 rounded-xl bg-secondary/30 border border-border/50"
+                  >
                     <div className="w-14 h-14 rounded-lg bg-muted/30 overflow-hidden flex-shrink-0">
                       {item.image ? (
                         <img src={item.image} alt="" className="w-full h-full object-cover" />
@@ -418,39 +494,45 @@ const VendaManual = () => {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-body font-medium truncate">{item.name}</p>
-                      <p className="font-body text-xs text-muted-foreground">
+                      <p className="font-medium truncate">{item.name}</p>
+                      <p className="text-xs text-muted-foreground">
                         {item.sku && `#${item.sku} • `}
-                        {formatFullPrice(item.price)}
+                        {formatFullPrice(item.price)} cada
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
                         onClick={() => updateQuantity(item.product_id, -1)}
-                        className="w-8 h-8 rounded-full glass-btn-secondary flex items-center justify-center"
                         disabled={item.quantity <= 1}
                       >
                         <Minus className="w-3 h-3" />
-                      </button>
-                      <span className="font-body font-medium w-8 text-center">{item.quantity}</span>
-                      <button
+                      </Button>
+                      <span className="font-medium w-8 text-center">{item.quantity}</span>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
                         onClick={() => updateQuantity(item.product_id, 1)}
-                        className="w-8 h-8 rounded-full glass-btn-secondary flex items-center justify-center"
                         disabled={item.quantity >= item.stock}
                       >
                         <Plus className="w-3 h-3" />
-                      </button>
+                      </Button>
                     </div>
-                    <span className="font-body font-medium min-w-[80px] text-right">
+                    <span className="font-semibold min-w-[90px] text-right">
                       {formatFullPrice(item.price * item.quantity)}
                     </span>
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                       onClick={() => removeFromCart(item.product_id)}
-                      className="p-2 text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+                    </Button>
+                  </motion.div>
                 ))}
               </div>
             )}
@@ -458,25 +540,25 @@ const VendaManual = () => {
         </div>
 
         {/* Order Summary */}
-        <div className="space-y-6">
+        <div className="space-y-5">
           {/* Customer */}
-          <div className="liquid-glass-card p-6">
-            <h3 className="font-display text-lg font-medium mb-5 flex items-center gap-2">
-              <div className="glass-icon w-9 h-9">
-                <User className="w-4 h-4 text-primary" />
+          <div className="bg-card border border-border rounded-2xl p-5">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <User className="w-5 h-5 text-primary" />
               </div>
               Cliente
             </h3>
 
             <Tabs defaultValue="existing" className="w-full">
-              <TabsList className="w-full mb-4">
-                <TabsTrigger value="existing" className="flex-1">Cliente Existente</TabsTrigger>
-                <TabsTrigger value="new" className="flex-1">Novo Cliente</TabsTrigger>
+              <TabsList className="w-full mb-4 h-10">
+                <TabsTrigger value="existing" className="flex-1 text-sm">Existente</TabsTrigger>
+                <TabsTrigger value="new" className="flex-1 text-sm">Novo</TabsTrigger>
               </TabsList>
 
               <TabsContent value="existing">
                 <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
-                  <SelectTrigger className="glass-input">
+                  <SelectTrigger className="h-11">
                     <SelectValue placeholder="Selecione um cliente" />
                   </SelectTrigger>
                   <SelectContent>
@@ -490,119 +572,100 @@ const VendaManual = () => {
               </TabsContent>
 
               <TabsContent value="new" className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="col-span-2">
-                    <Label className="font-body text-xs">Nome Completo *</Label>
-                    <Input
-                      value={tempCustomerName}
-                      onChange={(e) => setTempCustomerName(e.target.value)}
-                      placeholder="Nome completo"
-                      className="glass-input mt-1"
-                    />
-                  </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Nome Completo *</Label>
+                  <Input
+                    value={tempCustomerName}
+                    onChange={(e) => setTempCustomerName(e.target.value)}
+                    placeholder="Nome completo"
+                    className="mt-1"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <Label className="font-body text-xs">Telefone</Label>
+                    <Label className="text-xs text-muted-foreground">Telefone</Label>
                     <Input
                       value={tempCustomerPhone}
                       onChange={(e) => setTempCustomerPhone(e.target.value)}
                       placeholder="(00) 00000-0000"
-                      className="glass-input mt-1"
+                      className="mt-1"
                     />
                   </div>
                   <div>
-                    <Label className="font-body text-xs">CPF</Label>
+                    <Label className="text-xs text-muted-foreground">CPF</Label>
                     <Input
                       value={tempCustomerCpf}
                       onChange={(e) => setTempCustomerCpf(e.target.value)}
                       placeholder="000.000.000-00"
-                      className="glass-input mt-1"
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <Label className="font-body text-xs">Data de Nascimento</Label>
-                    <Input
-                      type="date"
-                      value={tempCustomerBirthDate}
-                      onChange={(e) => setTempCustomerBirthDate(e.target.value)}
-                      className="glass-input mt-1"
+                      className="mt-1"
                     />
                   </div>
                 </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Data de Nascimento</Label>
+                  <Input
+                    type="date"
+                    value={tempCustomerBirthDate}
+                    onChange={(e) => setTempCustomerBirthDate(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
 
-                <details className="group">
-                  <summary className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer hover:text-foreground">
+                <Collapsible open={addressOpen} onOpenChange={setAddressOpen}>
+                  <CollapsibleTrigger className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground w-full py-2">
                     <MapPin className="w-4 h-4" />
                     Endereço (opcional)
-                  </summary>
-                  <div className="mt-3 space-y-3 pl-6">
+                    <ChevronDown className={`w-4 h-4 ml-auto transition-transform ${addressOpen ? 'rotate-180' : ''}`} />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="space-y-2 pt-2">
                     <div className="grid grid-cols-3 gap-2">
                       <div className="col-span-2">
-                        <Label className="font-body text-xs">Rua</Label>
                         <Input
                           value={tempCustomerAddress.street}
                           onChange={(e) => setTempCustomerAddress(prev => ({ ...prev, street: e.target.value }))}
                           placeholder="Rua"
-                          className="glass-input mt-1"
                         />
                       </div>
                       <div>
-                        <Label className="font-body text-xs">Nº</Label>
                         <Input
                           value={tempCustomerAddress.number}
                           onChange={(e) => setTempCustomerAddress(prev => ({ ...prev, number: e.target.value }))}
                           placeholder="Nº"
-                          className="glass-input mt-1"
                         />
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <Label className="font-body text-xs">Bairro</Label>
-                        <Input
-                          value={tempCustomerAddress.neighborhood}
-                          onChange={(e) => setTempCustomerAddress(prev => ({ ...prev, neighborhood: e.target.value }))}
-                          placeholder="Bairro"
-                          className="glass-input mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label className="font-body text-xs">Cidade</Label>
-                        <Input
-                          value={tempCustomerAddress.city}
-                          onChange={(e) => setTempCustomerAddress(prev => ({ ...prev, city: e.target.value }))}
-                          placeholder="Cidade"
-                          className="glass-input mt-1"
-                        />
-                      </div>
+                      <Input
+                        value={tempCustomerAddress.neighborhood}
+                        onChange={(e) => setTempCustomerAddress(prev => ({ ...prev, neighborhood: e.target.value }))}
+                        placeholder="Bairro"
+                      />
+                      <Input
+                        value={tempCustomerAddress.city}
+                        onChange={(e) => setTempCustomerAddress(prev => ({ ...prev, city: e.target.value }))}
+                        placeholder="Cidade"
+                      />
                     </div>
                     <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <Label className="font-body text-xs">Estado</Label>
-                        <Input
-                          value={tempCustomerAddress.state}
-                          onChange={(e) => setTempCustomerAddress(prev => ({ ...prev, state: e.target.value }))}
-                          placeholder="UF"
-                          className="glass-input mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label className="font-body text-xs">CEP</Label>
-                        <Input
-                          value={tempCustomerAddress.zip}
-                          onChange={(e) => setTempCustomerAddress(prev => ({ ...prev, zip: e.target.value }))}
-                          placeholder="00000-000"
-                          className="glass-input mt-1"
-                        />
-                      </div>
+                      <Input
+                        value={tempCustomerAddress.state}
+                        onChange={(e) => setTempCustomerAddress(prev => ({ ...prev, state: e.target.value }))}
+                        placeholder="UF"
+                      />
+                      <Input
+                        value={tempCustomerAddress.zip}
+                        onChange={(e) => setTempCustomerAddress(prev => ({ ...prev, zip: e.target.value }))}
+                        placeholder="CEP"
+                      />
                     </div>
-                  </div>
-                </details>
+                  </CollapsibleContent>
+                </Collapsible>
 
                 <Button
                   type="button"
                   onClick={handleCreateCustomer}
                   disabled={creatingCustomer || !tempCustomerName.trim()}
-                  className="w-full mt-2"
+                  className="w-full"
                   variant="outline"
                 >
                   {creatingCustomer ? (
@@ -617,103 +680,185 @@ const VendaManual = () => {
           </div>
 
           {/* Payment */}
-          <div className="liquid-glass-card p-6">
-            <h3 className="font-display text-lg font-medium mb-5 flex items-center gap-2">
-              <div className="glass-icon w-9 h-9">
-                <CreditCard className="w-4 h-4 text-primary" />
+          <div className="bg-card border border-border rounded-2xl p-5">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <CreditCard className="w-5 h-5 text-primary" />
               </div>
               Pagamento
             </h3>
 
             <div className="space-y-4">
+              {/* Payment Method Selection */}
               <div>
-                <Label className="font-body">Método de Pagamento</Label>
-                <Select value={paymentMethod} onValueChange={handlePaymentMethodChange}>
-                  <SelectTrigger className="glass-input mt-1.5">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PAYMENT_METHODS.map((method) => (
-                      <SelectItem key={method.id} value={method.id}>
-                        {method.label} {method.defaultTax > 0 && `(${method.defaultTax}%)`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label className="text-xs text-muted-foreground mb-2 block">Método</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {PAYMENT_METHODS.map((method) => (
+                    <button
+                      key={method.id}
+                      type="button"
+                      onClick={() => setPaymentMethod(method.id)}
+                      className={`p-3 rounded-xl border-2 text-left transition-all ${
+                        paymentMethod === method.id
+                          ? 'border-primary bg-primary/5'
+                          : 'border-border hover:border-primary/50'
+                      }`}
+                    >
+                      <span className="text-lg">{method.icon}</span>
+                      <p className="text-sm font-medium mt-1">{method.label}</p>
+                    </button>
+                  ))}
+                </div>
               </div>
 
+              {/* Installments Selection */}
+              {selectedMethod.installments.length > 1 && (
+                <div>
+                  <Label className="text-xs text-muted-foreground mb-2 block">Parcelamento</Label>
+                  <div className="grid grid-cols-3 gap-1.5 max-h-[200px] overflow-y-auto p-1">
+                    {selectedMethod.installments.map((inst) => {
+                      const instValue = subtotal / inst.qty;
+                      return (
+                        <button
+                          key={inst.qty}
+                          type="button"
+                          onClick={() => {
+                            setSelectedInstallment(inst.qty);
+                            setCustomTax(null);
+                            setShowCustomTax(false);
+                          }}
+                          className={`p-2 rounded-lg border text-center transition-all ${
+                            selectedInstallment === inst.qty && customTax === null
+                              ? 'border-primary bg-primary/10 ring-1 ring-primary'
+                              : 'border-border hover:border-primary/50'
+                          }`}
+                        >
+                          <p className="text-sm font-semibold">{inst.label}</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {inst.qty > 1 ? formatCurrency(instValue) : 'À vista'}
+                          </p>
+                          <p className="text-xs text-primary font-medium">{inst.tax}%</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Custom Tax */}
               <div>
-                <Label className="font-body">Taxa Manual (%)</Label>
-                <Input
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="100"
-                  value={manualTaxPercentage}
-                  onChange={(e) => setManualTaxPercentage(parseFloat(e.target.value) || 0)}
-                  placeholder="0.0"
-                  className="glass-input mt-1.5"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Taxa do gateway ou maquininha
-                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowCustomTax(!showCustomTax)}
+                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+                >
+                  <Percent className="w-4 h-4" />
+                  Taxa personalizada
+                  <ChevronDown className={`w-4 h-4 transition-transform ${showCustomTax ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {showCustomTax && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    className="mt-2"
+                  >
+                    <div className="flex gap-2 items-center">
+                      <Input
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        max="100"
+                        value={customTax ?? ''}
+                        onChange={(e) => setCustomTax(e.target.value ? parseFloat(e.target.value) : null)}
+                        placeholder={String(selectedInstallmentData.tax)}
+                        className="w-24"
+                      />
+                      <span className="text-sm text-muted-foreground">%</span>
+                      {customTax !== null && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setCustomTax(null)}
+                          className="text-xs"
+                        >
+                          Usar padrão
+                        </Button>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
               </div>
 
+              {/* Notes */}
               <div>
-                <Label className="font-body">Observações</Label>
+                <Label className="text-xs text-muted-foreground">Observações</Label>
                 <Input
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Observações do pedido..."
-                  className="glass-input mt-1.5"
+                  className="mt-1"
                 />
               </div>
             </div>
           </div>
 
           {/* Summary */}
-          <div className="liquid-glass-card p-6">
-            <h3 className="font-display text-lg font-medium mb-5">Resumo</h3>
+          <div className="bg-card border border-border rounded-2xl p-5">
+            <h3 className="text-lg font-semibold mb-4">Resumo</h3>
             
-            <div className="space-y-3 mb-6">
-              <div className="flex justify-between font-body text-sm">
-                <span className="text-muted-foreground">Valor Bruto</span>
-                <span>{formatFullPrice(gross)}</span>
+            <div className="space-y-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Subtotal</span>
+                <span className="font-medium">{formatFullPrice(subtotal)}</span>
               </div>
-              <div className="flex justify-between font-body text-sm">
-                <span className="text-muted-foreground">Taxa ({effectiveTax}%)</span>
+              
+              {selectedInstallment > 1 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{selectedInstallment}x de</span>
+                  <span className="font-medium">{formatCurrency(installmentValue)}</span>
+                </div>
+              )}
+
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground flex items-center gap-1">
+                  Taxa da maquininha
+                  <span className="text-xs bg-destructive/10 text-destructive px-1.5 py-0.5 rounded">
+                    {effectiveTax}%
+                  </span>
+                </span>
                 <span className="text-destructive">-{formatCurrency(tax)}</span>
               </div>
-              <div className="flex justify-between font-body text-sm">
-                <span className="text-muted-foreground">Frete</span>
-                <span className="status-badge status-badge-success">Grátis</span>
-              </div>
-              <div className="glass-divider" />
+
+              <div className="h-px bg-border my-3" />
+
               <div className="flex justify-between items-center">
-                <span className="font-display text-sm text-muted-foreground">Valor Líquido</span>
-                <span className="font-body text-emerald-600 font-medium">{formatCurrency(net)}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="font-display text-lg">Total Cobrado</span>
-                <span className="glass-kpi text-2xl">{formatFullPrice(total)}</span>
+                <div>
+                  <span className="text-sm text-muted-foreground block">Você recebe</span>
+                  <span className="text-xl font-bold text-emerald-600">{formatCurrency(net)}</span>
+                </div>
+                <div className="text-right">
+                  <span className="text-sm text-muted-foreground block">Total cobrado</span>
+                  <span className="text-2xl font-bold">{formatFullPrice(total)}</span>
+                </div>
               </div>
             </div>
 
             <Button
               onClick={handleSubmit}
               disabled={submitting || cart.length === 0}
-              className="w-full glass-btn py-4"
+              className="w-full mt-6 h-12 text-base"
               size="lg"
             >
               {submitting ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                   Processando...
                 </>
               ) : (
                 <>
-                  <Check className="w-4 h-4 mr-2" />
-                  Finalizar e Abater Estoque
+                  <Check className="w-5 h-5 mr-2" />
+                  Finalizar Venda
                 </>
               )}
             </Button>
