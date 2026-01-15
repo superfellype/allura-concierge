@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { formatPrice } from "@/lib/payment/infinitepay-adapter";
+import { formatInstallment, calculateDiscount } from "@/lib/price-utils";
 
 interface Product {
   id: string;
@@ -149,8 +150,8 @@ const Produto = () => {
 
   if (!product) return null;
 
-  const discount = product.original_price
-    ? Math.round((1 - product.price / product.original_price) * 100)
+  const discount = product.original_price && product.original_price > product.price
+    ? calculateDiscount(product.price, product.original_price)
     : 0;
 
   return (
@@ -234,19 +235,22 @@ const Produto = () => {
                   {product.name}
                 </h1>
                 
-                <div className="flex items-baseline gap-3">
-                  <span className="glass-kpi text-3xl">
-                    {formatPrice(product.price)}
-                  </span>
-                  {product.original_price && (
-                    <>
-                      <span className="text-lg text-muted-foreground line-through font-body">
-                        {formatPrice(product.original_price)}
+                <div className="space-y-1">
+                  <p className="font-display text-2xl md:text-3xl font-medium text-foreground">
+                    {formatInstallment(product.price, 3)}
+                  </p>
+                  <p className="font-body text-base text-muted-foreground">
+                    ou {formatPrice(product.price)} à vista
+                  </p>
+                  {product.original_price && product.original_price > product.price && (
+                    <div className="flex items-center gap-2 pt-1">
+                      <span className="text-sm text-muted-foreground/60 line-through font-body">
+                        de {formatPrice(product.original_price)}
                       </span>
                       <span className="status-badge status-badge-success">
                         -{discount}%
                       </span>
-                    </>
+                    </div>
                   )}
                 </div>
               </div>
@@ -393,9 +397,14 @@ const Produto = () => {
                     <h3 className="font-medium text-sm line-clamp-2 group-hover:text-primary transition-colors font-body">
                       {item.name}
                     </h3>
-                    <p className="text-primary font-medium mt-1 font-body">
-                      {formatPrice(item.price)}
-                    </p>
+                    <div className="mt-1 space-y-0.5">
+                      <p className="text-sm font-medium text-foreground font-body">
+                        {formatInstallment(item.price, 3)}
+                      </p>
+                      <p className="text-xs text-muted-foreground font-body">
+                        ou {formatPrice(item.price)} à vista
+                      </p>
+                    </div>
                   </Link>
                 ))}
               </div>
