@@ -33,6 +33,7 @@ import Pedidos from "./pages/admin/Pedidos";
 import PedidosKanban from "./pages/admin/PedidosKanban";
 import VendaManual from "./pages/admin/VendaManual";
 import Clientes from "./pages/admin/Clientes";
+import ClientePerfil from "./pages/admin/ClientePerfil";
 import Configuracoes from "./pages/admin/Configuracoes";
 import Pagamentos from "./pages/admin/Pagamentos";
 import PedidoCancelado from "./pages/PedidoCancelado";
@@ -82,6 +83,7 @@ const App = () => (
             <Route path="/admin/kanban" element={<ProtectedRoute requireAdmin><PedidosKanban /></ProtectedRoute>} />
             <Route path="/admin/venda-manual" element={<ProtectedRoute requireAdmin><VendaManual /></ProtectedRoute>} />
             <Route path="/admin/clientes" element={<ProtectedRoute requireAdmin><Clientes /></ProtectedRoute>} />
+            <Route path="/admin/clientes/:id" element={<ProtectedRoute requireAdmin><ClientePerfil /></ProtectedRoute>} />
             <Route path="/admin/pagamentos" element={<ProtectedRoute requireAdmin><Pagamentos /></ProtectedRoute>} />
             <Route path="/admin/configuracoes" element={<ProtectedRoute requireAdmin><Configuracoes /></ProtectedRoute>} />
             <Route path="/admin/notas-kanban" element={<ProtectedRoute requireAdmin><NotasKanban /></ProtectedRoute>} />
