@@ -39,7 +39,15 @@ interface ProductFormData {
   is_featured: boolean;
   categoryIds: string[];
   collectionIds: string[];
+  brand: string;
+  color: string;
 }
+
+const PRODUCT_BRANDS = ['VeryRio', 'Chalita', 'LaytonVivian', 'Outro'] as const;
+const PRODUCT_COLORS = [
+  'Preto', 'Branco', 'Marrom', 'Caramelo', 'Nude', 'Vermelho', 
+  'Azul', 'Verde', 'Rosa', 'Dourado', 'Prata', 'Outro'
+];
 
 const initialFormData: ProductFormData = {
   name: "",
@@ -61,6 +69,8 @@ const initialFormData: ProductFormData = {
   is_featured: false,
   categoryIds: [],
   collectionIds: [],
+  brand: "Outro",
+  color: "",
 };
 
 const ProdutoEditar = () => {
@@ -123,6 +133,8 @@ const ProdutoEditar = () => {
       is_featured: product.is_featured,
       categoryIds,
       collectionIds,
+      brand: product.brand || "Outro",
+      color: product.color || "",
     });
 
     setLoading(false);
@@ -250,6 +262,8 @@ const ProdutoEditar = () => {
       images: formData.images.length > 0 ? formData.images.slice(0, 20) : null,
       is_active: formData.is_active,
       is_featured: formData.is_featured,
+      brand: formData.brand as "VeryRio" | "Chalita" | "LaytonVivian" | "Outro",
+      color: formData.color || null,
     };
 
     try {
@@ -326,6 +340,8 @@ const ProdutoEditar = () => {
         images: formData.images,
         is_active: false,
         is_featured: false,
+        brand: formData.brand as "VeryRio" | "Chalita" | "LaytonVivian" | "Outro",
+        color: formData.color || null,
       };
 
       const { data, error } = await supabase
@@ -564,6 +580,37 @@ const ProdutoEditar = () => {
                   <p className="text-xs text-muted-foreground mt-1">
                     URL: /produto/{formData.slug || 'slug-do-produto'}
                   </p>
+                </div>
+
+                <div>
+                  <label className="font-body text-sm text-foreground/70 mb-1.5 block">
+                    Marca
+                  </label>
+                  <select
+                    value={formData.brand}
+                    onChange={(e) => updateField('brand', e.target.value)}
+                    className="w-full px-4 py-3 liquid-glass rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  >
+                    {PRODUCT_BRANDS.map(brand => (
+                      <option key={brand} value={brand}>{brand}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-body text-sm text-foreground/70 mb-1.5 block">
+                    Cor
+                  </label>
+                  <select
+                    value={formData.color}
+                    onChange={(e) => updateField('color', e.target.value)}
+                    className="w-full px-4 py-3 liquid-glass rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  >
+                    <option value="">Selecione...</option>
+                    {PRODUCT_COLORS.map(color => (
+                      <option key={color} value={color}>{color}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

@@ -1,13 +1,15 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Search, Plus, Minus, Trash2, Check, Package, User, CreditCard, Loader2 } from "lucide-react";
+import { Search, Plus, Minus, Trash2, Check, Package, User, CreditCard, Loader2, MapPin, UserPlus } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useProductSearch, formatFullPrice } from "@/hooks/useProducts";
+import { calculateNetAmount, formatCurrency } from "@/lib/price-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -34,10 +36,11 @@ interface Customer {
 }
 
 const PAYMENT_METHODS = [
-  { id: "pix", label: "PIX" },
-  { id: "credit_card", label: "Cartão de Crédito" },
-  { id: "debit_card", label: "Cartão de Débito" },
-  { id: "cash", label: "Dinheiro" },
+  { id: "pix", label: "PIX", defaultTax: 0 },
+  { id: "credit_card", label: "Cartão de Crédito", defaultTax: 3.5 },
+  { id: "debit_card", label: "Cartão de Débito", defaultTax: 1.5 },
+  { id: "cash", label: "Dinheiro", defaultTax: 0 },
+  { id: "payment_link", label: "Link de Pagamento", defaultTax: 4.0 },
 ];
 
 const VendaManual = () => {
@@ -48,9 +51,21 @@ const VendaManual = () => {
   const [selectedCustomer, setSelectedCustomer] = useState<string>("");
   const [tempCustomerName, setTempCustomerName] = useState("");
   const [tempCustomerPhone, setTempCustomerPhone] = useState("");
+  const [tempCustomerCpf, setTempCustomerCpf] = useState("");
+  const [tempCustomerBirthDate, setTempCustomerBirthDate] = useState("");
+  const [tempCustomerAddress, setTempCustomerAddress] = useState({
+    street: "",
+    number: "",
+    neighborhood: "",
+    city: "",
+    state: "",
+    zip: ""
+  });
   const [paymentMethod, setPaymentMethod] = useState("pix");
+  const [manualTaxPercentage, setManualTaxPercentage] = useState(0);
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [creatingCustomer, setCreatingCustomer] = useState(false);
 
   const { results: searchResults, searching, search } = useProductSearch();
 
@@ -134,7 +149,72 @@ const VendaManual = () => {
   };
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const total = subtotal;
+  const selectedMethod = PAYMENT_METHODS.find(m => m.id === paymentMethod);
+  const effectiveTax = manualTaxPercentage || selectedMethod?.defaultTax || 0;
+  const { gross, tax, net } = calculateNetAmount(subtotal, effectiveTax);
+  const total = subtotal; // Net amount for display, but we charge full subtotal
+
+  const handlePaymentMethodChange = (method: string) => {
+    setPaymentMethod(method);
+    const m = PAYMENT_METHODS.find(p => p.id === method);
+    setManualTaxPercentage(m?.defaultTax || 0);
+  };
+
+  const handleCreateCustomer = async () => {
+    if (!tempCustomerName.trim()) {
+      toast.error("Nome do cliente é obrigatório");
+      return;
+    }
+
+    setCreatingCustomer(true);
+
+    try {
+      // Create a temporary user ID for manual sales (not a real auth user)
+      const tempUserId = crypto.randomUUID();
+
+      // Create profile for this customer
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .insert({
+          user_id: tempUserId,
+          full_name: tempCustomerName.trim(),
+          phone: tempCustomerPhone || null,
+          preferences: {
+            cpf: tempCustomerCpf || null,
+            birth_date: tempCustomerBirthDate || null,
+            address: tempCustomerAddress.street ? tempCustomerAddress : null,
+            is_manual_customer: true
+          }
+        })
+        .select()
+        .single();
+
+      if (profileError) throw profileError;
+
+      // Update customers list and select the new customer
+      const newCustomer: Customer = {
+        id: profile.id,
+        full_name: profile.full_name,
+        phone: profile.phone,
+        user_id: profile.user_id
+      };
+
+      setCustomers(prev => [newCustomer, ...prev]);
+      setSelectedCustomer(tempUserId);
+      setTempCustomerName("");
+      setTempCustomerPhone("");
+      setTempCustomerCpf("");
+      setTempCustomerBirthDate("");
+      setTempCustomerAddress({ street: "", number: "", neighborhood: "", city: "", state: "", zip: "" });
+
+      toast.success("Cliente criado com sucesso!");
+    } catch (error) {
+      console.error("Error creating customer:", error);
+      toast.error("Erro ao criar cliente");
+    } finally {
+      setCreatingCustomer(false);
+    }
+  };
 
   const handleSubmit = async () => {
     if (cart.length === 0) {
@@ -152,8 +232,16 @@ const VendaManual = () => {
     try {
       let userId = selectedCustomer;
 
+      // If no customer selected but has temp data, create customer first
+      if (!userId && tempCustomerName) {
+        await handleCreateCustomer();
+        // Wait for state to update
+        await new Promise(resolve => setTimeout(resolve, 100));
+        userId = selectedCustomer;
+      }
+
       if (!userId) {
-        toast.error("Por favor, selecione um cliente existente");
+        toast.error("Erro ao criar cliente. Tente novamente.");
         setSubmitting(false);
         return;
       }
@@ -229,7 +317,11 @@ const VendaManual = () => {
       setSelectedCustomer("");
       setTempCustomerName("");
       setTempCustomerPhone("");
+      setTempCustomerCpf("");
+      setTempCustomerBirthDate("");
+      setTempCustomerAddress({ street: "", number: "", neighborhood: "", city: "", state: "", zip: "" });
       setPaymentMethod("pix");
+      setManualTaxPercentage(0);
       setNotes("");
 
     } catch (error) {
@@ -376,11 +468,15 @@ const VendaManual = () => {
               Cliente
             </h3>
 
-            <div className="space-y-4">
-              <div>
-                <Label className="font-body">Cliente Existente</Label>
+            <Tabs defaultValue="existing" className="w-full">
+              <TabsList className="w-full mb-4">
+                <TabsTrigger value="existing" className="flex-1">Cliente Existente</TabsTrigger>
+                <TabsTrigger value="new" className="flex-1">Novo Cliente</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="existing">
                 <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
-                  <SelectTrigger className="glass-input mt-1.5">
+                  <SelectTrigger className="glass-input">
                     <SelectValue placeholder="Selecione um cliente" />
                   </SelectTrigger>
                   <SelectContent>
@@ -391,32 +487,133 @@ const VendaManual = () => {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
+              </TabsContent>
 
-              {!selectedCustomer && (
-                <>
-                  <div className="text-center text-sm text-muted-foreground font-body">ou</div>
-                  <div>
-                    <Label className="font-body">Nome do Cliente</Label>
+              <TabsContent value="new" className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="col-span-2">
+                    <Label className="font-body text-xs">Nome Completo *</Label>
                     <Input
                       value={tempCustomerName}
                       onChange={(e) => setTempCustomerName(e.target.value)}
                       placeholder="Nome completo"
-                      className="glass-input mt-1.5"
+                      className="glass-input mt-1"
                     />
                   </div>
                   <div>
-                    <Label className="font-body">Telefone</Label>
+                    <Label className="font-body text-xs">Telefone</Label>
                     <Input
                       value={tempCustomerPhone}
                       onChange={(e) => setTempCustomerPhone(e.target.value)}
                       placeholder="(00) 00000-0000"
-                      className="glass-input mt-1.5"
+                      className="glass-input mt-1"
                     />
                   </div>
-                </>
-              )}
-            </div>
+                  <div>
+                    <Label className="font-body text-xs">CPF</Label>
+                    <Input
+                      value={tempCustomerCpf}
+                      onChange={(e) => setTempCustomerCpf(e.target.value)}
+                      placeholder="000.000.000-00"
+                      className="glass-input mt-1"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label className="font-body text-xs">Data de Nascimento</Label>
+                    <Input
+                      type="date"
+                      value={tempCustomerBirthDate}
+                      onChange={(e) => setTempCustomerBirthDate(e.target.value)}
+                      className="glass-input mt-1"
+                    />
+                  </div>
+                </div>
+
+                <details className="group">
+                  <summary className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer hover:text-foreground">
+                    <MapPin className="w-4 h-4" />
+                    Endereço (opcional)
+                  </summary>
+                  <div className="mt-3 space-y-3 pl-6">
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="col-span-2">
+                        <Label className="font-body text-xs">Rua</Label>
+                        <Input
+                          value={tempCustomerAddress.street}
+                          onChange={(e) => setTempCustomerAddress(prev => ({ ...prev, street: e.target.value }))}
+                          placeholder="Rua"
+                          className="glass-input mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label className="font-body text-xs">Nº</Label>
+                        <Input
+                          value={tempCustomerAddress.number}
+                          onChange={(e) => setTempCustomerAddress(prev => ({ ...prev, number: e.target.value }))}
+                          placeholder="Nº"
+                          className="glass-input mt-1"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label className="font-body text-xs">Bairro</Label>
+                        <Input
+                          value={tempCustomerAddress.neighborhood}
+                          onChange={(e) => setTempCustomerAddress(prev => ({ ...prev, neighborhood: e.target.value }))}
+                          placeholder="Bairro"
+                          className="glass-input mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label className="font-body text-xs">Cidade</Label>
+                        <Input
+                          value={tempCustomerAddress.city}
+                          onChange={(e) => setTempCustomerAddress(prev => ({ ...prev, city: e.target.value }))}
+                          placeholder="Cidade"
+                          className="glass-input mt-1"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label className="font-body text-xs">Estado</Label>
+                        <Input
+                          value={tempCustomerAddress.state}
+                          onChange={(e) => setTempCustomerAddress(prev => ({ ...prev, state: e.target.value }))}
+                          placeholder="UF"
+                          className="glass-input mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label className="font-body text-xs">CEP</Label>
+                        <Input
+                          value={tempCustomerAddress.zip}
+                          onChange={(e) => setTempCustomerAddress(prev => ({ ...prev, zip: e.target.value }))}
+                          placeholder="00000-000"
+                          className="glass-input mt-1"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </details>
+
+                <Button
+                  type="button"
+                  onClick={handleCreateCustomer}
+                  disabled={creatingCustomer || !tempCustomerName.trim()}
+                  className="w-full mt-2"
+                  variant="outline"
+                >
+                  {creatingCustomer ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <UserPlus className="w-4 h-4 mr-2" />
+                  )}
+                  Criar Cliente
+                </Button>
+              </TabsContent>
+            </Tabs>
           </div>
 
           {/* Payment */}
@@ -431,18 +628,35 @@ const VendaManual = () => {
             <div className="space-y-4">
               <div>
                 <Label className="font-body">Método de Pagamento</Label>
-                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                <Select value={paymentMethod} onValueChange={handlePaymentMethodChange}>
                   <SelectTrigger className="glass-input mt-1.5">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {PAYMENT_METHODS.map((method) => (
                       <SelectItem key={method.id} value={method.id}>
-                        {method.label}
+                        {method.label} {method.defaultTax > 0 && `(${method.defaultTax}%)`}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div>
+                <Label className="font-body">Taxa Manual (%)</Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="100"
+                  value={manualTaxPercentage}
+                  onChange={(e) => setManualTaxPercentage(parseFloat(e.target.value) || 0)}
+                  placeholder="0.0"
+                  className="glass-input mt-1.5"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Taxa do gateway ou maquininha
+                </p>
               </div>
 
               <div>
@@ -463,8 +677,12 @@ const VendaManual = () => {
             
             <div className="space-y-3 mb-6">
               <div className="flex justify-between font-body text-sm">
-                <span className="text-muted-foreground">Subtotal</span>
-                <span>{formatFullPrice(subtotal)}</span>
+                <span className="text-muted-foreground">Valor Bruto</span>
+                <span>{formatFullPrice(gross)}</span>
+              </div>
+              <div className="flex justify-between font-body text-sm">
+                <span className="text-muted-foreground">Taxa ({effectiveTax}%)</span>
+                <span className="text-destructive">-{formatCurrency(tax)}</span>
               </div>
               <div className="flex justify-between font-body text-sm">
                 <span className="text-muted-foreground">Frete</span>
@@ -472,7 +690,11 @@ const VendaManual = () => {
               </div>
               <div className="glass-divider" />
               <div className="flex justify-between items-center">
-                <span className="font-display text-lg">Total</span>
+                <span className="font-display text-sm text-muted-foreground">Valor Líquido</span>
+                <span className="font-body text-emerald-600 font-medium">{formatCurrency(net)}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="font-display text-lg">Total Cobrado</span>
                 <span className="glass-kpi text-2xl">{formatFullPrice(total)}</span>
               </div>
             </div>
