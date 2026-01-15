@@ -171,7 +171,7 @@ const Categorias = () => {
                 Nova Categoria
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-lg liquid-glass-card border-0">
+            <DialogContent className="sm:max-w-lg bg-card border border-border shadow-xl" onPointerDownOutside={(e) => e.preventDefault()}>
               <DialogHeader>
                 <DialogTitle className="font-display text-xl">
                   {editingCategory ? 'Editar Categoria' : 'Nova Categoria'}
