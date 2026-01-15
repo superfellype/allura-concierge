@@ -494,6 +494,42 @@ export type Database = {
           },
         ]
       }
+      payment_settings: {
+        Row: {
+          created_at: string
+          display_order: number | null
+          icon: string | null
+          id: string
+          installments: Json
+          is_active: boolean | null
+          method_id: string
+          method_label: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          installments?: Json
+          is_active?: boolean | null
+          method_id: string
+          method_label: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          installments?: Json
+          is_active?: boolean | null
+          method_id?: string
+          method_label?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount: number

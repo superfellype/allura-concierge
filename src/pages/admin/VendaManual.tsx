@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Search, Plus, Minus, Trash2, Check, Package, User, CreditCard, Loader2, MapPin, UserPlus, Percent, ChevronDown } from "lucide-react";
+import { Search, Plus, Minus, Trash2, Check, Package, User, CreditCard, Loader2, MapPin, UserPlus, Percent, ChevronDown, Settings } from "lucide-react";
+import { Link } from "react-router-dom";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -22,6 +23,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { paymentSettingsService, PaymentSetting, Installment } from "@/services/payment-settings.service";
 
 interface CartItem {
   product_id: string;
@@ -40,18 +42,22 @@ interface Customer {
   user_id: string;
 }
 
-// Payment methods with installment options
-const PAYMENT_METHODS = [
+// Fallback payment methods if database is not available
+const FALLBACK_PAYMENT_METHODS = [
   { 
     id: "pix", 
-    label: "PIX", 
+    method_id: "pix",
+    method_label: "PIX", 
     icon: "💳",
+    is_active: true,
     installments: [{ qty: 1, tax: 0, label: "À vista" }]
   },
   { 
     id: "credit_card", 
-    label: "Cartão de Crédito",
+    method_id: "credit_card",
+    method_label: "Cartão de Crédito",
     icon: "💳",
+    is_active: true,
     installments: [
       { qty: 1, tax: 2.5, label: "À vista" },
       { qty: 2, tax: 3.5, label: "2x" },
@@ -59,38 +65,23 @@ const PAYMENT_METHODS = [
       { qty: 4, tax: 4.5, label: "4x" },
       { qty: 5, tax: 5.0, label: "5x" },
       { qty: 6, tax: 5.5, label: "6x" },
-      { qty: 7, tax: 6.0, label: "7x" },
-      { qty: 8, tax: 6.5, label: "8x" },
-      { qty: 9, tax: 7.0, label: "9x" },
-      { qty: 10, tax: 7.5, label: "10x" },
-      { qty: 11, tax: 8.0, label: "11x" },
-      { qty: 12, tax: 8.5, label: "12x" },
     ]
   },
   { 
     id: "debit_card", 
-    label: "Cartão de Débito",
+    method_id: "debit_card",
+    method_label: "Cartão de Débito",
     icon: "💳",
+    is_active: true,
     installments: [{ qty: 1, tax: 1.5, label: "À vista" }]
   },
   { 
     id: "cash", 
-    label: "Dinheiro",
+    method_id: "cash",
+    method_label: "Dinheiro",
     icon: "💵",
+    is_active: true,
     installments: [{ qty: 1, tax: 0, label: "À vista" }]
-  },
-  { 
-    id: "payment_link", 
-    label: "Link de Pagamento",
-    icon: "🔗",
-    installments: [
-      { qty: 1, tax: 3.0, label: "À vista" },
-      { qty: 2, tax: 4.0, label: "2x" },
-      { qty: 3, tax: 4.5, label: "3x" },
-      { qty: 4, tax: 5.0, label: "4x" },
-      { qty: 5, tax: 5.5, label: "5x" },
-      { qty: 6, tax: 6.0, label: "6x" },
-    ]
   },
 ];
 
@@ -120,12 +111,30 @@ const VendaManual = () => {
   const [submitting, setSubmitting] = useState(false);
   const [creatingCustomer, setCreatingCustomer] = useState(false);
   const [addressOpen, setAddressOpen] = useState(false);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentSetting[]>([]);
+  const [loadingMethods, setLoadingMethods] = useState(true);
 
   const { results: searchResults, searching, search } = useProductSearch();
 
-  const selectedMethod = PAYMENT_METHODS.find(m => m.id === paymentMethod)!;
-  const selectedInstallmentData = selectedMethod.installments.find(i => i.qty === selectedInstallment) || selectedMethod.installments[0];
-  const effectiveTax = customTax !== null ? customTax : selectedInstallmentData.tax;
+  // Load payment methods from database
+  useEffect(() => {
+    const loadPaymentMethods = async () => {
+      setLoadingMethods(true);
+      const { data, error } = await paymentSettingsService.getAll();
+      if (error || !data || data.length === 0) {
+        // Use fallback if database is not available
+        setPaymentMethods(FALLBACK_PAYMENT_METHODS as unknown as PaymentSetting[]);
+      } else {
+        setPaymentMethods(data.filter(m => m.is_active));
+      }
+      setLoadingMethods(false);
+    };
+    loadPaymentMethods();
+  }, []);
+
+  const selectedMethod = paymentMethods.find(m => m.method_id === paymentMethod) || paymentMethods[0];
+  const selectedInstallmentData = selectedMethod?.installments.find((i: Installment) => i.qty === selectedInstallment) || selectedMethod?.installments[0];
+  const effectiveTax = customTax !== null ? customTax : (selectedInstallmentData?.tax || 0);
 
   useEffect(() => {
     const loadCustomers = async () => {
@@ -314,8 +323,8 @@ const VendaManual = () => {
       }
 
       const paymentLabel = selectedInstallment > 1 
-        ? `${selectedMethod.label} ${selectedInstallment}x`
-        : selectedMethod.label;
+        ? `${selectedMethod?.method_label || 'Pagamento'} ${selectedInstallment}x`
+        : selectedMethod?.method_label || 'Pagamento';
 
       const { data: order, error: orderError } = await supabase
         .from("orders")
@@ -691,24 +700,39 @@ const VendaManual = () => {
             <div className="space-y-4">
               {/* Payment Method Selection */}
               <div>
-                <Label className="text-xs text-muted-foreground mb-2 block">Método</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  {PAYMENT_METHODS.map((method) => (
-                    <button
-                      key={method.id}
-                      type="button"
-                      onClick={() => setPaymentMethod(method.id)}
-                      className={`p-3 rounded-xl border-2 text-left transition-all ${
-                        paymentMethod === method.id
-                          ? 'border-primary bg-primary/5'
-                          : 'border-border hover:border-primary/50'
-                      }`}
-                    >
-                      <span className="text-lg">{method.icon}</span>
-                      <p className="text-sm font-medium mt-1">{method.label}</p>
-                    </button>
-                  ))}
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="text-xs text-muted-foreground">Método</Label>
+                  <Link 
+                    to="/admin/configuracoes" 
+                    className="text-xs text-primary hover:underline flex items-center gap-1"
+                  >
+                    <Settings className="w-3 h-3" />
+                    Configurar taxas
+                  </Link>
                 </div>
+                {loadingMethods ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    {paymentMethods.map((method) => (
+                      <button
+                        key={method.method_id}
+                        type="button"
+                        onClick={() => setPaymentMethod(method.method_id)}
+                        className={`p-3 rounded-xl border-2 text-left transition-all ${
+                          paymentMethod === method.method_id
+                            ? 'border-primary bg-primary/5'
+                            : 'border-border hover:border-primary/50'
+                        }`}
+                      >
+                        <span className="text-lg">{method.icon}</span>
+                        <p className="text-sm font-medium mt-1">{method.method_label}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Installments Selection */}
