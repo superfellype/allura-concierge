@@ -30,14 +30,13 @@ import Colecoes from "./pages/admin/Colecoes";
 import Cupons from "./pages/admin/Cupons";
 import Estoque from "./pages/admin/Estoque";
 import Pedidos from "./pages/admin/Pedidos";
-import PedidosKanban from "./pages/admin/PedidosKanban";
+import NotasKanban from "./pages/admin/PedidosKanban";
 import VendaManual from "./pages/admin/VendaManual";
 import Clientes from "./pages/admin/Clientes";
 import ClientePerfil from "./pages/admin/ClientePerfil";
 import Configuracoes from "./pages/admin/Configuracoes";
 import Pagamentos from "./pages/admin/Pagamentos";
 import PedidoCancelado from "./pages/PedidoCancelado";
-import NotasKanban from "./pages/admin/NotasKanban";
 import Notas from "./pages/admin/Notas";
 import Despesas from "./pages/admin/Despesas";
 import Relatorios from "./pages/admin/Relatorios";
@@ -80,13 +79,12 @@ const App = () => (
             <Route path="/admin/cupons" element={<ProtectedRoute requireAdmin><Cupons /></ProtectedRoute>} />
             <Route path="/admin/estoque" element={<ProtectedRoute requireAdmin><Estoque /></ProtectedRoute>} />
             <Route path="/admin/pedidos" element={<ProtectedRoute requireAdmin><Pedidos /></ProtectedRoute>} />
-            <Route path="/admin/kanban" element={<ProtectedRoute requireAdmin><PedidosKanban /></ProtectedRoute>} />
+            <Route path="/admin/kanban" element={<ProtectedRoute requireAdmin><NotasKanban /></ProtectedRoute>} />
             <Route path="/admin/venda-manual" element={<ProtectedRoute requireAdmin><VendaManual /></ProtectedRoute>} />
             <Route path="/admin/clientes" element={<ProtectedRoute requireAdmin><Clientes /></ProtectedRoute>} />
             <Route path="/admin/clientes/:id" element={<ProtectedRoute requireAdmin><ClientePerfil /></ProtectedRoute>} />
             <Route path="/admin/pagamentos" element={<ProtectedRoute requireAdmin><Pagamentos /></ProtectedRoute>} />
             <Route path="/admin/configuracoes" element={<ProtectedRoute requireAdmin><Configuracoes /></ProtectedRoute>} />
-            <Route path="/admin/notas-kanban" element={<ProtectedRoute requireAdmin><NotasKanban /></ProtectedRoute>} />
             <Route path="/admin/notas" element={<ProtectedRoute requireAdmin><Notas /></ProtectedRoute>} />
             <Route path="/admin/despesas" element={<ProtectedRoute requireAdmin><Despesas /></ProtectedRoute>} />
             <Route path="/admin/relatorios" element={<ProtectedRoute requireAdmin><Relatorios /></ProtectedRoute>} />
