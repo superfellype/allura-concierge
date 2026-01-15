@@ -26,7 +26,7 @@ import Dashboard from "./pages/admin/Dashboard";
 import AdminProdutos from "./pages/admin/Produtos";
 import AdminProdutoEditar from "./pages/admin/ProdutoEditar";
 import Categorias from "./pages/admin/Categorias";
-import Colecoes from "./pages/admin/Colecoes";
+
 import Cupons from "./pages/admin/Cupons";
 import Estoque from "./pages/admin/Estoque";
 import Pedidos from "./pages/admin/Pedidos";
@@ -75,7 +75,7 @@ const App = () => (
             <Route path="/admin/produtos/novo" element={<ProtectedRoute requireAdmin><AdminProdutoEditar /></ProtectedRoute>} />
             <Route path="/admin/produtos/:id" element={<ProtectedRoute requireAdmin><AdminProdutoEditar /></ProtectedRoute>} />
             <Route path="/admin/categorias" element={<ProtectedRoute requireAdmin><Categorias /></ProtectedRoute>} />
-            <Route path="/admin/colecoes" element={<ProtectedRoute requireAdmin><Colecoes /></ProtectedRoute>} />
+            
             <Route path="/admin/cupons" element={<ProtectedRoute requireAdmin><Cupons /></ProtectedRoute>} />
             <Route path="/admin/estoque" element={<ProtectedRoute requireAdmin><Estoque /></ProtectedRoute>} />
             <Route path="/admin/pedidos" element={<ProtectedRoute requireAdmin><Pedidos /></ProtectedRoute>} />

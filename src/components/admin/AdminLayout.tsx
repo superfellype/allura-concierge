@@ -14,7 +14,7 @@ import {
   Boxes,
   Kanban,
   FolderTree,
-  Sparkles,
+  
   Ticket,
   PlusCircle,
   DollarSign,
@@ -40,7 +40,6 @@ const navGroups = [
     items: [
       { name: "Produtos", href: "/admin/produtos", icon: Package },
       { name: "Categorias", href: "/admin/categorias", icon: FolderTree },
-      { name: "Coleções", href: "/admin/colecoes", icon: Sparkles },
       { name: "Estoque", href: "/admin/estoque", icon: Boxes },
     ],
   },
