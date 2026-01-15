@@ -133,8 +133,8 @@ const VendaManual = () => {
   }, []);
 
   const selectedMethod = paymentMethods.find(m => m.method_id === paymentMethod) || paymentMethods[0];
-  const selectedInstallmentData = selectedMethod?.installments.find((i: Installment) => i.qty === selectedInstallment) || selectedMethod?.installments[0];
-  const effectiveTax = customTax !== null ? customTax : (selectedInstallmentData?.tax || 0);
+  const selectedInstallmentData = selectedMethod?.installments?.find((i: Installment) => i.qty === selectedInstallment) || selectedMethod?.installments?.[0];
+  const effectiveTax = customTax !== null ? customTax : (selectedInstallmentData?.tax ?? 0);
 
   useEffect(() => {
     const loadCustomers = async () => {
