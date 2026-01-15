@@ -132,8 +132,16 @@ const VendaManual = () => {
     loadPaymentMethods();
   }, []);
 
-  const selectedMethod = paymentMethods.find(m => m.method_id === paymentMethod) || paymentMethods[0];
-  const selectedInstallmentData = selectedMethod?.installments?.find((i: Installment) => i.qty === selectedInstallment) || selectedMethod?.installments?.[0];
+  const selectedMethod =
+    paymentMethods.find((m) => m.method_id === paymentMethod) ||
+    paymentMethods[0] ||
+    (FALLBACK_PAYMENT_METHODS[0] as unknown as PaymentSetting);
+
+  const selectedInstallmentData =
+    selectedMethod?.installments?.find((i: Installment) => i.qty === selectedInstallment) ||
+    selectedMethod?.installments?.[0] ||
+    ({ qty: 1, tax: 0, label: "À vista" } as Installment);
+
   const effectiveTax = customTax !== null ? customTax : (selectedInstallmentData?.tax ?? 0);
 
   useEffect(() => {
@@ -736,11 +744,11 @@ const VendaManual = () => {
               </div>
 
               {/* Installments Selection */}
-              {selectedMethod.installments.length > 1 && (
+              {(selectedMethod?.installments?.length ?? 0) > 1 && (
                 <div>
                   <Label className="text-xs text-muted-foreground mb-2 block">Parcelamento</Label>
                   <div className="grid grid-cols-3 gap-1.5 max-h-[200px] overflow-y-auto p-1">
-                    {selectedMethod.installments.map((inst) => {
+                    {(selectedMethod?.installments ?? []).map((inst) => {
                       const instValue = subtotal / inst.qty;
                       return (
                         <button
@@ -788,16 +796,16 @@ const VendaManual = () => {
                     className="mt-2"
                   >
                     <div className="flex gap-2 items-center">
-                      <Input
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        max="100"
-                        value={customTax ?? ''}
-                        onChange={(e) => setCustomTax(e.target.value ? parseFloat(e.target.value) : null)}
-                        placeholder={String(selectedInstallmentData.tax)}
-                        className="w-24"
-                      />
+                        <Input
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          max="100"
+                          value={customTax ?? ''}
+                          onChange={(e) => setCustomTax(e.target.value ? parseFloat(e.target.value) : null)}
+                          placeholder={String(selectedInstallmentData?.tax ?? 0)}
+                          className="w-24"
+                        />
                       <span className="text-sm text-muted-foreground">%</span>
                       {customTax !== null && (
                         <Button

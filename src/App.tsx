@@ -25,6 +25,7 @@ import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/admin/Dashboard";
 import AdminProdutos from "./pages/admin/Produtos";
 import AdminProdutoEditar from "./pages/admin/ProdutoEditar";
+import AdminProdutoNovo from "./pages/admin/ProdutoNovo";
 import Categorias from "./pages/admin/Categorias";
 
 import Cupons from "./pages/admin/Cupons";
@@ -74,7 +75,7 @@ const App = () => (
             {/* Admin Routes */}
             <Route path="/admin" element={<ProtectedRoute requireAdmin><Dashboard /></ProtectedRoute>} />
             <Route path="/admin/produtos" element={<ProtectedRoute requireAdmin><AdminProdutos /></ProtectedRoute>} />
-            <Route path="/admin/produtos/novo" element={<ProtectedRoute requireAdmin><AdminProdutoEditar /></ProtectedRoute>} />
+            <Route path="/admin/produtos/novo" element={<ProtectedRoute requireAdmin><AdminProdutoNovo /></ProtectedRoute>} />
             <Route path="/admin/produtos/:id" element={<ProtectedRoute requireAdmin><AdminProdutoEditar /></ProtectedRoute>} />
             <Route path="/admin/categorias" element={<ProtectedRoute requireAdmin><Categorias /></ProtectedRoute>} />
             
