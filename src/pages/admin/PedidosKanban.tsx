@@ -18,9 +18,9 @@ const NOTE_COLORS = [
   { id: 'purple', bg: 'bg-purple-100 dark:bg-purple-900/40', border: 'border-purple-300 dark:border-purple-700', text: 'text-purple-900 dark:text-purple-100' },
 ];
 
-const COLUMN_STYLES = {
+const COLUMN_STYLES: Record<string, { bg: string; headerBg: string }> = {
   todo: { bg: 'bg-slate-100/50 dark:bg-slate-800/30', headerBg: 'bg-slate-200/80 dark:bg-slate-700/50' },
-  doing: { bg: 'bg-amber-50/50 dark:bg-amber-900/20', headerBg: 'bg-amber-200/80 dark:bg-amber-800/50' },
+  in_progress: { bg: 'bg-amber-50/50 dark:bg-amber-900/20', headerBg: 'bg-amber-200/80 dark:bg-amber-800/50' },
   done: { bg: 'bg-emerald-50/50 dark:bg-emerald-900/20', headerBg: 'bg-emerald-200/80 dark:bg-emerald-800/50' },
 };
 
