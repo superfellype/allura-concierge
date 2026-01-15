@@ -1,10 +1,30 @@
 import { motion } from "framer-motion";
 import { MessageCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { siteSettingsService } from "@/services/site-settings.service";
 
 const WhatsAppButton = () => {
-  const phoneNumber = "5534999281320";
-  const message = "Olá! Gostaria de saber mais sobre as bolsas Allura.";
+  const [phoneNumber, setPhoneNumber] = useState("5534999281320");
+  const [brandName, setBrandName] = useState("Allura");
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
+    const settings = await siteSettingsService.getMultiple(['store_whatsapp', 'brand_name']);
+    if (settings.store_whatsapp) {
+      setPhoneNumber(settings.store_whatsapp.replace(/\D/g, ''));
+    }
+    if (settings.brand_name) {
+      setBrandName(settings.brand_name);
+    }
+  };
+
+  const message = `Olá! Gostaria de saber mais sobre os produtos ${brandName}.`;
   const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+
+  if (!phoneNumber) return null;
 
   return (
     <motion.a
