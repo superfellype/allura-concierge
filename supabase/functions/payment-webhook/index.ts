@@ -23,8 +23,9 @@ serve(async (req) => {
       cryptoProvider
     )
   } catch (err) {
-    console.error('Webhook signature verification failed:', err.message)
-    return new Response(err.message, { status: 400 })
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    console.error('Webhook signature verification failed:', errorMessage);
+    return new Response(errorMessage, { status: 400 });
   }
 
   console.log('Received Stripe event:', event.type)
