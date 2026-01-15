@@ -48,7 +48,6 @@ const navGroups = [
     label: "Vendas",
     items: [
       { name: "Pedidos", href: "/admin/pedidos", icon: ShoppingCart },
-      { name: "Pipeline", href: "/admin/kanban", icon: Kanban },
       { name: "Pagamentos", href: "/admin/pagamentos", icon: DollarSign },
       { name: "Cupons", href: "/admin/cupons", icon: Ticket },
     ],
@@ -56,7 +55,7 @@ const navGroups = [
   {
     label: "Gestão",
     items: [
-      { name: "Quadro de Notas", href: "/admin/notas-kanban", icon: Kanban },
+      { name: "Quadro de Atividades", href: "/admin/kanban", icon: Kanban },
       { name: "Notas", href: "/admin/notas", icon: StickyNote },
       { name: "Despesas", href: "/admin/despesas", icon: Receipt },
       { name: "Relatórios", href: "/admin/relatorios", icon: FileSpreadsheet },
