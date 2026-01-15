@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Search, User, ShoppingBag, TrendingUp, X, Package, Calendar } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Search, User, ShoppingBag, TrendingUp, Eye, Package, Calendar } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import AdminPagination from "@/components/admin/AdminPagination";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 
 interface CustomerOrder {
   id: string;
@@ -27,21 +29,11 @@ interface Customer {
 
 const ITEMS_PER_PAGE = 15;
 
-const statusLabels: Record<string, string> = {
-  created: "Criado",
-  pending_payment: "Aguardando",
-  paid: "Pago",
-  packing: "Embalando",
-  shipped: "Enviado",
-  delivered: "Entregue",
-  cancelled: "Cancelado",
-};
-
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: { staggerChildren: 0.08 }
+    transition: { staggerChildren: 0.06 }
   }
 };
 
@@ -55,11 +47,11 @@ const itemVariants = {
 };
 
 const Clientes = () => {
+  const navigate = useNavigate();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 
   useEffect(() => {
     fetchCustomers();
@@ -97,10 +89,6 @@ const Clientes = () => {
     setLoading(false);
   };
 
-  const openCustomerDetail = (customer: Customer) => {
-    setSelectedCustomer(customer);
-  };
-
   const filteredCustomers = customers.filter((c) =>
     c.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     c.phone?.includes(searchQuery)
@@ -119,265 +107,177 @@ const Clientes = () => {
 
   return (
     <AdminLayout title="Clientes">
-      {/* Stats Cards - Liquid Glass */}
       <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6"
+        className="space-y-6"
       >
-        <motion.div variants={itemVariants} className="stats-card">
-          <div className="flex items-center gap-4">
-            <div className="glass-icon glass-icon-md">
-              <User className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <p className="font-body text-sm text-muted-foreground">Total de Clientes</p>
-              <p className="glass-kpi glass-kpi-md">{totalCustomers}</p>
-            </div>
-          </div>
-        </motion.div>
-
-        <motion.div variants={itemVariants} className="stats-card">
-          <div className="flex items-center gap-4">
-            <div className="glass-icon glass-icon-md" style={{ background: 'linear-gradient(135deg, hsl(142 70% 45% / 0.15), hsl(142 70% 45% / 0.05))' }}>
-              <ShoppingBag className="w-5 h-5 text-green-600" />
-            </div>
-            <div>
-              <p className="font-body text-sm text-muted-foreground">Clientes com Pedidos</p>
-              <p className="glass-kpi glass-kpi-md">{customersWithOrders}</p>
-            </div>
-          </div>
-        </motion.div>
-
-        <motion.div variants={itemVariants} className="stats-card">
-          <div className="flex items-center gap-4">
-            <div className="glass-icon glass-icon-md" style={{ background: 'linear-gradient(135deg, hsl(270 70% 50% / 0.15), hsl(270 70% 50% / 0.05))' }}>
-              <TrendingUp className="w-5 h-5 text-purple-600" />
-            </div>
-            <div>
-              <p className="font-body text-sm text-muted-foreground">Ticket Médio</p>
-              <p className="glass-kpi glass-kpi-md">
-                R$ {averageTicket.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
-              </p>
-            </div>
-          </div>
-        </motion.div>
-      </motion.div>
-
-      {/* Search - Liquid Glass Input */}
-      <div className="mb-6">
-        <div className="relative max-w-md">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Buscar por nome ou telefone..."
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="glass-input pl-11"
-          />
-        </div>
-      </div>
-
-      {/* Customers List */}
-      {loading ? (
-        <div className="text-center py-12">
-          <div className="inline-block w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-          <p className="font-body text-muted-foreground mt-2">Carregando...</p>
-        </div>
-      ) : filteredCustomers.length === 0 ? (
-        <div className="empty-state">
-          <User className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-          <p className="font-body text-muted-foreground">Nenhum cliente encontrado</p>
-        </div>
-      ) : (
-        <>
-          <div className="liquid-glass-card overflow-hidden p-0">
-            <div className="overflow-x-auto">
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>Cliente</th>
-                    <th>Telefone</th>
-                    <th>Pedidos</th>
-                    <th>Total Gasto</th>
-                    <th>Cadastro</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginatedCustomers.map((customer, index) => (
-                    <motion.tr
-                      key={customer.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: index * 0.03 }}
-                      className="cursor-pointer"
-                      onClick={() => openCustomerDetail(customer)}
-                    >
-                      <td>
-                        <div className="flex items-center gap-3">
-                          <div className="glass-icon glass-icon-sm">
-                            {customer.avatar_url ? (
-                              <img
-                                src={customer.avatar_url}
-                                alt={customer.full_name || ""}
-                                className="w-full h-full object-cover rounded-2xl"
-                              />
-                            ) : (
-                              <User className="w-4 h-4 text-primary" />
-                            )}
-                          </div>
-                          <span className="font-medium">{customer.full_name || "Sem nome"}</span>
-                        </div>
-                      </td>
-                      <td className="text-muted-foreground">
-                        {customer.phone || "—"}
-                      </td>
-                      <td>
-                        <span className="status-badge status-badge-neutral">
-                          {customer.ordersCount} pedido(s)
-                        </span>
-                      </td>
-                      <td className="font-semibold">
-                        R$ {customer.totalSpent.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </td>
-                      <td className="text-muted-foreground">
-                        {new Date(customer.created_at).toLocaleDateString('pt-BR')}
-                      </td>
-                      <td>
-                        <button className="text-primary hover:underline text-sm font-body">
-                          Ver detalhes
-                        </button>
-                      </td>
-                    </motion.tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <AdminPagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-          />
-        </>
-      )}
-
-      {/* Customer Detail Modal - Liquid Glass */}
-      {selectedCustomer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 modal-overlay"
-            onClick={() => setSelectedCustomer(null)}
-          />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="relative z-10 w-full max-w-lg liquid-glass-card p-6 max-h-[90vh] overflow-y-auto"
-          >
-            <div className="flex items-start justify-between mb-6">
-              <div className="flex items-center gap-4">
-                <div className="glass-icon glass-icon-lg">
-                  {selectedCustomer.avatar_url ? (
-                    <img
-                      src={selectedCustomer.avatar_url}
-                      alt={selectedCustomer.full_name || ""}
-                      className="w-full h-full object-cover rounded-2xl"
-                    />
-                  ) : (
-                    <User className="w-8 h-8 text-primary" />
-                  )}
-                </div>
-                <div>
-                  <h2 className="font-display text-xl font-medium">
-                    {selectedCustomer.full_name || "Sem nome"}
-                  </h2>
-                  <p className="font-body text-sm text-muted-foreground">
-                    Cliente desde {new Date(selectedCustomer.created_at).toLocaleDateString('pt-BR')}
-                  </p>
-                </div>
+        {/* Stats Cards */}
+        <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="p-5 rounded-2xl border border-border/40 bg-card/60 backdrop-blur-xl">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center">
+                <User className="w-6 h-6 text-primary" />
               </div>
-              <button
-                onClick={() => setSelectedCustomer(null)}
-                className="glass-button p-2 rounded-xl"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Customer Stats */}
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div className="liquid-glass-card p-4 text-center">
-                <p className="glass-kpi glass-kpi-md">{selectedCustomer.ordersCount}</p>
-                <p className="font-body text-sm text-muted-foreground">Pedidos</p>
-              </div>
-              <div className="liquid-glass-card p-4 text-center">
-                <p className="glass-kpi glass-kpi-md">
-                  R$ {selectedCustomer.totalSpent.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
-                </p>
-                <p className="font-body text-sm text-muted-foreground">Total Gasto</p>
-              </div>
-            </div>
-
-            {/* Contact Info */}
-            <div className="mb-6">
-              <h3 className="font-body font-medium mb-3">Contato</h3>
-              <div className="space-y-2">
-                {selectedCustomer.phone && (
-                  <p className="font-body text-sm">
-                    Telefone: <span className="text-muted-foreground">{selectedCustomer.phone}</span>
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* Orders History */}
-            {selectedCustomer.orders && selectedCustomer.orders.length > 0 && (
               <div>
-                <h3 className="font-body font-medium mb-3">Histórico de Pedidos</h3>
-                <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {selectedCustomer.orders.map((order) => (
-                    <div
-                      key={order.id}
-                      className="flex items-center justify-between p-3 rounded-xl bg-secondary/30"
-                    >
-                      <div className="flex items-center gap-3">
-                        <Package className="w-4 h-4 text-muted-foreground" />
-                        <div>
-                          <p className="font-body text-sm font-medium">#{order.id.slice(0, 8)}</p>
-                          <p className="font-body text-xs text-muted-foreground">
-                            {new Date(order.created_at).toLocaleDateString('pt-BR')}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-body text-sm font-medium">
-                          R$ {Number(order.total).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </p>
-                        <p className="font-body text-xs text-muted-foreground">
-                          {statusLabels[order.status] || order.status}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <p className="font-display text-2xl font-bold">{totalCustomers}</p>
+                <p className="font-body text-sm text-muted-foreground">Total de Clientes</p>
               </div>
-            )}
+            </div>
+          </div>
 
-            <button
-              onClick={() => setSelectedCustomer(null)}
-              className="mt-6 w-full glass-btn"
-            >
-              Fechar
-            </button>
+          <div className="p-5 rounded-2xl border border-border/40 bg-card/60 backdrop-blur-xl">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500/15 to-emerald-500/5 flex items-center justify-center">
+                <ShoppingBag className="w-6 h-6 text-emerald-600" />
+              </div>
+              <div>
+                <p className="font-display text-2xl font-bold">{customersWithOrders}</p>
+                <p className="font-body text-sm text-muted-foreground">Com Pedidos</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-5 rounded-2xl border border-border/40 bg-card/60 backdrop-blur-xl">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500/15 to-violet-500/5 flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 text-violet-600" />
+              </div>
+              <div>
+                <p className="font-display text-2xl font-bold">
+                  R$ {averageTicket.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
+                </p>
+                <p className="font-body text-sm text-muted-foreground">Ticket Médio</p>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Search */}
+        <motion.div variants={itemVariants}>
+          <div className="relative max-w-md">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Buscar por nome ou telefone..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full pl-11 pr-4 py-3 rounded-xl border border-border/40 bg-card/60 backdrop-blur-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
+            />
+          </div>
+        </motion.div>
+
+        {/* Customers List */}
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="inline-block w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            <p className="font-body text-muted-foreground mt-2">Carregando...</p>
+          </div>
+        ) : filteredCustomers.length === 0 ? (
+          <motion.div variants={itemVariants} className="text-center py-12">
+            <User className="w-12 h-12 mx-auto text-muted-foreground/30 mb-4" />
+            <p className="font-body text-muted-foreground">Nenhum cliente encontrado</p>
           </motion.div>
-        </div>
-      )}
+        ) : (
+          <motion.div variants={itemVariants}>
+            <div className="rounded-2xl border border-border/40 bg-card/60 backdrop-blur-xl overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border/40 bg-muted/30">
+                      <th className="text-left py-4 px-6 font-body text-sm font-medium text-muted-foreground">
+                        Cliente
+                      </th>
+                      <th className="text-left py-4 px-6 font-body text-sm font-medium text-muted-foreground">
+                        Telefone
+                      </th>
+                      <th className="text-left py-4 px-6 font-body text-sm font-medium text-muted-foreground">
+                        Pedidos
+                      </th>
+                      <th className="text-left py-4 px-6 font-body text-sm font-medium text-muted-foreground">
+                        Total Gasto
+                      </th>
+                      <th className="text-left py-4 px-6 font-body text-sm font-medium text-muted-foreground">
+                        Cadastro
+                      </th>
+                      <th className="text-right py-4 px-6 font-body text-sm font-medium text-muted-foreground">
+                        Ações
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedCustomers.map((customer, index) => (
+                      <motion.tr
+                        key={customer.id}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: index * 0.03 }}
+                        className="border-b border-border/20 hover:bg-muted/50 transition-colors"
+                      >
+                        <td className="py-4 px-6">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center">
+                              {customer.avatar_url ? (
+                                <img
+                                  src={customer.avatar_url}
+                                  alt={customer.full_name || ""}
+                                  className="w-full h-full object-cover rounded-xl"
+                                />
+                              ) : (
+                                <User className="w-5 h-5 text-primary" />
+                              )}
+                            </div>
+                            <span className="font-body font-medium">{customer.full_name || "Sem nome"}</span>
+                          </div>
+                        </td>
+                        <td className="py-4 px-6 font-body text-sm text-muted-foreground">
+                          {customer.phone || "—"}
+                        </td>
+                        <td className="py-4 px-6">
+                          <span className={`text-xs font-medium px-2 py-1 rounded-lg ${
+                            customer.ordersCount > 0 
+                              ? 'bg-emerald-500/10 text-emerald-600'
+                              : 'bg-muted text-muted-foreground'
+                          }`}>
+                            {customer.ordersCount} pedido(s)
+                          </span>
+                        </td>
+                        <td className="py-4 px-6 font-display text-sm font-semibold">
+                          R$ {customer.totalSpent.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </td>
+                        <td className="py-4 px-6 font-body text-sm text-muted-foreground">
+                          {new Date(customer.created_at).toLocaleDateString('pt-BR')}
+                        </td>
+                        <td className="py-4 px-6 text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => navigate(`/admin/clientes/${customer.id}`)}
+                            className="gap-2"
+                          >
+                            <Eye className="w-4 h-4" />
+                            Ver Perfil
+                          </Button>
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <AdminPagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
+          </motion.div>
+        )}
+      </motion.div>
     </AdminLayout>
   );
 };
