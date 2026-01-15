@@ -12,6 +12,10 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { DateRange } from "react-day-picker";
 
 type OrderStatus = Database["public"]["Enums"]["order_status"];
 
@@ -73,9 +77,11 @@ const Pedidos = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [originFilter, setOriginFilter] = useState<string>("all");
   const [dateFilter, setDateFilter] = useState<string>("all");
+  const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [cancelConfirm, setCancelConfirm] = useState<{ open: boolean; id: string | null }>({
     open: false,
     id: null,
@@ -168,19 +174,26 @@ const Pedidos = () => {
     return statusFlow[currentIndex + 1];
   };
 
-  const getDateFilterRange = () => {
+  const getDateFilterRange = (): { start: Date | null; end: Date | null } => {
     const now = new Date();
     switch (dateFilter) {
       case "today":
-        return new Date(now.setHours(0, 0, 0, 0));
+        const today = new Date(now);
+        today.setHours(0, 0, 0, 0);
+        return { start: today, end: null };
       case "week":
-        return new Date(now.setDate(now.getDate() - 7));
+        return { start: new Date(now.setDate(now.getDate() - 7)), end: null };
       case "month":
-        return new Date(now.setMonth(now.getMonth() - 1));
+        return { start: new Date(now.setMonth(now.getMonth() - 1)), end: null };
       case "quarter":
-        return new Date(now.setMonth(now.getMonth() - 3));
+        return { start: new Date(now.setMonth(now.getMonth() - 3)), end: null };
+      case "custom":
+        return { 
+          start: customDateRange?.from || null, 
+          end: customDateRange?.to || null 
+        };
       default:
-        return null;
+        return { start: null, end: null };
     }
   };
 
@@ -190,8 +203,18 @@ const Pedidos = () => {
     const matchesStatus = statusFilter === "all" || order.status === statusFilter;
     const matchesOrigin = originFilter === "all" || order.origin === originFilter;
     
-    const dateRange = getDateFilterRange();
-    const matchesDate = !dateRange || new Date(order.created_at) >= dateRange;
+    const { start, end } = getDateFilterRange();
+    const orderDate = new Date(order.created_at);
+    let matchesDate = true;
+    
+    if (start) {
+      matchesDate = orderDate >= start;
+    }
+    if (end && matchesDate) {
+      const endOfDay = new Date(end);
+      endOfDay.setHours(23, 59, 59, 999);
+      matchesDate = orderDate <= endOfDay;
+    }
     
     return matchesSearch && matchesStatus && matchesOrigin && matchesDate;
   });
@@ -199,8 +222,24 @@ const Pedidos = () => {
   const activeFiltersCount = [
     statusFilter !== "all",
     originFilter !== "all", 
-    dateFilter !== "all"
+    dateFilter !== "all" || customDateRange?.from
   ].filter(Boolean).length;
+
+  const getDateFilterLabel = () => {
+    if (dateFilter === "custom" && customDateRange?.from) {
+      if (customDateRange.to) {
+        return `${format(customDateRange.from, "dd/MM", { locale: ptBR })} - ${format(customDateRange.to, "dd/MM", { locale: ptBR })}`;
+      }
+      return format(customDateRange.from, "dd/MM/yyyy", { locale: ptBR });
+    }
+    switch (dateFilter) {
+      case "today": return "Hoje";
+      case "week": return "7 dias";
+      case "month": return "30 dias";
+      case "quarter": return "3 meses";
+      default: return "";
+    }
+  };
 
   const totalPages = Math.ceil(filteredOrders.length / ITEMS_PER_PAGE);
   const paginatedOrders = filteredOrders.slice(
@@ -275,7 +314,12 @@ const Pedidos = () => {
 
                 <div>
                   <label className="text-xs text-muted-foreground mb-1.5 block">Período</label>
-                  <Select value={dateFilter} onValueChange={setDateFilter}>
+                  <Select value={dateFilter} onValueChange={(v) => {
+                    setDateFilter(v);
+                    if (v !== "custom") {
+                      setCustomDateRange(undefined);
+                    }
+                  }}>
                     <SelectTrigger>
                       <SelectValue placeholder="Período" />
                     </SelectTrigger>
@@ -285,9 +329,50 @@ const Pedidos = () => {
                       <SelectItem value="week">Últimos 7 dias</SelectItem>
                       <SelectItem value="month">Últimos 30 dias</SelectItem>
                       <SelectItem value="quarter">Últimos 3 meses</SelectItem>
+                      <SelectItem value="custom">Personalizado</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+
+                {dateFilter === "custom" && (
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1.5 block">Selecionar datas</label>
+                    <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className="w-full justify-start text-left font-normal">
+                          <Calendar className="mr-2 h-4 w-4" />
+                          {customDateRange?.from ? (
+                            customDateRange.to ? (
+                              <>
+                                {format(customDateRange.from, "dd/MM/yy", { locale: ptBR })} -{" "}
+                                {format(customDateRange.to, "dd/MM/yy", { locale: ptBR })}
+                              </>
+                            ) : (
+                              format(customDateRange.from, "dd/MM/yyyy", { locale: ptBR })
+                            )
+                          ) : (
+                            "Selecionar período"
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <CalendarComponent
+                          mode="range"
+                          selected={customDateRange}
+                          onSelect={(range) => {
+                            setCustomDateRange(range);
+                            if (range?.to) {
+                              setDatePickerOpen(false);
+                            }
+                          }}
+                          numberOfMonths={2}
+                          locale={ptBR}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                )}
 
                 <div className="flex gap-2 pt-2 border-t">
                   <Button 
@@ -298,6 +383,7 @@ const Pedidos = () => {
                       setStatusFilter("all");
                       setOriginFilter("all");
                       setDateFilter("all");
+                      setCustomDateRange(undefined);
                     }}
                   >
                     Limpar
@@ -334,10 +420,10 @@ const Pedidos = () => {
                 </button>
               </Badge>
             )}
-            {dateFilter !== "all" && (
+            {(dateFilter !== "all" || customDateRange?.from) && (
               <Badge variant="secondary" className="gap-1">
-                Período: {dateFilter === "today" ? "Hoje" : dateFilter === "week" ? "7 dias" : dateFilter === "month" ? "30 dias" : "3 meses"}
-                <button onClick={() => setDateFilter("all")} className="ml-1 hover:text-destructive">
+                Período: {getDateFilterLabel()}
+                <button onClick={() => { setDateFilter("all"); setCustomDateRange(undefined); }} className="ml-1 hover:text-destructive">
                   <X className="w-3 h-3" />
                 </button>
               </Badge>
