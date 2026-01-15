@@ -18,7 +18,10 @@ import {
   Ticket,
   PlusCircle,
   DollarSign,
-  BarChart3,
+  StickyNote,
+  Receipt,
+  FileSpreadsheet,
+  MessageCircle,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import logoAllura from "@/assets/logo-allura-text.png";
@@ -45,9 +48,19 @@ const navGroups = [
     label: "Vendas",
     items: [
       { name: "Pedidos", href: "/admin/pedidos", icon: ShoppingCart },
-      { name: "Kanban", href: "/admin/kanban", icon: Kanban },
+      { name: "Pipeline", href: "/admin/kanban", icon: Kanban },
       { name: "Pagamentos", href: "/admin/pagamentos", icon: DollarSign },
       { name: "Cupons", href: "/admin/cupons", icon: Ticket },
+    ],
+  },
+  {
+    label: "Gestão",
+    items: [
+      { name: "Quadro de Notas", href: "/admin/notas-kanban", icon: Kanban },
+      { name: "Notas", href: "/admin/notas", icon: StickyNote },
+      { name: "Despesas", href: "/admin/despesas", icon: Receipt },
+      { name: "Relatórios", href: "/admin/relatorios", icon: FileSpreadsheet },
+      { name: "WhatsApp", href: "/admin/whatsapp", icon: MessageCircle },
     ],
   },
   {

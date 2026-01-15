@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { collectionsService, Collection, CollectionInput } from "@/services/collections.service";
 import { uploadService } from "@/services/upload.service";
@@ -189,6 +189,9 @@ const Colecoes = () => {
                 <DialogTitle className="font-display text-xl">
                   {editingCollection ? 'Editar Coleção' : 'Nova Coleção'}
                 </DialogTitle>
+                <DialogDescription className="sr-only">
+                  Formulário para {editingCollection ? 'editar' : 'criar'} uma coleção
+                </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 mt-4">
                 <div>
