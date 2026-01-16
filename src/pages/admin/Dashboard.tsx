@@ -118,7 +118,7 @@ const Dashboard = () => {
   const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [expenseStats, setExpenseStats] = useState({ totalMonth: 0, totalLastMonth: 0, byCategory: {} as Record<string, number> });
-  const [costStats, setCostStats] = useState({ totalSalesCost: 0, totalSalesRevenue: 0, avgMargin: 0, grossProfit: 0 });
+  const [costStats, setCostStats] = useState({ totalSalesCost: 0, monthlySalesCost: 0, totalSalesRevenue: 0, avgMargin: 0, grossProfit: 0 });
 
   useEffect(() => {
     fetchAllData();
@@ -138,28 +138,38 @@ const Dashboard = () => {
   };
 
   const fetchCostStats = async () => {
+    const thisMonth = new Date().getMonth();
+    const thisYear = new Date().getFullYear();
+
     // Buscar todos os pedidos não cancelados (histórico completo)
     const { data: orders } = await supabase
       .from("orders")
-      .select("id, total")
+      .select("id, total, created_at")
       .neq("status", "cancelled");
 
     if (!orders || orders.length === 0) {
-      setCostStats({ totalSalesCost: 0, totalSalesRevenue: 0, avgMargin: 0, grossProfit: 0 });
+      setCostStats({ totalSalesCost: 0, monthlySalesCost: 0, totalSalesRevenue: 0, avgMargin: 0, grossProfit: 0 });
       return;
     }
 
+    // Separar pedidos do mês atual
+    const monthlyOrders = orders.filter(o => {
+      const d = new Date(o.created_at);
+      return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
+    });
+
     const orderIds = orders.map(o => o.id);
+    const monthlyOrderIds = monthlyOrders.map(o => o.id);
     const totalSalesRevenue = orders.reduce((sum, o) => sum + Number(o.total), 0);
 
-    // Buscar order_items desses pedidos
+    // Buscar order_items de todos os pedidos
     const { data: orderItems } = await supabase
       .from("order_items")
-      .select("product_id, quantity, unit_price")
+      .select("product_id, quantity, unit_price, order_id")
       .in("order_id", orderIds);
 
     if (!orderItems || orderItems.length === 0) {
-      setCostStats({ totalSalesCost: 0, totalSalesRevenue, avgMargin: 0, grossProfit: totalSalesRevenue });
+      setCostStats({ totalSalesCost: 0, monthlySalesCost: 0, totalSalesRevenue, avgMargin: 0, grossProfit: totalSalesRevenue });
       return;
     }
 
@@ -173,8 +183,15 @@ const Dashboard = () => {
     // Mapear cost_price por product_id
     const productCostMap = new Map(products?.map(p => [p.id, Number(p.cost_price) || 0]) || []);
 
-    // Calcular custo total das vendas
+    // Calcular custo total das vendas (histórico)
     const totalSalesCost = orderItems.reduce((sum, item) => {
+      const costPrice = productCostMap.get(item.product_id) || 0;
+      return sum + (costPrice * item.quantity);
+    }, 0);
+
+    // Calcular custo das vendas do mês atual
+    const monthlyOrderItems = orderItems.filter(item => monthlyOrderIds.includes(item.order_id));
+    const monthlySalesCost = monthlyOrderItems.reduce((sum, item) => {
       const costPrice = productCostMap.get(item.product_id) || 0;
       return sum + (costPrice * item.quantity);
     }, 0);
@@ -185,6 +202,7 @@ const Dashboard = () => {
 
     setCostStats({
       totalSalesCost,
+      monthlySalesCost,
       totalSalesRevenue,
       avgMargin,
       grossProfit,
@@ -310,12 +328,12 @@ const Dashboard = () => {
         href: "/admin/relatorios"
       },
       { 
-        title: "Ticket Médio", 
-        value: `R$ ${averageTicket.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
-        change: ticketChange,
-        changeLabel: "vs mês anterior",
-        icon: Target, 
-        color: "purple",
+        title: "Lucro Real", 
+        value: `R$ ${(monthlyRevenue - costStats.monthlySalesCost - monthlyTaxes - expenseStats.totalMonth).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
+        change: 0,
+        changeLabel: "este mês",
+        icon: Wallet, 
+        color: (monthlyRevenue - costStats.monthlySalesCost - monthlyTaxes - expenseStats.totalMonth) >= 0 ? "success" : "warning",
       },
       { 
         title: "Clientes Ativos", 
@@ -769,23 +787,11 @@ const Dashboard = () => {
               </Link>
             </div>
             
-            <div className="grid grid-cols-2 gap-2 mb-3">
-              <div className="p-2 rounded-lg bg-muted/50">
-                <p className="text-[10px] text-muted-foreground">Custo Total</p>
-                <p className="font-display text-sm font-bold text-cyan-600">
-                  R$ {costStats.totalSalesCost >= 1000 
-                    ? `${(costStats.totalSalesCost / 1000).toFixed(1)}k` 
-                    : costStats.totalSalesCost.toFixed(0)}
-                </p>
-              </div>
-              <div className="p-2 rounded-lg bg-muted/50">
-                <p className="text-[10px] text-muted-foreground">Lucro Bruto</p>
-                <p className="font-display text-sm font-bold text-emerald-600">
-                  R$ {costStats.grossProfit >= 1000 
-                    ? `${(costStats.grossProfit / 1000).toFixed(1)}k` 
-                    : costStats.grossProfit.toFixed(0)}
-                </p>
-              </div>
+            <div className="p-3 rounded-lg bg-gradient-to-br from-cyan-500/10 to-cyan-500/5 border border-cyan-500/20 mb-3">
+              <p className="text-[10px] text-muted-foreground">Custo Total (histórico)</p>
+              <p className="font-display text-xl font-bold text-cyan-600">
+                R$ {costStats.totalSalesCost.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
+              </p>
             </div>
 
             <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
