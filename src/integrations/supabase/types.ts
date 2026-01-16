@@ -475,6 +475,7 @@ export type Database = {
           origin: string | null
           payment_id: string | null
           payment_method: string | null
+          seller_id: string | null
           shipping_address: Json
           shipping_cost: number
           status: Database["public"]["Enums"]["order_status"]
@@ -492,6 +493,7 @@ export type Database = {
           origin?: string | null
           payment_id?: string | null
           payment_method?: string | null
+          seller_id?: string | null
           shipping_address: Json
           shipping_cost?: number
           status?: Database["public"]["Enums"]["order_status"]
@@ -509,6 +511,7 @@ export type Database = {
           origin?: string | null
           payment_id?: string | null
           payment_method?: string | null
+          seller_id?: string | null
           shipping_address?: Json
           shipping_cost?: number
           status?: Database["public"]["Enums"]["order_status"]
@@ -523,6 +526,13 @@ export type Database = {
             columns: ["coupon_id"]
             isOneToOne: false
             referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "sellers"
             referencedColumns: ["id"]
           },
         ]
@@ -784,6 +794,30 @@ export type Database = {
           preferences?: Json | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      sellers: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string
         }
         Relationships: []
       }

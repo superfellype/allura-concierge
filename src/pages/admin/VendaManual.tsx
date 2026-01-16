@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Search, Plus, Minus, Trash2, Check, Package, User, CreditCard, Loader2, MapPin, UserPlus, Percent, ChevronDown, Settings, ChevronsUpDown, Tag } from "lucide-react";
+import { Search, Plus, Minus, Trash2, Check, Package, User, CreditCard, Loader2, MapPin, UserPlus, Percent, ChevronDown, Settings, ChevronsUpDown, Tag, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
@@ -48,6 +48,12 @@ interface Customer {
   full_name: string | null;
   phone: string | null;
   user_id: string;
+}
+
+interface Seller {
+  id: string;
+  name: string;
+  is_active: boolean;
 }
 
 // Fallback payment methods if database is not available
@@ -127,6 +133,11 @@ const VendaManual = () => {
   const [discountType, setDiscountType] = useState<"percentage" | "fixed">("percentage");
   const [discountValue, setDiscountValue] = useState<string>("");
   const [showDiscount, setShowDiscount] = useState(false);
+  
+  // Seller states
+  const [sellers, setSellers] = useState<Seller[]>([]);
+  const [selectedSeller, setSelectedSeller] = useState<string>("");
+  const [sellerSearchOpen, setSellerSearchOpen] = useState(false);
 
   const { results: searchResults, searching, search } = useProductSearch();
 
@@ -170,6 +181,22 @@ const VendaManual = () => {
       }
     };
     loadCustomers();
+  }, []);
+
+  // Load sellers
+  useEffect(() => {
+    const loadSellers = async () => {
+      const { data } = await supabase
+        .from("sellers")
+        .select("id, name, is_active")
+        .eq("is_active", true)
+        .order("name");
+      
+      if (data) {
+        setSellers(data);
+      }
+    };
+    loadSellers();
   }, []);
 
   useEffect(() => {
@@ -377,12 +404,13 @@ const VendaManual = () => {
         .insert({
           user_id: userId,
           subtotal,
-          discount: discountAmount,
+          discount_total: discountAmount,
           total,
           shipping_cost: 0,
           status: "paid",
           payment_method: paymentLabel,
           origin: "manual",
+          seller_id: selectedSeller || null,
           notes: notes ? `${notes} | Taxa: ${effectiveTax}%` : `Taxa: ${effectiveTax}%`,
           shipping_address: {
             street: "Retirada na loja",
@@ -448,6 +476,7 @@ const VendaManual = () => {
       setDiscountType("percentage");
       setDiscountValue("");
       setShowDiscount(false);
+      setSelectedSeller("");
       setNotes("");
 
     } catch (error) {
@@ -801,7 +830,96 @@ const VendaManual = () => {
             </Tabs>
           </div>
 
-          {/* Payment */}
+          {/* Seller Selection */}
+          <div className="bg-card border border-border rounded-2xl p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center">
+                  <Users className="w-5 h-5 text-violet-600" />
+                </div>
+                Vendedor
+              </h3>
+              <Link 
+                to="/admin/vendedores" 
+                className="text-xs text-primary hover:underline"
+              >
+                Gerenciar
+              </Link>
+            </div>
+
+            {sellers.length === 0 ? (
+              <div className="text-center py-4 text-muted-foreground">
+                <Users className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                <p className="text-sm">Nenhum vendedor cadastrado</p>
+                <Link 
+                  to="/admin/vendedores" 
+                  className="text-xs text-primary hover:underline mt-1 inline-block"
+                >
+                  Cadastrar vendedores
+                </Link>
+              </div>
+            ) : (
+              <Popover open={sellerSearchOpen} onOpenChange={setSellerSearchOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={sellerSearchOpen}
+                    className="w-full h-11 justify-between font-normal"
+                  >
+                    {selectedSeller ? (
+                      <span className="truncate">
+                        {sellers.find(s => s.id === selectedSeller)?.name || "Vendedor não encontrado"}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">Selecionar vendedor (opcional)</span>
+                    )}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[280px] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Buscar vendedor..." />
+                    <CommandList>
+                      <CommandEmpty>Nenhum vendedor encontrado.</CommandEmpty>
+                      <CommandGroup>
+                        {sellers.map((seller) => (
+                          <CommandItem
+                            key={seller.id}
+                            value={seller.name}
+                            onSelect={() => {
+                              setSelectedSeller(seller.id === selectedSeller ? "" : seller.id);
+                              setSellerSearchOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                selectedSeller === seller.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {seller.name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            )}
+
+            {selectedSeller && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="mt-2 text-xs text-muted-foreground"
+                onClick={() => setSelectedSeller("")}
+              >
+                Limpar seleção
+              </Button>
+            )}
+          </div>
+
           <div className="bg-card border border-border rounded-2xl p-5">
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
