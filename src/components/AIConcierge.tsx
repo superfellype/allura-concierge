@@ -30,7 +30,7 @@ const AIConcierge = () => {
       const userName = preferences.full_name?.split(" ")[0] || "";
       const stylePrefs = preferences.preferences?.styles || [];
       
-      let greeting = `Olá${userName ? `, ${userName}` : ""}! ✨ Sou a Lara, sua personal stylist da Allura.`;
+      let greeting = `Olá${userName ? `, ${userName}` : ""}! ✨ Sou a Aura, sua personal stylist da Allura.`;
       
       if (stylePrefs.length > 0) {
         greeting += ` Vejo que você tem um estilo ${stylePrefs.join(" e ").toLowerCase()}. Posso ajudá-la a encontrar peças que combinem perfeitamente com você!`;
@@ -42,7 +42,7 @@ const AIConcierge = () => {
     } else if (user) {
       setMessages([{
         role: "assistant",
-        content: "Olá! ✨ Sou a Lara, sua personal stylist da Allura. Como posso ajudá-la hoje?"
+        content: "Olá! ✨ Sou a Aura, sua personal stylist da Allura. Como posso ajudá-la hoje?"
       }]);
     }
   }, [user, preferences]);
@@ -232,7 +232,7 @@ const AIConcierge = () => {
               <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center mx-auto mb-4">
                 <Sparkles className="w-8 h-8 text-primary-foreground" />
               </div>
-              <h3 className="font-display text-lg font-medium mb-2">Conheça a Lara</h3>
+              <h3 className="font-display text-lg font-medium mb-2">Conheça a Aura</h3>
               <p className="text-sm text-muted-foreground mb-6">
                 Sua personal stylist exclusiva. Faça login para receber recomendações personalizadas.
               </p>
@@ -287,7 +287,7 @@ const AIConcierge = () => {
                   <Sparkles className="w-5 h-5 text-primary-foreground" />
                 </div>
                 <div>
-                  <h3 className="font-display text-sm font-medium">Lara</h3>
+                  <h3 className="font-display text-sm font-medium">Aura</h3>
                   <p className="text-xs text-muted-foreground">Sua Personal Stylist</p>
                 </div>
               </div>
