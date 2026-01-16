@@ -89,7 +89,7 @@ export default function Marketing() {
       return;
     }
 
-    const customersWithStats = await Promise.all(
+    const customersWithStats: CustomerWithStats[] = await Promise.all(
       (profiles || []).map(async (profile) => {
         const { data: orders } = await supabase
           .from("orders")
@@ -98,10 +98,15 @@ export default function Marketing() {
           .order("created_at", { ascending: false });
 
         return {
-          ...profile,
+          id: profile.id,
+          user_id: profile.user_id,
+          full_name: profile.full_name,
+          phone: profile.phone,
+          created_at: profile.created_at,
           ordersCount: orders?.length || 0,
           totalSpent: orders?.reduce((sum, o) => sum + Number(o.total), 0) || 0,
           lastOrderDate: orders?.[0]?.created_at || null,
+          preferences: profile.preferences as Record<string, unknown> | null,
         };
       })
     );
