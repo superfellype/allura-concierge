@@ -119,7 +119,8 @@ export default function Marketing() {
   const birthdayCustomers = useMemo(() => {
     return customers.filter(c => {
       const prefs = c.preferences as Record<string, unknown> | null;
-      const birthdate = prefs?.birthdate;
+      // Check both "birth_date" (manual customers) and "birthdate" (legacy)
+      const birthdate = prefs?.birth_date || prefs?.birthdate;
       if (typeof birthdate !== 'string') return false;
       
       try {
