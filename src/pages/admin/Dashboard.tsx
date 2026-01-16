@@ -116,7 +116,7 @@ const Dashboard = () => {
   const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [expenseStats, setExpenseStats] = useState({ totalMonth: 0, totalLastMonth: 0, byCategory: {} as Record<string, number> });
-  const [costStats, setCostStats] = useState({ totalStockCost: 0, totalSalesValue: 0, avgMargin: 0, productsWithoutCost: 0 });
+  const [costStats, setCostStats] = useState({ totalSalesCost: 0, totalSalesRevenue: 0, avgMargin: 0, grossProfit: 0 });
 
   useEffect(() => {
     fetchAllData();
@@ -136,44 +136,57 @@ const Dashboard = () => {
   };
 
   const fetchCostStats = async () => {
+    // Buscar todos os pedidos não cancelados (histórico completo)
+    const { data: orders } = await supabase
+      .from("orders")
+      .select("id, total")
+      .neq("status", "cancelled");
+
+    if (!orders || orders.length === 0) {
+      setCostStats({ totalSalesCost: 0, totalSalesRevenue: 0, avgMargin: 0, grossProfit: 0 });
+      return;
+    }
+
+    const orderIds = orders.map(o => o.id);
+    const totalSalesRevenue = orders.reduce((sum, o) => sum + Number(o.total), 0);
+
+    // Buscar order_items desses pedidos
+    const { data: orderItems } = await supabase
+      .from("order_items")
+      .select("product_id, quantity, unit_price")
+      .in("order_id", orderIds);
+
+    if (!orderItems || orderItems.length === 0) {
+      setCostStats({ totalSalesCost: 0, totalSalesRevenue, avgMargin: 0, grossProfit: totalSalesRevenue });
+      return;
+    }
+
+    // Buscar cost_price dos produtos
+    const productIds = [...new Set(orderItems.map(i => i.product_id))];
     const { data: products } = await supabase
       .from("products")
-      .select("id, price, cost_price, stock_quantity, is_active")
-      .eq("is_active", true);
+      .select("id, cost_price")
+      .in("id", productIds);
 
-    if (products) {
-      let totalStockCost = 0;
-      let totalSalesValue = 0;
-      let totalMargin = 0;
-      let productsWithCost = 0;
-      let productsWithoutCost = 0;
+    // Mapear cost_price por product_id
+    const productCostMap = new Map(products?.map(p => [p.id, Number(p.cost_price) || 0]) || []);
 
-      products.forEach(p => {
-        const costPrice = Number(p.cost_price) || 0;
-        const salePrice = Number(p.price) || 0;
-        const stock = Number(p.stock_quantity) || 0;
+    // Calcular custo total das vendas
+    const totalSalesCost = orderItems.reduce((sum, item) => {
+      const costPrice = productCostMap.get(item.product_id) || 0;
+      return sum + (costPrice * item.quantity);
+    }, 0);
 
-        totalStockCost += costPrice * stock;
-        totalSalesValue += salePrice * stock;
+    // Calcular lucro bruto e margem média
+    const grossProfit = totalSalesRevenue - totalSalesCost;
+    const avgMargin = totalSalesRevenue > 0 ? (grossProfit / totalSalesRevenue) * 100 : 0;
 
-        if (costPrice > 0 && salePrice > 0) {
-          const margin = ((salePrice - costPrice) / salePrice) * 100;
-          totalMargin += margin;
-          productsWithCost++;
-        } else if (costPrice === 0) {
-          productsWithoutCost++;
-        }
-      });
-
-      const avgMargin = productsWithCost > 0 ? totalMargin / productsWithCost : 0;
-
-      setCostStats({
-        totalStockCost,
-        totalSalesValue,
-        avgMargin,
-        productsWithoutCost,
-      });
-    }
+    setCostStats({
+      totalSalesCost,
+      totalSalesRevenue,
+      avgMargin,
+      grossProfit,
+    });
   };
 
   const fetchExpenseStats = async () => {
@@ -711,7 +724,7 @@ const Dashboard = () => {
             )}
           </motion.div>
 
-          {/* Costs - Compact */}
+          {/* Costs - Based on Sales (not stock) */}
           <motion.div
             variants={itemVariants}
             className="p-5 rounded-xl border border-border/40 bg-card/60"
@@ -721,7 +734,7 @@ const Dashboard = () => {
                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500/15 to-cyan-500/5 flex items-center justify-center">
                   <Wallet className="w-4 h-4 text-cyan-600" />
                 </div>
-                <h2 className="font-display text-sm font-semibold">Custos</h2>
+                <h2 className="font-display text-sm font-semibold">Custo das Vendas</h2>
               </div>
               <Link to="/admin/custos" className="text-primary text-xs hover:underline">
                 Detalhes
@@ -730,15 +743,19 @@ const Dashboard = () => {
             
             <div className="grid grid-cols-2 gap-2 mb-3">
               <div className="p-2 rounded-lg bg-muted/50">
-                <p className="text-[10px] text-muted-foreground">Estoque</p>
+                <p className="text-[10px] text-muted-foreground">Custo Total</p>
                 <p className="font-display text-sm font-bold text-cyan-600">
-                  R$ {(costStats.totalStockCost / 1000).toFixed(1)}k
+                  R$ {costStats.totalSalesCost >= 1000 
+                    ? `${(costStats.totalSalesCost / 1000).toFixed(1)}k` 
+                    : costStats.totalSalesCost.toFixed(0)}
                 </p>
               </div>
               <div className="p-2 rounded-lg bg-muted/50">
-                <p className="text-[10px] text-muted-foreground">Venda</p>
+                <p className="text-[10px] text-muted-foreground">Lucro Bruto</p>
                 <p className="font-display text-sm font-bold text-emerald-600">
-                  R$ {(costStats.totalSalesValue / 1000).toFixed(1)}k
+                  R$ {costStats.grossProfit >= 1000 
+                    ? `${(costStats.grossProfit / 1000).toFixed(1)}k` 
+                    : costStats.grossProfit.toFixed(0)}
                 </p>
               </div>
             </div>
