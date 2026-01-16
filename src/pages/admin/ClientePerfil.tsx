@@ -14,11 +14,22 @@ import {
   Edit,
   MessageCircle,
   CreditCard,
+  Save,
+  X,
 } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { formatCpf, validateCpf, cleanCpf } from "@/lib/cpf-utils";
 
 interface CustomerOrder {
   id: string;
@@ -33,11 +44,13 @@ interface CustomerProfile {
   user_id: string;
   full_name: string | null;
   phone: string | null;
+  email: string | null;
   avatar_url: string | null;
   created_at: string;
   preferences: {
     cpf?: string;
     birth_date?: string;
+    is_manual_customer?: boolean;
     address?: {
       street?: string;
       number?: string;
@@ -85,6 +98,23 @@ const ClientePerfil = () => {
   const navigate = useNavigate();
   const [customer, setCustomer] = useState<CustomerProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  
+  // Edit form state
+  const [editForm, setEditForm] = useState({
+    full_name: "",
+    phone: "",
+    cpf: "",
+    birth_date: "",
+    street: "",
+    number: "",
+    neighborhood: "",
+    city: "",
+    state: "",
+    zip: "",
+  });
+  const [cpfError, setCpfError] = useState("");
 
   useEffect(() => {
     if (id) {
@@ -105,6 +135,16 @@ const ClientePerfil = () => {
       return;
     }
 
+    // Try to get email from auth.users via a join or manual lookup
+    let email: string | null = null;
+    
+    // For manual customers, email might be in preferences
+    const prefs = profile.preferences as CustomerProfile['preferences'];
+    if (prefs?.is_manual_customer) {
+      // Manual customers might have email stored in preferences
+      email = (prefs as any)?.email || null;
+    }
+
     const { data: orders } = await supabase
       .from("orders")
       .select("id, total, status, created_at, payment_method")
@@ -118,13 +158,97 @@ const ClientePerfil = () => {
 
     setCustomer({
       ...profile,
-      preferences: profile.preferences as CustomerProfile['preferences'],
+      email,
+      preferences: prefs,
       orders: customerOrders,
       totalSpent,
       ordersCount,
       averageTicket,
     });
     setLoading(false);
+  };
+
+  const openEditModal = () => {
+    if (customer) {
+      setEditForm({
+        full_name: customer.full_name || "",
+        phone: customer.phone || "",
+        cpf: customer.preferences?.cpf || "",
+        birth_date: customer.preferences?.birth_date || "",
+        street: customer.preferences?.address?.street || "",
+        number: customer.preferences?.address?.number || "",
+        neighborhood: customer.preferences?.address?.neighborhood || "",
+        city: customer.preferences?.address?.city || "",
+        state: customer.preferences?.address?.state || "",
+        zip: customer.preferences?.address?.zip || "",
+      });
+      setCpfError("");
+      setEditModalOpen(true);
+    }
+  };
+
+  const handleCpfChange = (value: string) => {
+    const formatted = formatCpf(value);
+    setEditForm(prev => ({ ...prev, cpf: formatted }));
+    
+    const cleaned = cleanCpf(formatted);
+    if (cleaned.length === 11) {
+      if (!validateCpf(cleaned)) {
+        setCpfError("CPF inválido");
+      } else {
+        setCpfError("");
+      }
+    } else {
+      setCpfError("");
+    }
+  };
+
+  const handleSaveCustomer = async () => {
+    if (!customer) return;
+
+    // Validate CPF if provided
+    const cleanedCpf = cleanCpf(editForm.cpf);
+    if (cleanedCpf && cleanedCpf.length === 11 && !validateCpf(cleanedCpf)) {
+      setCpfError("CPF inválido");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const updatedPreferences = {
+        ...customer.preferences,
+        cpf: editForm.cpf || undefined,
+        birth_date: editForm.birth_date || undefined,
+        address: {
+          street: editForm.street || undefined,
+          number: editForm.number || undefined,
+          neighborhood: editForm.neighborhood || undefined,
+          city: editForm.city || undefined,
+          state: editForm.state || undefined,
+          zip: editForm.zip || undefined,
+        },
+      };
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          full_name: editForm.full_name || null,
+          phone: editForm.phone || null,
+          preferences: updatedPreferences,
+        })
+        .eq("id", customer.id);
+
+      if (error) throw error;
+
+      toast.success("Cliente atualizado com sucesso!");
+      setEditModalOpen(false);
+      fetchCustomer(customer.id);
+    } catch (error) {
+      console.error("Error updating customer:", error);
+      toast.error("Erro ao atualizar cliente");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const openWhatsApp = () => {
@@ -219,11 +343,26 @@ const ClientePerfil = () => {
                       WhatsApp
                     </Button>
                   )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={openEditModal}
+                    className="gap-2"
+                  >
+                    <Edit className="w-4 h-4" />
+                    Editar
+                  </Button>
                 </div>
               </div>
 
               {/* Contact Info */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {customer.email && (
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50">
+                    <Mail className="w-4 h-4 text-muted-foreground" />
+                    <span className="font-body text-sm">{customer.email}</span>
+                  </div>
+                )}
                 {customer.phone && (
                   <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50">
                     <Phone className="w-4 h-4 text-muted-foreground" />
@@ -390,6 +529,153 @@ const ClientePerfil = () => {
           )}
         </motion.div>
       </motion.div>
+
+      {/* Edit Customer Modal */}
+      <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl">Editar Cliente</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            {/* Basic Info */}
+            <div className="space-y-4">
+              <h3 className="font-display text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                Informações Básicas
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="full_name">Nome Completo</Label>
+                  <Input
+                    id="full_name"
+                    value={editForm.full_name}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, full_name: e.target.value }))}
+                    placeholder="Nome do cliente"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Telefone</Label>
+                  <Input
+                    id="phone"
+                    value={editForm.phone}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, phone: e.target.value }))}
+                    placeholder="(00) 00000-0000"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="cpf">CPF</Label>
+                  <Input
+                    id="cpf"
+                    value={editForm.cpf}
+                    onChange={(e) => handleCpfChange(e.target.value)}
+                    placeholder="000.000.000-00"
+                    maxLength={14}
+                    className={cpfError ? "border-destructive" : ""}
+                  />
+                  {cpfError && (
+                    <p className="text-xs text-destructive">{cpfError}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="birth_date">Data de Nascimento</Label>
+                  <Input
+                    id="birth_date"
+                    type="date"
+                    value={editForm.birth_date}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, birth_date: e.target.value }))}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Address */}
+            <div className="space-y-4">
+              <h3 className="font-display text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                Endereço
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="street">Rua</Label>
+                  <Input
+                    id="street"
+                    value={editForm.street}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, street: e.target.value }))}
+                    placeholder="Nome da rua"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="number">Número</Label>
+                  <Input
+                    id="number"
+                    value={editForm.number}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, number: e.target.value }))}
+                    placeholder="123"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="neighborhood">Bairro</Label>
+                  <Input
+                    id="neighborhood"
+                    value={editForm.neighborhood}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, neighborhood: e.target.value }))}
+                    placeholder="Bairro"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="city">Cidade</Label>
+                  <Input
+                    id="city"
+                    value={editForm.city}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, city: e.target.value }))}
+                    placeholder="Cidade"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="state">Estado</Label>
+                  <Input
+                    id="state"
+                    value={editForm.state}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, state: e.target.value }))}
+                    placeholder="UF"
+                    maxLength={2}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="zip">CEP</Label>
+                  <Input
+                    id="zip"
+                    value={editForm.zip}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, zip: e.target.value }))}
+                    placeholder="00000-000"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <Button
+              variant="outline"
+              onClick={() => setEditModalOpen(false)}
+              disabled={saving}
+            >
+              <X className="w-4 h-4 mr-2" />
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSaveCustomer}
+              disabled={saving || !!cpfError}
+            >
+              {saving ? (
+                <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin mr-2" />
+              ) : (
+                <Save className="w-4 h-4 mr-2" />
+              )}
+              Salvar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 };
