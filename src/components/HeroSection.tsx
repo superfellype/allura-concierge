@@ -3,6 +3,7 @@ import { ArrowRight, ShoppingBag, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 import logoFlower from "@/assets/logo-allura-flower.png";
 import logoBadge from "@/assets/logo-allura-badge.png";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -28,6 +29,15 @@ const itemVariants = {
 };
 
 const HeroSection = () => {
+  const { settings, loading } = useSiteSettings();
+  
+  // Get settings with fallbacks
+  const heroTitle = settings.hero_title || "Elegância que se sente";
+  const heroSubtitle = settings.hero_subtitle || "Bolsas e acessórios em couro premium brasileiro.";
+  const ctaText = settings.hero_cta_text || "Explorar Coleção";
+  const ctaUrl = settings.hero_cta_link || "/produtos";
+  const heroImageUrl = settings.hero_image_url || "";
+  const heroBgColor = settings.hero_bg_color || "";
   return (
     <section className="relative min-h-screen overflow-hidden">
       {/* Gradient Background - Deeper for Liquid Glass effect */}
@@ -79,18 +89,22 @@ const HeroSection = () => {
             variants={itemVariants}
             className="font-display text-5xl md:text-7xl lg:text-[5.5rem] font-medium text-center leading-[1.05] tracking-tight text-balance"
           >
-            Elegância que
-            <br />
-            <span className="text-gradient italic">se sente</span>
+            {heroTitle.includes(' ') ? (
+              <>
+                {heroTitle.split(' ').slice(0, -2).join(' ')}
+                <br />
+                <span className="text-gradient italic">{heroTitle.split(' ').slice(-2).join(' ')}</span>
+              </>
+            ) : (
+              <span className="text-gradient italic">{heroTitle}</span>
+            )}
           </motion.h1>
 
           <motion.p
             variants={itemVariants}
             className="font-body text-lg md:text-xl text-muted-foreground text-center max-w-xl mx-auto mt-8 leading-relaxed"
           >
-            Bolsas e acessórios em couro premium brasileiro.
-            <br className="hidden md:block" />
-            Feitos à mão para acompanhar seus melhores momentos.
+            {heroSubtitle}
           </motion.p>
 
           {/* CTA Buttons - Glass Style */}
@@ -98,14 +112,14 @@ const HeroSection = () => {
             variants={itemVariants}
             className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-12"
           >
-            <Link to="/produtos">
+            <Link to={ctaUrl}>
               <motion.button
                 whileHover={{ scale: 1.02, y: -2 }}
                 whileTap={{ scale: 0.98 }}
                 className="glass-btn flex items-center gap-3"
               >
                 <ShoppingBag className="w-4 h-4" />
-                Explorar Coleção
+                {ctaText}
               </motion.button>
             </Link>
             <Link to="/sobre">
@@ -118,6 +132,7 @@ const HeroSection = () => {
               </motion.button>
             </Link>
           </motion.div>
+
 
           {/* Bento Grid - Liquid Glass Cards */}
           <motion.div
