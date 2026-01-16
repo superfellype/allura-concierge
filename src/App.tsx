@@ -43,7 +43,6 @@ import Notas from "./pages/admin/Notas";
 import Despesas from "./pages/admin/Despesas";
 import Relatorios from "./pages/admin/Relatorios";
 import WhatsApp from "./pages/admin/WhatsApp";
-import Personalizacao from "./pages/admin/Personalizacao";
 import EditorTema from "./pages/admin/EditorTema";
 import Custos from "./pages/admin/Custos";
 
@@ -95,7 +94,6 @@ const App = () => (
             <Route path="/admin/despesas" element={<ProtectedRoute requireAdmin><Despesas /></ProtectedRoute>} />
             <Route path="/admin/relatorios" element={<ProtectedRoute requireAdmin><Relatorios /></ProtectedRoute>} />
             <Route path="/admin/whatsapp" element={<ProtectedRoute requireAdmin><WhatsApp /></ProtectedRoute>} />
-            <Route path="/admin/personalizacao" element={<ProtectedRoute requireAdmin><Personalizacao /></ProtectedRoute>} />
             <Route path="/admin/editor-tema" element={<ProtectedRoute requireAdmin><EditorTema /></ProtectedRoute>} />
             <Route path="/admin/custos" element={<ProtectedRoute requireAdmin><Custos /></ProtectedRoute>} />
 
