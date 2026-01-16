@@ -206,7 +206,7 @@ const Dashboard = () => {
 
     const { data: orders } = await supabase
       .from("orders")
-      .select("total, created_at, status");
+      .select("total, created_at, status, notes");
 
     const thisMonth = new Date().getMonth();
     const thisYear = new Date().getFullYear();
@@ -231,10 +231,29 @@ const Dashboard = () => {
       ? Math.round(((todayOrdersCount - yesterdayOrdersCount) / yesterdayOrdersCount) * 100)
       : todayOrdersCount > 0 ? 100 : 0;
 
-    const monthlyRevenue = orders?.filter(o => {
+    // Helper to extract tax rate from notes
+    const extractTaxFromNotes = (notes: string | null): number => {
+      if (!notes) return 0;
+      const match = notes.match(/Taxa:\s*([\d.,]+)%/);
+      if (match) {
+        return parseFloat(match[1].replace(',', '.'));
+      }
+      return 0;
+    };
+
+    const monthlyOrders = orders?.filter(o => {
       const d = new Date(o.created_at);
       return d.getMonth() === thisMonth && d.getFullYear() === thisYear && o.status !== 'cancelled';
-    }).reduce((sum, o) => sum + Number(o.total), 0) || 0;
+    }) || [];
+
+    const monthlyRevenue = monthlyOrders.reduce((sum, o) => sum + Number(o.total), 0);
+
+    // Calculate total transaction fees from the month
+    const monthlyTaxes = monthlyOrders.reduce((sum, o) => {
+      const taxRate = extractTaxFromNotes(o.notes);
+      const taxAmount = Number(o.total) * (taxRate / 100);
+      return sum + taxAmount;
+    }, 0);
 
     const lastMonth = thisMonth === 0 ? 11 : thisMonth - 1;
     const lastMonthYear = thisMonth === 0 ? thisYear - 1 : thisYear;
@@ -247,8 +266,8 @@ const Dashboard = () => {
       ? Math.round(((monthlyRevenue - lastMonthRevenue) / lastMonthRevenue) * 100)
       : monthlyRevenue > 0 ? 100 : 0;
 
-    // Net revenue uses expenseStats loaded separately
-    const netRevenue = monthlyRevenue - expenseStats.totalMonth;
+    // Net revenue = revenue - expenses - transaction fees
+    const netRevenue = monthlyRevenue - expenseStats.totalMonth - monthlyTaxes;
 
     // Average ticket
     const paidOrders = orders?.filter(o => o.status !== 'cancelled' && o.status !== 'created') || [];
@@ -317,7 +336,7 @@ const Dashboard = () => {
         title: "Receita Líquida", 
         value: `R$ ${netRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
         change: revenueChange,
-        changeLabel: "após despesas",
+        changeLabel: "após despesas e taxas",
         icon: DollarSign,
         color: "success",
         href: "/admin/despesas"

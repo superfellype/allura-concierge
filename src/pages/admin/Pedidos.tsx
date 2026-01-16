@@ -693,18 +693,51 @@ const Pedidos = () => {
                     <span className="font-body text-green-600">- R$ {Number(selectedOrder.discount_total).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                   </div>
                 )}
-                {/* Taxa estimada da maquininha - usando média de 3.5% */}
+                {/* Taxa e valor líquido - extrair taxa real das notas */}
                 {(() => {
-                  const { tax, net } = calculateNetAmount(Number(selectedOrder.total), 3.5);
+                  // Extrair taxa das notas do pedido
+                  const extractTaxFromNotes = (notes: string | null): number | null => {
+                    if (!notes) return null;
+                    const match = notes.match(/Taxa:\s*([\d.,]+)%/);
+                    if (match) {
+                      return parseFloat(match[1].replace(',', '.'));
+                    }
+                    return null;
+                  };
+                  
+                  // Filtrar a taxa das notas para não duplicar
+                  const filterTaxFromNotes = (notes: string | null): string | null => {
+                    if (!notes) return null;
+                    return notes.replace(/\n?Taxa:\s*[\d.,]+%\n?/g, '').trim() || null;
+                  };
+
+                  const taxRate = extractTaxFromNotes(selectedOrder.notes);
+                  const filteredNotes = filterTaxFromNotes(selectedOrder.notes);
+                  
+                  if (taxRate === null || taxRate === 0) {
+                    // Sem taxa - apenas mostrar total
+                    return (
+                      <>
+                        <div className="flex justify-between pt-2 border-t border-border/20">
+                          <span className="font-body font-medium">Total</span>
+                          <span className="glass-kpi glass-kpi-md">
+                            R$ {Number(selectedOrder.total).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        {filteredNotes && (
+                          <div className="liquid-glass-card p-4 border-l-4 border-l-amber-400 mt-4">
+                            <h3 className="font-body font-medium mb-2">Observações</h3>
+                            <p className="font-body text-sm text-muted-foreground">{filteredNotes}</p>
+                          </div>
+                        )}
+                      </>
+                    );
+                  }
+                  
+                  // Com taxa - mostrar breakdown completo
+                  const { tax, net } = calculateNetAmount(Number(selectedOrder.total), taxRate);
                   return (
                     <>
-                      <div className="flex justify-between mb-2">
-                        <span className="font-body text-sm text-muted-foreground flex items-center gap-1">
-                          Taxa estimada
-                          <span className="text-xs bg-muted px-1.5 py-0.5 rounded">3.5%</span>
-                        </span>
-                        <span className="font-body text-destructive">- {formatCurrency(tax)}</span>
-                      </div>
                       <div className="flex justify-between pt-2 border-t border-border/20">
                         <span className="font-body font-medium">Total cobrado</span>
                         <span className="glass-kpi glass-kpi-md">
@@ -713,22 +746,27 @@ const Pedidos = () => {
                       </div>
                       <div className="flex justify-between mt-2">
                         <span className="font-body text-sm text-muted-foreground flex items-center gap-1">
+                          Taxa maquininha
+                          <span className="text-xs bg-muted px-1.5 py-0.5 rounded">{taxRate}%</span>
+                        </span>
+                        <span className="font-body text-destructive">- {formatCurrency(tax)}</span>
+                      </div>
+                      <div className="flex justify-between mt-2">
+                        <span className="font-body text-sm flex items-center gap-1">
                           <Wallet className="w-3 h-3" /> Você recebe
                         </span>
                         <span className="font-body font-semibold text-emerald-600">{formatCurrency(net)}</span>
                       </div>
+                      {filteredNotes && (
+                        <div className="liquid-glass-card p-4 border-l-4 border-l-amber-400 mt-4">
+                          <h3 className="font-body font-medium mb-2">Observações</h3>
+                          <p className="font-body text-sm text-muted-foreground">{filteredNotes}</p>
+                        </div>
+                      )}
                     </>
                   );
                 })()}
               </div>
-
-              {/* Notes */}
-              {selectedOrder.notes && (
-                <div className="liquid-glass-card p-4 border-l-4 border-l-amber-400">
-                  <h3 className="font-body font-medium mb-2">Observações</h3>
-                  <p className="font-body text-sm text-muted-foreground">{selectedOrder.notes}</p>
-                </div>
-              )}
             </div>
 
             <button
