@@ -51,6 +51,12 @@ export default function EditorTema() {
     setIsThemeSelected(true);
   }, [editor]);
 
+  const handlePreview = useCallback(() => {
+    // Save draft to localStorage before opening preview
+    editor.saveDraft();
+    window.open("/preview", "_blank");
+  }, [editor]);
+
   const handlePublish = async () => {
     setIsPublishing(true);
     const payload = editor.getPublishPayload();
@@ -90,7 +96,7 @@ export default function EditorTema() {
           isPublishing={isPublishing}
           onReset={editor.resetToDefault}
           onPublish={handlePublish}
-          onPreview={() => window.open("/", "_blank")}
+          onPreview={handlePreview}
         />
 
         <div className="flex-1 grid grid-cols-12 gap-4 min-h-0">
@@ -105,6 +111,8 @@ export default function EditorTema() {
               onSelectElement={handleSelectElement}
               onSelectTheme={handleSelectTheme}
               isThemeSelected={isThemeSelected}
+              elementOrder={editor.elementOrder}
+              onReorderElements={editor.reorderElements}
             />
           </motion.div>
 
@@ -131,6 +139,7 @@ export default function EditorTema() {
               onSelectElement={handleSelectElement}
               previewDevice={editor.previewDevice}
               isDarkMode={editor.isDarkMode}
+              elementOrder={editor.elementOrder}
             />
           </motion.div>
 

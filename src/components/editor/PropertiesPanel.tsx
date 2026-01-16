@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Type, Image, Palette, AlignLeft, AlignCenter, AlignRight, Link2 } from "lucide-react";
+import { Type, Image, Palette, AlignLeft, AlignCenter, AlignRight, Link2, Megaphone, Newspaper } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   EditorElementType, 
   EditorState, 
@@ -21,7 +22,12 @@ import {
   BenefitsConfig,
   ProductsConfig,
   FooterConfig,
+  NewsletterConfig,
+  BannerConfig,
 } from "@/hooks/useEditorState";
+import ImageUploadField from "./ImageUploadField";
+import ThemePresets, { ThemePreset } from "./ThemePresets";
+import BenefitsProperties from "./BenefitsProperties";
 
 interface PropertiesPanelProps {
   selectedElement: EditorElementType | null;
@@ -95,14 +101,13 @@ function NavbarProperties({
         />
       </div>
 
-      <div className="space-y-2">
-        <Label className="text-xs">URL do Logo</Label>
-        <Input
-          value={config.logoUrl}
-          onChange={(e) => onChange({ logoUrl: e.target.value })}
-          placeholder="https://..."
-        />
-      </div>
+      <ImageUploadField
+        label="Logo"
+        value={config.logoUrl}
+        onChange={(url) => onChange({ logoUrl: url })}
+        folder="logos"
+        aspectRatio="banner"
+      />
 
       <ColorInput
         label="Cor de Fundo"
@@ -203,6 +208,20 @@ function HeroProperties({
       </div>
 
       <div className="space-y-2">
+        <div className="flex justify-between text-xs">
+          <Label>Altura Mínima</Label>
+          <span className="text-muted-foreground">{config.minHeight || 450}px</span>
+        </div>
+        <Slider
+          value={[config.minHeight || 450]}
+          onValueChange={([v]) => onChange({ minHeight: v })}
+          min={300}
+          max={800}
+          step={50}
+        />
+      </div>
+
+      <div className="space-y-2">
         <Label className="text-xs">Tipo de Fundo</Label>
         <Select
           value={config.backgroundType}
@@ -229,14 +248,13 @@ function HeroProperties({
 
       {config.backgroundType === "image" && (
         <>
-          <div className="space-y-2">
-            <Label className="text-xs">URL da Imagem</Label>
-            <Input
-              value={config.backgroundImage}
-              onChange={(e) => onChange({ backgroundImage: e.target.value })}
-              placeholder="https://..."
-            />
-          </div>
+          <ImageUploadField
+            label="Imagem de Fundo"
+            value={config.backgroundImage}
+            onChange={(url) => onChange({ backgroundImage: url })}
+            folder="hero"
+            aspectRatio="video"
+          />
           <div className="space-y-2">
             <div className="flex justify-between text-xs">
               <Label>Opacidade do Overlay</Label>
@@ -257,6 +275,24 @@ function HeroProperties({
         value={config.textColor}
         onChange={(v) => onChange({ textColor: v })}
       />
+
+      <div className="space-y-2">
+        <Label className="text-xs">Animação de Entrada</Label>
+        <Select
+          value={config.animation || "fade"}
+          onValueChange={(v: "none" | "fade" | "slide" | "zoom") => onChange({ animation: v })}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Nenhuma</SelectItem>
+            <SelectItem value="fade">Fade In</SelectItem>
+            <SelectItem value="slide">Slide Up</SelectItem>
+            <SelectItem value="zoom">Zoom In</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
     </div>
   );
 }
@@ -343,6 +379,124 @@ function ProductsProperties({
   );
 }
 
+function NewsletterProperties({ 
+  config, 
+  onChange 
+}: { 
+  config: NewsletterConfig; 
+  onChange: (updates: Partial<NewsletterConfig>) => void;
+}) {
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
+        <Label className="text-xs">Ativar Newsletter</Label>
+        <Switch
+          checked={config.enabled}
+          onCheckedChange={(v) => onChange({ enabled: v })}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label className="text-xs">Título</Label>
+        <Input
+          value={config.title}
+          onChange={(e) => onChange({ title: e.target.value })}
+          placeholder="Receba novidades..."
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label className="text-xs">Subtítulo</Label>
+        <Input
+          value={config.subtitle}
+          onChange={(e) => onChange({ subtitle: e.target.value })}
+          placeholder="Seja a primeira..."
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label className="text-xs">Texto do Botão</Label>
+        <Input
+          value={config.buttonText}
+          onChange={(e) => onChange({ buttonText: e.target.value })}
+          placeholder="Inscrever"
+        />
+      </div>
+
+      <ColorInput
+        label="Cor de Fundo"
+        value={config.backgroundColor}
+        onChange={(v) => onChange({ backgroundColor: v })}
+      />
+
+      <ColorInput
+        label="Cor do Texto"
+        value={config.textColor}
+        onChange={(v) => onChange({ textColor: v })}
+      />
+    </div>
+  );
+}
+
+function BannerProperties({ 
+  config, 
+  onChange 
+}: { 
+  config: BannerConfig; 
+  onChange: (updates: Partial<BannerConfig>) => void;
+}) {
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
+        <Label className="text-xs">Ativar Banner</Label>
+        <Switch
+          checked={config.enabled}
+          onCheckedChange={(v) => onChange({ enabled: v })}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label className="text-xs">Texto do Banner</Label>
+        <Input
+          value={config.text}
+          onChange={(e) => onChange({ text: e.target.value })}
+          placeholder="Frete grátis..."
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label className="text-xs">Texto do Link</Label>
+        <Input
+          value={config.linkText}
+          onChange={(e) => onChange({ linkText: e.target.value })}
+          placeholder="Aproveite →"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label className="text-xs">URL do Link</Label>
+        <Input
+          value={config.linkUrl}
+          onChange={(e) => onChange({ linkUrl: e.target.value })}
+          placeholder="/produtos"
+        />
+      </div>
+
+      <ColorInput
+        label="Cor de Fundo"
+        value={config.backgroundColor}
+        onChange={(v) => onChange({ backgroundColor: v })}
+      />
+
+      <ColorInput
+        label="Cor do Texto"
+        value={config.textColor}
+        onChange={(v) => onChange({ textColor: v })}
+      />
+    </div>
+  );
+}
+
 function FooterProperties({ 
   config, 
   onChange 
@@ -396,88 +550,104 @@ function FooterProperties({
 
 function ThemeProperties({ 
   config, 
-  onChange 
+  onChange,
+  onApplyPreset,
 }: { 
   config: ThemeConfig; 
   onChange: (updates: Partial<ThemeConfig>) => void;
+  onApplyPreset: (preset: ThemePreset) => void;
 }) {
   return (
-    <div className="space-y-5">
-      <ColorInput
-        label="Cor Primária"
-        value={config.primaryColor}
-        onChange={(v) => onChange({ primaryColor: v })}
-      />
+    <Tabs defaultValue="cores" className="w-full">
+      <TabsList className="grid w-full grid-cols-2 mb-4">
+        <TabsTrigger value="cores">Cores</TabsTrigger>
+        <TabsTrigger value="presets">Presets</TabsTrigger>
+      </TabsList>
 
-      <ColorInput
-        label="Cor de Destaque"
-        value={config.accentColor}
-        onChange={(v) => onChange({ accentColor: v })}
-      />
-
-      <ColorInput
-        label="Cor de Fundo Geral"
-        value={config.backgroundColor}
-        onChange={(v) => onChange({ backgroundColor: v })}
-      />
-
-      <ColorInput
-        label="Cor do Texto"
-        value={config.textColor}
-        onChange={(v) => onChange({ textColor: v })}
-      />
-
-      <div className="space-y-2">
-        <div className="flex justify-between text-xs">
-          <Label>Arredondamento</Label>
-          <span className="text-muted-foreground">{config.borderRadius}px</span>
-        </div>
-        <Slider
-          value={[config.borderRadius]}
-          onValueChange={([v]) => onChange({ borderRadius: v })}
-          max={32}
-          step={2}
+      <TabsContent value="cores" className="space-y-5">
+        <ColorInput
+          label="Cor Primária"
+          value={config.primaryColor}
+          onChange={(v) => onChange({ primaryColor: v })}
         />
-      </div>
 
-      <div className="space-y-2">
-        <Label className="text-xs">Fonte de Títulos</Label>
-        <Select
-          value={config.fontDisplay}
-          onValueChange={(v) => onChange({ fontDisplay: v })}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {FONT_OPTIONS.map((font) => (
-              <SelectItem key={font} value={font} style={{ fontFamily: font }}>
-                {font}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+        <ColorInput
+          label="Cor de Destaque"
+          value={config.accentColor}
+          onChange={(v) => onChange({ accentColor: v })}
+        />
 
-      <div className="space-y-2">
-        <Label className="text-xs">Fonte de Corpo</Label>
-        <Select
-          value={config.fontBody}
-          onValueChange={(v) => onChange({ fontBody: v })}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {FONT_OPTIONS.map((font) => (
-              <SelectItem key={font} value={font} style={{ fontFamily: font }}>
-                {font}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-    </div>
+        <ColorInput
+          label="Cor de Fundo Geral"
+          value={config.backgroundColor}
+          onChange={(v) => onChange({ backgroundColor: v })}
+        />
+
+        <ColorInput
+          label="Cor do Texto"
+          value={config.textColor}
+          onChange={(v) => onChange({ textColor: v })}
+        />
+
+        <div className="space-y-2">
+          <div className="flex justify-between text-xs">
+            <Label>Arredondamento</Label>
+            <span className="text-muted-foreground">{config.borderRadius}px</span>
+          </div>
+          <Slider
+            value={[config.borderRadius]}
+            onValueChange={([v]) => onChange({ borderRadius: v })}
+            max={32}
+            step={2}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-xs">Fonte de Títulos</Label>
+          <Select
+            value={config.fontDisplay}
+            onValueChange={(v) => onChange({ fontDisplay: v })}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {FONT_OPTIONS.map((font) => (
+                <SelectItem key={font} value={font} style={{ fontFamily: font }}>
+                  {font}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-xs">Fonte de Corpo</Label>
+          <Select
+            value={config.fontBody}
+            onValueChange={(v) => onChange({ fontBody: v })}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {FONT_OPTIONS.map((font) => (
+                <SelectItem key={font} value={font} style={{ fontFamily: font }}>
+                  {font}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </TabsContent>
+
+      <TabsContent value="presets">
+        <ThemePresets
+          currentTheme={config}
+          onApplyPreset={onApplyPreset}
+        />
+      </TabsContent>
+    </Tabs>
   );
 }
 
@@ -488,6 +658,18 @@ export default function PropertiesPanel({
   onUpdateElement,
   onUpdateTheme,
 }: PropertiesPanelProps) {
+  const handleApplyPreset = (preset: ThemePreset) => {
+    onUpdateTheme({
+      primaryColor: preset.colors.primary,
+      accentColor: preset.colors.accent,
+      backgroundColor: preset.colors.background,
+      textColor: preset.colors.text,
+      fontDisplay: preset.fonts.display,
+      fontBody: preset.fonts.body,
+      borderRadius: preset.borderRadius,
+    });
+  };
+
   if (!selectedElement && !isThemeSelected) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center p-4">
@@ -508,6 +690,8 @@ export default function PropertiesPanel({
       case "hero": return "Hero";
       case "benefits": return "Benefícios";
       case "products": return "Produtos";
+      case "newsletter": return "Newsletter";
+      case "banner": return "Banner";
       case "footer": return "Rodapé";
       default: return "Propriedades";
     }
@@ -518,6 +702,8 @@ export default function PropertiesPanel({
     switch (selectedElement) {
       case "navbar": return Type;
       case "hero": return Image;
+      case "newsletter": return Newspaper;
+      case "banner": return Megaphone;
       case "products": return Link2;
       default: return Palette;
     }
@@ -543,7 +729,8 @@ export default function PropertiesPanel({
         {isThemeSelected && (
           <ThemeProperties 
             config={state.theme} 
-            onChange={onUpdateTheme} 
+            onChange={onUpdateTheme}
+            onApplyPreset={handleApplyPreset}
           />
         )}
         {selectedElement === "navbar" && (
@@ -559,14 +746,27 @@ export default function PropertiesPanel({
           />
         )}
         {selectedElement === "benefits" && (
-          <div className="text-sm text-muted-foreground p-4 bg-secondary/50 rounded-xl">
-            Em breve: edição de benefícios
-          </div>
+          <BenefitsProperties 
+            config={state.benefits} 
+            onChange={(updates) => onUpdateElement("benefits", updates)} 
+          />
         )}
         {selectedElement === "products" && (
           <ProductsProperties 
             config={state.products} 
             onChange={(updates) => onUpdateElement("products", updates)} 
+          />
+        )}
+        {selectedElement === "newsletter" && (
+          <NewsletterProperties 
+            config={state.newsletter} 
+            onChange={(updates) => onUpdateElement("newsletter", updates)} 
+          />
+        )}
+        {selectedElement === "banner" && (
+          <BannerProperties 
+            config={state.banner} 
+            onChange={(updates) => onUpdateElement("banner", updates)} 
           />
         )}
         {selectedElement === "footer" && (
