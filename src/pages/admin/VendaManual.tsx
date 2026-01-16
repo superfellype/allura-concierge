@@ -1,12 +1,13 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Search, Plus, Minus, Trash2, Check, Package, User, CreditCard, Loader2, MapPin, UserPlus, Percent, ChevronDown, Settings, ChevronsUpDown, Tag, Users } from "lucide-react";
+import { Search, Plus, Minus, Trash2, Check, Package, User, CreditCard, Loader2, MapPin, UserPlus, Percent, ChevronDown, Settings, ChevronsUpDown, Tag, Users, AlertCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useProductSearch, formatFullPrice } from "@/hooks/useProducts";
 import { calculateNetAmount, formatCurrency } from "@/lib/price-utils";
+import { validateCpf, formatCpf, cleanCpf } from "@/lib/cpf-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -139,6 +140,11 @@ const VendaManual = () => {
   const [selectedSeller, setSelectedSeller] = useState<string>("");
   const [sellerSearchOpen, setSellerSearchOpen] = useState(false);
 
+  // CPF validation states
+  const [cpfError, setCpfError] = useState<string | null>(null);
+  const [checkingCpf, setCheckingCpf] = useState(false);
+  const [existingCpfProfile, setExistingCpfProfile] = useState<Customer | null>(null);
+
   const { results: searchResults, searching, search } = useProductSearch();
 
   // Load payment methods from database
@@ -223,6 +229,84 @@ const VendaManual = () => {
     return customers.find(c => c.user_id === selectedCustomer);
   }, [customers, selectedCustomer]);
 
+  // Check if CPF already exists
+  const checkCpfDuplicate = async (cpfValue: string) => {
+    const cleaned = cleanCpf(cpfValue);
+    if (cleaned.length !== 11) {
+      setCpfError(null);
+      setExistingCpfProfile(null);
+      return;
+    }
+
+    if (!validateCpf(cleaned)) {
+      setCpfError("CPF inválido");
+      setExistingCpfProfile(null);
+      return;
+    }
+
+    setCheckingCpf(true);
+    setCpfError(null);
+
+    try {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, user_id, full_name, phone, preferences")
+        .order("created_at", { ascending: false });
+
+      if (profiles) {
+        const existingProfile = profiles.find(p => {
+          const prefs = p.preferences as Record<string, any> | null;
+          return prefs?.cpf === cleaned;
+        });
+
+        if (existingProfile) {
+          setExistingCpfProfile({
+            id: existingProfile.id,
+            user_id: existingProfile.user_id,
+            full_name: existingProfile.full_name,
+            phone: existingProfile.phone
+          });
+          setCpfError(null);
+          toast.info(`Cliente já cadastrado: ${existingProfile.full_name || 'Sem nome'}`);
+        } else {
+          setExistingCpfProfile(null);
+        }
+      }
+    } catch (error) {
+      console.error("Error checking CPF:", error);
+    } finally {
+      setCheckingCpf(false);
+    }
+  };
+
+  // Handle CPF input with formatting and validation
+  const handleCpfChange = (value: string) => {
+    const formatted = formatCpf(value);
+    setTempCustomerCpf(formatted);
+    
+    const cleaned = cleanCpf(formatted);
+    if (cleaned.length === 11) {
+      checkCpfDuplicate(formatted);
+    } else {
+      setCpfError(null);
+      setExistingCpfProfile(null);
+    }
+  };
+
+  // Use existing customer if CPF matches
+  const useExistingCustomer = () => {
+    if (existingCpfProfile) {
+      setSelectedCustomer(existingCpfProfile.user_id);
+      setTempCustomerName("");
+      setTempCustomerPhone("");
+      setTempCustomerCpf("");
+      setTempCustomerBirthDate("");
+      setTempCustomerAddress({ street: "", number: "", neighborhood: "", city: "", state: "", zip: "" });
+      setExistingCpfProfile(null);
+      toast.success(`Cliente ${existingCpfProfile.full_name} selecionado!`);
+    }
+  };
+
   const addToCart = (product: typeof searchResults[0]) => {
     const existing = cart.find(item => item.product_id === product.id);
     
@@ -300,10 +384,26 @@ const VendaManual = () => {
       return null;
     }
 
+    // Validate CPF if provided
+    if (tempCustomerCpf) {
+      const cleaned = cleanCpf(tempCustomerCpf);
+      if (cleaned.length === 11 && !validateCpf(cleaned)) {
+        toast.error("CPF inválido");
+        return null;
+      }
+      
+      // If there's an existing customer with this CPF, use them instead
+      if (existingCpfProfile) {
+        toast.info(`Usando cliente existente: ${existingCpfProfile.full_name}`);
+        return existingCpfProfile.user_id;
+      }
+    }
+
     setCreatingCustomer(true);
 
     try {
       const tempUserId = crypto.randomUUID();
+      const cleanedCpf = tempCustomerCpf ? cleanCpf(tempCustomerCpf) : null;
 
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
@@ -312,7 +412,7 @@ const VendaManual = () => {
           full_name: tempCustomerName.trim(),
           phone: tempCustomerPhone || null,
           preferences: {
-            cpf: tempCustomerCpf || null,
+            cpf: cleanedCpf,
             birth_date: tempCustomerBirthDate || null,
             address: tempCustomerAddress.street ? tempCustomerAddress : null,
             is_manual_customer: true
@@ -337,6 +437,8 @@ const VendaManual = () => {
       setTempCustomerCpf("");
       setTempCustomerBirthDate("");
       setTempCustomerAddress({ street: "", number: "", neighborhood: "", city: "", state: "", zip: "" });
+      setCpfError(null);
+      setExistingCpfProfile(null);
 
       toast.success("Cliente criado com sucesso!");
       return tempUserId;
@@ -744,12 +846,47 @@ const VendaManual = () => {
                   </div>
                   <div>
                     <Label className="text-xs text-muted-foreground">CPF</Label>
-                    <Input
-                      value={tempCustomerCpf}
-                      onChange={(e) => setTempCustomerCpf(e.target.value)}
-                      placeholder="000.000.000-00"
-                      className="mt-1"
-                    />
+                    <div className="relative">
+                      <Input
+                        value={tempCustomerCpf}
+                        onChange={(e) => handleCpfChange(e.target.value)}
+                        placeholder="000.000.000-00"
+                        maxLength={14}
+                        className={`mt-1 pr-8 ${cpfError ? 'border-destructive' : existingCpfProfile ? 'border-green-500' : ''}`}
+                      />
+                      {checkingCpf && (
+                        <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground animate-spin" />
+                      )}
+                      {cpfError && !checkingCpf && (
+                        <AlertCircle className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-destructive" />
+                      )}
+                      {existingCpfProfile && !checkingCpf && !cpfError && (
+                        <Check className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500" />
+                      )}
+                    </div>
+                    {cpfError && (
+                      <p className="text-xs text-destructive mt-1 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        {cpfError}
+                      </p>
+                    )}
+                    {existingCpfProfile && !cpfError && (
+                      <div className="mt-2 p-2 bg-green-50 dark:bg-green-950/20 rounded-lg">
+                        <p className="text-xs text-green-700 dark:text-green-400 mb-1">
+                          Cliente já cadastrado: {existingCpfProfile.full_name}
+                        </p>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={useExistingCustomer}
+                          className="text-xs h-7"
+                        >
+                          <Check className="w-3 h-3 mr-1" />
+                          Usar este cliente
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div>

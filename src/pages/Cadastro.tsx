@@ -12,10 +12,13 @@ import {
   Check,
   Sparkles,
   CreditCard,
-  Calendar
+  Calendar,
+  AlertCircle,
+  Loader2
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { validateCpf, formatCpf, cleanCpf } from "@/lib/cpf-utils";
 import logoAllura from "@/assets/logo-allura-text.png";
 import logoFlower from "@/assets/logo-allura-flower.png";
 
@@ -74,6 +77,9 @@ const Cadastro = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState<OnboardingStep>("welcome");
   const [loading, setLoading] = useState(false);
+  const [cpfError, setCpfError] = useState<string | null>(null);
+  const [checkingCpf, setCheckingCpf] = useState(false);
+  const [existingProfileId, setExistingProfileId] = useState<string | null>(null);
   const [formData, setFormData] = useState<FormData>({
     fullName: "",
     pronoun: "",
@@ -155,19 +161,83 @@ const Cadastro = () => {
     return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 3)} ${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
   };
 
-  const formatCpf = (value: string) => {
-    const numbers = value.replace(/\D/g, "");
-    if (numbers.length <= 3) return numbers;
-    if (numbers.length <= 6) return `${numbers.slice(0, 3)}.${numbers.slice(3)}`;
-    if (numbers.length <= 9) return `${numbers.slice(0, 3)}.${numbers.slice(3, 6)}.${numbers.slice(6)}`;
-    return `${numbers.slice(0, 3)}.${numbers.slice(3, 6)}.${numbers.slice(6, 9)}-${numbers.slice(9, 11)}`;
-  };
-
   const formatBirthDate = (value: string) => {
     const numbers = value.replace(/\D/g, "");
     if (numbers.length <= 2) return numbers;
     if (numbers.length <= 4) return `${numbers.slice(0, 2)}/${numbers.slice(2)}`;
     return `${numbers.slice(0, 2)}/${numbers.slice(2, 4)}/${numbers.slice(4, 8)}`;
+  };
+
+  // Check if CPF already exists in the database
+  const checkCpfDuplicate = async (cpfValue: string) => {
+    const cleaned = cleanCpf(cpfValue);
+    if (cleaned.length !== 11) return;
+
+    // Validate CPF format first
+    if (!validateCpf(cleaned)) {
+      setCpfError("CPF inválido");
+      setExistingProfileId(null);
+      return;
+    }
+
+    setCheckingCpf(true);
+    setCpfError(null);
+
+    try {
+      // Search for existing profile with this CPF
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, user_id, full_name, preferences")
+        .order("created_at", { ascending: false });
+
+      if (profiles) {
+        const existingProfile = profiles.find(p => {
+          const prefs = p.preferences as Record<string, any> | null;
+          return prefs?.cpf === cleaned;
+        });
+
+        if (existingProfile) {
+          // Check if it's a manual customer (UUID that's not in auth.users)
+          const prefs = existingProfile.preferences as Record<string, any> | null;
+          if (prefs?.is_manual_customer) {
+            // Allow merge - this was a manual registration
+            setExistingProfileId(existingProfile.id);
+            setCpfError(null);
+            toast.info(`Bem-vinda de volta, ${existingProfile.full_name || 'cliente'}! Vamos vincular suas compras anteriores.`);
+          } else {
+            // CPF already registered with a real account
+            setCpfError("Este CPF já está cadastrado. Tente fazer login.");
+            setExistingProfileId(null);
+          }
+        } else {
+          setCpfError(null);
+          setExistingProfileId(null);
+        }
+      }
+    } catch (error) {
+      console.error("Error checking CPF:", error);
+    } finally {
+      setCheckingCpf(false);
+    }
+  };
+
+  // Handle CPF change with validation
+  const handleCpfChange = (value: string) => {
+    const formatted = formatCpf(value);
+    updateForm({ cpf: formatted });
+    
+    const cleaned = cleanCpf(formatted);
+    if (cleaned.length === 11) {
+      if (!validateCpf(cleaned)) {
+        setCpfError("CPF inválido");
+        setExistingProfileId(null);
+      } else {
+        checkCpfDuplicate(formatted);
+      }
+    } else {
+      setCpfError(null);
+      setExistingProfileId(null);
+    }
   };
 
   const handleSignUp = async () => {
@@ -178,6 +248,19 @@ const Cadastro = () => {
 
     if (formData.password.length < 8) {
       toast.error("A senha deve ter no mínimo 8 caracteres");
+      return;
+    }
+
+    // Validate CPF if provided
+    const cleanedCpf = cleanCpf(formData.cpf);
+    if (cleanedCpf && cleanedCpf.length === 11 && !validateCpf(cleanedCpf)) {
+      toast.error("CPF inválido");
+      return;
+    }
+
+    // Block if CPF is already registered with a real account
+    if (cpfError === "Este CPF já está cadastrado. Tente fazer login.") {
+      toast.error(cpfError);
       return;
     }
 
@@ -226,26 +309,57 @@ const Cadastro = () => {
           birthDateFormatted = `${year}-${month}-${day}`;
         }
 
-        const { error: profileError } = await supabase.from('profiles').upsert(
-          {
-            user_id: authData.user.id,
-            full_name: formData.fullName,
-            phone: formData.whatsapp.replace(/\D/g, ""),
-            avatar_url: avatarUrl,
-            preferences: {
-              pronoun: formData.pronoun,
-              style_preferences: formData.stylePreferences,
-              occasions: formData.occasions,
-              whatsapp_opt_in: formData.whatsappOptIn,
-              cpf: formData.cpf.replace(/\D/g, ""),
-              birth_date: birthDateFormatted,
-            }
-          },
-          { onConflict: 'user_id' }
-        );
-        
-        if (profileError) {
-          console.error('Profile update error:', profileError);
+        const profileData = {
+          user_id: authData.user.id,
+          full_name: formData.fullName,
+          phone: formData.whatsapp.replace(/\D/g, ""),
+          avatar_url: avatarUrl,
+          preferences: {
+            pronoun: formData.pronoun,
+            style_preferences: formData.stylePreferences,
+            occasions: formData.occasions,
+            whatsapp_opt_in: formData.whatsappOptIn,
+            cpf: cleanedCpf,
+            birth_date: birthDateFormatted,
+            is_manual_customer: false, // Mark as registered user now
+          }
+        };
+
+        // If we found an existing manual profile, update it with the new user_id
+        if (existingProfileId) {
+          // First, update the existing profile to link to the new authenticated user
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({
+              user_id: authData.user.id,
+              full_name: formData.fullName,
+              phone: formData.whatsapp.replace(/\D/g, "") || undefined,
+              avatar_url: avatarUrl || undefined,
+              preferences: profileData.preferences,
+            })
+            .eq('id', existingProfileId);
+
+          if (updateError) {
+            console.error('Profile merge error:', updateError);
+            // Fallback: create new profile
+            const { error: profileError } = await supabase.from('profiles').upsert(
+              profileData,
+              { onConflict: 'user_id' }
+            );
+            if (profileError) console.error('Profile creation error:', profileError);
+          } else {
+            toast.success("Suas compras anteriores foram vinculadas à sua conta!");
+          }
+        } else {
+          // Create new profile
+          const { error: profileError } = await supabase.from('profiles').upsert(
+            profileData,
+            { onConflict: 'user_id' }
+          );
+          
+          if (profileError) {
+            console.error('Profile update error:', profileError);
+          }
         }
       }
 
@@ -529,19 +643,46 @@ const Cadastro = () => {
                   {/* CPF Field */}
                   <div>
                     <label className="font-body text-sm text-foreground/70 mb-1.5 block">
-                      CPF
+                      CPF <span className="text-destructive">*</span>
                     </label>
                     <div className="relative">
                       <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <input
                         type="text"
                         value={formData.cpf}
-                        onChange={(e) => updateForm({ cpf: formatCpf(e.target.value) })}
-                        className="w-full pl-11 pr-4 py-3.5 liquid-glass rounded-2xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
+                        onChange={(e) => handleCpfChange(e.target.value)}
+                        className={`w-full pl-11 pr-10 py-3.5 liquid-glass rounded-2xl font-body text-sm focus:outline-none focus:ring-2 transition-all ${
+                          cpfError 
+                            ? "ring-2 ring-destructive/50 focus:ring-destructive/50" 
+                            : existingProfileId
+                              ? "ring-2 ring-green-500/50 focus:ring-green-500/50"
+                              : "focus:ring-primary/30"
+                        }`}
                         placeholder="000.000.000-00"
                         maxLength={14}
                       />
+                      {checkingCpf && (
+                        <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground animate-spin" />
+                      )}
+                      {cpfError && !checkingCpf && (
+                        <AlertCircle className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-destructive" />
+                      )}
+                      {existingProfileId && !checkingCpf && !cpfError && (
+                        <Check className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500" />
+                      )}
                     </div>
+                    {cpfError && (
+                      <p className="font-body text-xs text-destructive mt-2 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        {cpfError}
+                      </p>
+                    )}
+                    {existingProfileId && !cpfError && (
+                      <p className="font-body text-xs text-green-600 mt-2 flex items-center gap-1">
+                        <Check className="w-3 h-3" />
+                        Encontramos seu cadastro! Suas compras serão vinculadas.
+                      </p>
+                    )}
                   </div>
 
                   {/* Birth Date Field */}
