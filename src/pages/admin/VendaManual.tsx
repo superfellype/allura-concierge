@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Search, Plus, Minus, Trash2, Check, Package, User, CreditCard, Loader2, MapPin, UserPlus, Percent, ChevronDown, Settings } from "lucide-react";
+import { Search, Plus, Minus, Trash2, Check, Package, User, CreditCard, Loader2, MapPin, UserPlus, Percent, ChevronDown, Settings, ChevronsUpDown, Tag } from "lucide-react";
 import { Link } from "react-router-dom";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,18 +12,26 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { paymentSettingsService, PaymentSetting, Installment } from "@/services/payment-settings.service";
+import { cn } from "@/lib/utils";
 
 interface CartItem {
   product_id: string;
@@ -91,6 +99,7 @@ const VendaManual = () => {
   const [showProductSearch, setShowProductSearch] = useState(false);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<string>("");
+  const [customerSearchOpen, setCustomerSearchOpen] = useState(false);
   const [tempCustomerName, setTempCustomerName] = useState("");
   const [tempCustomerPhone, setTempCustomerPhone] = useState("");
   const [tempCustomerCpf, setTempCustomerCpf] = useState("");
@@ -113,6 +122,11 @@ const VendaManual = () => {
   const [addressOpen, setAddressOpen] = useState(false);
   const [paymentMethods, setPaymentMethods] = useState<PaymentSetting[]>([]);
   const [loadingMethods, setLoadingMethods] = useState(true);
+  
+  // Discount states
+  const [discountType, setDiscountType] = useState<"percentage" | "fixed">("percentage");
+  const [discountValue, setDiscountValue] = useState<string>("");
+  const [showDiscount, setShowDiscount] = useState(false);
 
   const { results: searchResults, searching, search } = useProductSearch();
 
@@ -177,6 +191,11 @@ const VendaManual = () => {
     setShowCustomTax(false);
   }, [paymentMethod]);
 
+  // Get selected customer object
+  const selectedCustomerObj = useMemo(() => {
+    return customers.find(c => c.user_id === selectedCustomer);
+  }, [customers, selectedCustomer]);
+
   const addToCart = (product: typeof searchResults[0]) => {
     const existing = cart.find(item => item.product_id === product.id);
     
@@ -230,15 +249,28 @@ const VendaManual = () => {
     setCart(cart.filter(item => item.product_id !== productId));
   };
 
+  // Calculate totals with discount
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const { gross, tax, net } = calculateNetAmount(subtotal, effectiveTax);
-  const total = subtotal;
+  
+  const discountNumericValue = parseFloat(discountValue) || 0;
+  const discountAmount = useMemo(() => {
+    if (discountNumericValue <= 0) return 0;
+    if (discountType === "percentage") {
+      const percentage = Math.min(discountNumericValue, 100);
+      return (subtotal * percentage) / 100;
+    }
+    return Math.min(discountNumericValue, subtotal);
+  }, [discountType, discountNumericValue, subtotal]);
+  
+  const subtotalWithDiscount = Math.max(0, subtotal - discountAmount);
+  const total = subtotalWithDiscount;
+  const { gross, tax, net } = calculateNetAmount(total, effectiveTax);
   const installmentValue = selectedInstallment > 1 ? total / selectedInstallment : total;
 
-  const handleCreateCustomer = async () => {
+  const handleCreateCustomer = async (): Promise<string | null> => {
     if (!tempCustomerName.trim()) {
       toast.error("Nome do cliente é obrigatório");
-      return;
+      return null;
     }
 
     setCreatingCustomer(true);
@@ -280,9 +312,11 @@ const VendaManual = () => {
       setTempCustomerAddress({ street: "", number: "", neighborhood: "", city: "", state: "", zip: "" });
 
       toast.success("Cliente criado com sucesso!");
+      return tempUserId;
     } catch (error) {
       console.error("Error creating customer:", error);
       toast.error("Erro ao criar cliente");
+      return null;
     } finally {
       setCreatingCustomer(false);
     }
@@ -304,14 +338,18 @@ const VendaManual = () => {
     try {
       let userId = selectedCustomer;
 
+      // If no customer selected but temp name exists, create customer first
       if (!userId && tempCustomerName) {
-        await handleCreateCustomer();
-        await new Promise(resolve => setTimeout(resolve, 100));
-        userId = selectedCustomer;
+        const newUserId = await handleCreateCustomer();
+        if (!newUserId) {
+          setSubmitting(false);
+          return;
+        }
+        userId = newUserId;
       }
 
       if (!userId) {
-        toast.error("Erro ao criar cliente. Tente novamente.");
+        toast.error("Erro ao identificar cliente. Tente novamente.");
         setSubmitting(false);
         return;
       }
@@ -339,6 +377,7 @@ const VendaManual = () => {
         .insert({
           user_id: userId,
           subtotal,
+          discount: discountAmount,
           total,
           shipping_cost: 0,
           status: "paid",
@@ -384,7 +423,10 @@ const VendaManual = () => {
           metadata: {
             installments: selectedInstallment,
             tax_percentage: effectiveTax,
-            net_amount: net
+            net_amount: net,
+            discount_type: discountType,
+            discount_value: discountNumericValue,
+            discount_amount: discountAmount
           }
         });
 
@@ -403,6 +445,9 @@ const VendaManual = () => {
       setSelectedInstallment(1);
       setCustomTax(null);
       setShowCustomTax(false);
+      setDiscountType("percentage");
+      setDiscountValue("");
+      setShowDiscount(false);
       setNotes("");
 
     } catch (error) {
@@ -574,18 +619,78 @@ const VendaManual = () => {
               </TabsList>
 
               <TabsContent value="existing">
-                <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
-                  <SelectTrigger className="h-11">
-                    <SelectValue placeholder="Selecione um cliente" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {customers.map((customer) => (
-                      <SelectItem key={customer.user_id} value={customer.user_id}>
-                        {customer.full_name || "Sem nome"} {customer.phone && `(${customer.phone})`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover open={customerSearchOpen} onOpenChange={setCustomerSearchOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={customerSearchOpen}
+                      className="w-full h-11 justify-between font-normal"
+                    >
+                      {selectedCustomerObj ? (
+                        <span className="truncate">
+                          {selectedCustomerObj.full_name || "Sem nome"}
+                          {selectedCustomerObj.phone && (
+                            <span className="text-muted-foreground ml-1">
+                              ({selectedCustomerObj.phone})
+                            </span>
+                          )}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">Buscar cliente...</span>
+                      )}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[320px] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Digite nome ou telefone..." />
+                      <CommandList>
+                        <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                        <CommandGroup>
+                          {customers.map((customer) => (
+                            <CommandItem
+                              key={customer.user_id}
+                              value={`${customer.full_name || ''} ${customer.phone || ''}`}
+                              onSelect={() => {
+                                setSelectedCustomer(customer.user_id);
+                                setCustomerSearchOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  selectedCustomer === customer.user_id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium truncate">
+                                  {customer.full_name || "Sem nome"}
+                                </p>
+                                {customer.phone && (
+                                  <p className="text-xs text-muted-foreground truncate">
+                                    {customer.phone}
+                                  </p>
+                                )}
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                
+                {selectedCustomerObj && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mt-2 text-xs text-muted-foreground"
+                    onClick={() => setSelectedCustomer("")}
+                  >
+                    Limpar seleção
+                  </Button>
+                )}
               </TabsContent>
 
               <TabsContent value="new" className="space-y-3">
@@ -749,7 +854,7 @@ const VendaManual = () => {
                   <Label className="text-xs text-muted-foreground mb-2 block">Parcelamento</Label>
                   <div className="grid grid-cols-3 gap-1.5 max-h-[200px] overflow-y-auto p-1">
                     {(selectedMethod?.installments ?? []).map((inst) => {
-                      const instValue = subtotal / inst.qty;
+                      const instValue = total / inst.qty;
                       return (
                         <button
                           key={inst.qty}
@@ -822,6 +927,67 @@ const VendaManual = () => {
                 )}
               </div>
 
+              {/* Discount Section */}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setShowDiscount(!showDiscount)}
+                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+                >
+                  <Tag className="w-4 h-4" />
+                  Desconto manual
+                  <ChevronDown className={`w-4 h-4 transition-transform ${showDiscount ? 'rotate-180' : ''}`} />
+                </button>
+
+                {showDiscount && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    className="mt-3 space-y-3"
+                  >
+                    <ToggleGroup
+                      type="single"
+                      value={discountType}
+                      onValueChange={(value) => {
+                        if (value) setDiscountType(value as "percentage" | "fixed");
+                      }}
+                      className="justify-start"
+                    >
+                      <ToggleGroupItem value="percentage" aria-label="Porcentagem" className="text-sm">
+                        <Percent className="w-4 h-4 mr-1" />
+                        %
+                      </ToggleGroupItem>
+                      <ToggleGroupItem value="fixed" aria-label="Valor fixo" className="text-sm">
+                        R$
+                      </ToggleGroupItem>
+                    </ToggleGroup>
+
+                    <div className="flex gap-2 items-center">
+                      <Input
+                        type="number"
+                        step={discountType === "percentage" ? "1" : "0.01"}
+                        min="0"
+                        max={discountType === "percentage" ? "100" : undefined}
+                        value={discountValue}
+                        onChange={(e) => setDiscountValue(e.target.value)}
+                        placeholder={discountType === "percentage" ? "10" : "50.00"}
+                        className="w-28"
+                      />
+                      <span className="text-sm text-muted-foreground">
+                        {discountType === "percentage" ? "%" : "reais"}
+                      </span>
+                    </div>
+
+                    {discountAmount > 0 && (
+                      <div className="flex items-center justify-between text-sm bg-emerald-500/10 text-emerald-600 rounded-lg px-3 py-2">
+                        <span>Desconto aplicado:</span>
+                        <span className="font-semibold">-{formatCurrency(discountAmount)}</span>
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </div>
+
               {/* Notes */}
               <div>
                 <Label className="text-xs text-muted-foreground">Observações</Label>
@@ -843,6 +1009,28 @@ const VendaManual = () => {
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Subtotal</span>
                 <span className="font-medium">{formatFullPrice(subtotal)}</span>
+              </div>
+              
+              {discountAmount > 0 && (
+                <div className="flex justify-between text-sm text-emerald-600">
+                  <span className="flex items-center gap-1">
+                    Desconto
+                    <span className="text-xs bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                      {discountType === "percentage" 
+                        ? `${discountNumericValue}%` 
+                        : "fixo"
+                      }
+                    </span>
+                  </span>
+                  <span className="font-medium">-{formatCurrency(discountAmount)}</span>
+                </div>
+              )}
+
+              <div className="h-px bg-border" />
+              
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Total</span>
+                <span className="font-semibold">{formatFullPrice(total)}</span>
               </div>
               
               {selectedInstallment > 1 && (
