@@ -20,6 +20,7 @@ import {
   ArrowRight,
   BarChart3,
   Wallet,
+  Loader2,
 } from "lucide-react";
 import {
   XAxis,
@@ -37,6 +38,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { expensesService } from "@/services/expenses.service";
 import { Tooltip as TooltipUI, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Info } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface KPICard {
   title: string;
@@ -120,6 +122,7 @@ const Dashboard = () => {
   const [lowStockProducts, setLowStockProducts] = useState<any[]>([]);
   const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
   const [loading, setLoading] = useState(true);
+  const [kpisLoading, setKpisLoading] = useState(true);
   const [expenseStats, setExpenseStats] = useState({ totalMonth: 0, totalLastMonth: 0, byCategory: {} as Record<string, number> });
   const [costStats, setCostStats] = useState({ totalSalesCost: 0, monthlySalesCost: 0, totalSalesRevenue: 0, avgMargin: 0, grossProfit: 0 });
 
@@ -229,6 +232,7 @@ const Dashboard = () => {
   };
 
   const fetchKPIs = async () => {
+    setKpisLoading(true);
     const { count: productsCount } = await supabase
       .from("products")
       .select("*", { count: "exact", head: true })
@@ -385,6 +389,7 @@ const Dashboard = () => {
         tooltip: `Você recebe: R$ ${netReceived.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n- Despesas: R$ ${expenseStats.totalMonth.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n= Líquido: R$ ${netAfterExpenses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
       },
     ]);
+    setKpisLoading(false);
   };
 
   const fetchRecentOrders = async () => {
@@ -549,63 +554,80 @@ const Dashboard = () => {
 
         {/* KPI Cards - Compact Grid */}
         <motion.div variants={itemVariants} className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-          <TooltipProvider>
-            {kpis.map((kpi) => {
-              const colors = colorClasses[kpi.color];
-              const CardWrapper = kpi.href ? Link : 'div';
-              const cardProps = kpi.href ? { to: kpi.href } : {};
-              
-              const cardContent = (
-                <CardWrapper 
-                  key={kpi.title}
-                  {...cardProps as any}
-                  className={`block p-4 rounded-xl border border-border/40 bg-card/60 hover:bg-card/80 hover:border-border/60 transition-all group ${kpi.href ? 'cursor-pointer' : ''}`}
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className={`w-8 h-8 rounded-lg ${colors.bg} flex items-center justify-center`}>
-                      <kpi.icon className={`w-4 h-4 ${colors.icon}`} />
+          {kpisLoading ? (
+            // Loading skeleton for KPIs
+            Array.from({ length: 6 }).map((_, index) => (
+              <div 
+                key={index}
+                className="block p-4 rounded-xl border border-border/40 bg-card/60"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <Skeleton className="w-8 h-8 rounded-lg" />
+                  <Skeleton className="w-10 h-4 rounded" />
+                </div>
+                <Skeleton className="h-6 w-24 mb-1" />
+                <Skeleton className="h-3 w-16" />
+              </div>
+            ))
+          ) : (
+            <TooltipProvider>
+              {kpis.map((kpi) => {
+                const colors = colorClasses[kpi.color];
+                const CardWrapper = kpi.href ? Link : 'div';
+                const cardProps = kpi.href ? { to: kpi.href } : {};
+                
+                const cardContent = (
+                  <CardWrapper 
+                    key={kpi.title}
+                    {...cardProps as any}
+                    className={`block p-4 rounded-xl border border-border/40 bg-card/60 hover:bg-card/80 hover:border-border/60 transition-all group ${kpi.href ? 'cursor-pointer' : ''}`}
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className={`w-8 h-8 rounded-lg ${colors.bg} flex items-center justify-center`}>
+                        <kpi.icon className={`w-4 h-4 ${colors.icon}`} />
+                      </div>
+                      {kpi.change !== 0 && (
+                        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
+                          kpi.change > 0 ? 'bg-emerald-500/10 text-emerald-600' : 'bg-destructive/10 text-destructive'
+                        }`}>
+                          {kpi.change > 0 ? '+' : ''}{kpi.change}%
+                        </span>
+                      )}
+                      {kpi.tooltip && (
+                        <Info className="w-3 h-3 text-muted-foreground/50" />
+                      )}
                     </div>
-                    {kpi.change !== 0 && (
-                      <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
-                        kpi.change > 0 ? 'bg-emerald-500/10 text-emerald-600' : 'bg-destructive/10 text-destructive'
-                      }`}>
-                        {kpi.change > 0 ? '+' : ''}{kpi.change}%
-                      </span>
-                    )}
-                    {kpi.tooltip && (
-                      <Info className="w-3 h-3 text-muted-foreground/50" />
-                    )}
-                  </div>
-                  <p className="font-display text-lg font-bold text-foreground group-hover:text-primary transition-colors truncate">
-                    {kpi.value}
-                  </p>
-                  {kpi.subValue && (
-                    <p className="font-body text-[10px] text-emerald-600 font-medium truncate">
-                      {kpi.subValue}
+                    <p className="font-display text-lg font-bold text-foreground group-hover:text-primary transition-colors truncate">
+                      {kpi.value}
                     </p>
-                  )}
-                  <p className="font-body text-[11px] text-muted-foreground truncate">
-                    {kpi.title}
-                  </p>
-                </CardWrapper>
-              );
-
-              if (kpi.tooltip) {
-                return (
-                  <TooltipUI key={kpi.title}>
-                    <TooltipTrigger asChild>
-                      {cardContent}
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="max-w-xs">
-                      <p className="whitespace-pre-line text-xs">{kpi.tooltip}</p>
-                    </TooltipContent>
-                  </TooltipUI>
+                    {kpi.subValue && (
+                      <p className="font-body text-[10px] text-emerald-600 font-medium truncate">
+                        {kpi.subValue}
+                      </p>
+                    )}
+                    <p className="font-body text-[11px] text-muted-foreground truncate">
+                      {kpi.title}
+                    </p>
+                  </CardWrapper>
                 );
-              }
 
-              return cardContent;
-            })}
-          </TooltipProvider>
+                if (kpi.tooltip) {
+                  return (
+                    <TooltipUI key={kpi.title}>
+                      <TooltipTrigger asChild>
+                        {cardContent}
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="max-w-xs">
+                        <p className="whitespace-pre-line text-xs">{kpi.tooltip}</p>
+                      </TooltipContent>
+                    </TooltipUI>
+                  );
+                }
+
+                return cardContent;
+              })}
+            </TooltipProvider>
+          )}
         </motion.div>
 
         {/* Main Content Grid - Charts side by side */}
