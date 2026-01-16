@@ -127,15 +127,26 @@ const Dashboard = () => {
     fetchAllData();
   }, []);
 
+  // Re-calculate KPIs when costStats or expenseStats change
+  useEffect(() => {
+    if (costStats.monthlySalesCost > 0 || expenseStats.totalMonth > 0) {
+      fetchKPIs();
+    }
+  }, [costStats.monthlySalesCost, expenseStats.totalMonth]);
+
   const fetchAllData = async () => {
+    // First fetch cost and expense stats
+    await Promise.all([
+      fetchExpenseStats(),
+      fetchCostStats(),
+    ]);
+    // Then fetch KPIs and other data
     await Promise.all([
       fetchKPIs(),
       fetchRecentOrders(),
       fetchRevenueData(),
       fetchLowStock(),
       fetchTopProducts(),
-      fetchExpenseStats(),
-      fetchCostStats(),
     ]);
     setLoading(false);
   };
