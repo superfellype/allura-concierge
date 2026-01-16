@@ -45,6 +45,7 @@ import Relatorios from "./pages/admin/Relatorios";
 import WhatsApp from "./pages/admin/WhatsApp";
 import EditorTema from "./pages/admin/EditorTema";
 import Custos from "./pages/admin/Custos";
+import Vendedores from "./pages/admin/Vendedores";
 import Preview from "./pages/Preview";
 
 const queryClient = new QueryClient();
@@ -98,6 +99,7 @@ const App = () => (
             <Route path="/admin/whatsapp" element={<ProtectedRoute requireAdmin><WhatsApp /></ProtectedRoute>} />
             <Route path="/admin/editor-tema" element={<ProtectedRoute requireAdmin><EditorTema /></ProtectedRoute>} />
             <Route path="/admin/custos" element={<ProtectedRoute requireAdmin><Custos /></ProtectedRoute>} />
+            <Route path="/admin/vendedores" element={<ProtectedRoute requireAdmin><Vendedores /></ProtectedRoute>} />
 
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
