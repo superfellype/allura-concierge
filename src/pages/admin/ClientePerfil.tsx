@@ -135,14 +135,27 @@ const ClientePerfil = () => {
       return;
     }
 
-    // Try to get email from auth.users via a join or manual lookup
-    let email: string | null = null;
-    
-    // For manual customers, email might be in preferences
     const prefs = profile.preferences as CustomerProfile['preferences'];
+    let email: string | null = null;
+
+    // For manual customers, check if email is in preferences
     if (prefs?.is_manual_customer) {
-      // Manual customers might have email stored in preferences
       email = (prefs as any)?.email || null;
+    } else {
+      // For real users, fetch email from edge function
+      try {
+        const { data: session } = await supabase.auth.getSession();
+        if (session?.session) {
+          const response = await supabase.functions.invoke('get-customer-email', {
+            body: { user_id: profile.user_id },
+          });
+          if (response.data?.email) {
+            email = response.data.email;
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching email:", err);
+      }
     }
 
     const { data: orders } = await supabase
