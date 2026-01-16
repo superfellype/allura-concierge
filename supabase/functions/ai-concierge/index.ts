@@ -41,7 +41,7 @@ serve(async (req) => {
       if (occasions.length > 0) personalContext += `Usa bolsas principalmente para: ${occasions.join(", ")}. `;
     }
 
-    const systemPrompt = `Você é a Lara, concierge pessoal exclusiva da Allura, uma marca brasileira de bolsas e acessórios de couro premium.
+    const systemPrompt = `Você é a Aura, concierge pessoal exclusiva da Allura, uma marca brasileira de bolsas e acessórios de couro premium.
 
 Sua personalidade:
 - Calorosa, sofisticada e atenciosa como uma personal stylist de boutique de luxo
