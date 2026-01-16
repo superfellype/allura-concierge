@@ -89,8 +89,14 @@ export default function Marketing() {
       return;
     }
 
+    // Filter out inactive/deactivated customers
+    const activeProfiles = (profiles || []).filter(p => {
+      const prefs = p.preferences as Record<string, any> | null;
+      return prefs?.is_active !== false;
+    });
+
     const customersWithStats: CustomerWithStats[] = await Promise.all(
-      (profiles || []).map(async (profile) => {
+      activeProfiles.map(async (profile) => {
         const { data: orders } = await supabase
           .from("orders")
           .select("id, total, created_at")

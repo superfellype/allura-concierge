@@ -179,11 +179,16 @@ const VendaManual = () => {
     const loadCustomers = async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("id, full_name, phone, user_id")
+        .select("id, full_name, phone, user_id, preferences")
         .order("full_name");
       
       if (data) {
-        setCustomers(data);
+        // Filter out inactive customers
+        const activeCustomers = data.filter(p => {
+          const prefs = p.preferences as Record<string, any> | null;
+          return prefs?.is_active !== false;
+        });
+        setCustomers(activeCustomers);
       }
     };
     loadCustomers();

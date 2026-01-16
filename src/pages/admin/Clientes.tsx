@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { Search, User, ShoppingBag, TrendingUp, Eye, Trash2, X, ArrowUpDown, Download } from "lucide-react";
+import { Search, User, ShoppingBag, TrendingUp, Eye, Trash2, X, ArrowUpDown, Download, RotateCcw, UserX, UserCheck } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import AdminPagination from "@/components/admin/AdminPagination";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,6 +33,9 @@ interface Customer {
   ordersCount: number;
   totalSpent: number;
   orders?: CustomerOrder[];
+  preferences?: Record<string, any> | null;
+  isManualCustomer: boolean;
+  isActive: boolean;
 }
 
 const ITEMS_PER_PAGE = 15;
@@ -61,6 +64,7 @@ const Clientes = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [orderFilter, setOrderFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("active");
   const [sortBy, setSortBy] = useState<string>("recent");
   const [filtersOpen, setFiltersOpen] = useState(false);
   
@@ -95,11 +99,16 @@ const Clientes = () => {
           .eq("user_id", profile.user_id)
           .order("created_at", { ascending: false });
 
+        const prefs = profile.preferences as Record<string, any> | null;
+        
         return {
           ...profile,
           ordersCount: orders?.length || 0,
           totalSpent: orders?.reduce((sum, o) => sum + Number(o.total), 0) || 0,
           orders: orders || [],
+          preferences: prefs,
+          isManualCustomer: prefs?.is_manual_customer === true,
+          isActive: prefs?.is_active !== false, // Default to true if not set
         };
       })
     );
@@ -109,12 +118,42 @@ const Clientes = () => {
   };
 
   const handleDeleteClick = (customer: Customer) => {
-    if (customer.ordersCount > 0) {
-      toast.error("Não é possível excluir clientes com pedidos");
+    // Block deletion for real accounts (not manual customers)
+    if (!customer.isManualCustomer) {
+      toast.error("Clientes com conta real não podem ser excluídos. Use desativar.");
       return;
     }
+    
+    if (customer.ordersCount > 0) {
+      toast.error("Clientes com pedidos não podem ser excluídos. Use desativar.");
+      return;
+    }
+    
     setCustomerToDelete(customer);
     setDeleteDialogOpen(true);
+  };
+
+  const handleDeactivate = async (customer: Customer) => {
+    const newActiveState = !customer.isActive;
+    const currentPrefs = customer.preferences || {};
+    
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        preferences: {
+          ...currentPrefs,
+          is_active: newActiveState,
+        }
+      })
+      .eq("id", customer.id);
+    
+    if (error) {
+      toast.error(`Erro ao ${newActiveState ? 'reativar' : 'desativar'} cliente`);
+      return;
+    }
+    
+    toast.success(`Cliente ${newActiveState ? 'reativado' : 'desativado'} com sucesso`);
+    fetchCustomers();
   };
 
   const handleDeleteConfirm = async () => {
@@ -122,7 +161,7 @@ const Clientes = () => {
     
     setDeleting(true);
     
-    // Delete profile first
+    // Only actually delete manual customers without orders
     const { error: profileError } = await supabase
       .from("profiles")
       .delete()
@@ -134,7 +173,7 @@ const Clientes = () => {
       return;
     }
     
-    toast.success("Cliente excluído com sucesso");
+    toast.success("Cliente excluído permanentemente");
     setDeleteDialogOpen(false);
     setCustomerToDelete(null);
     setDeleting(false);
@@ -150,7 +189,12 @@ const Clientes = () => {
         (orderFilter === "with_orders" && c.ordersCount > 0) ||
         (orderFilter === "without_orders" && c.ordersCount === 0);
       
-      return matchesSearch && matchesOrder;
+      const matchesStatus = statusFilter === "all" ||
+        (statusFilter === "active" && c.isActive) ||
+        (statusFilter === "inactive" && !c.isActive) ||
+        (statusFilter === "manual" && c.isManualCustomer);
+      
+      return matchesSearch && matchesOrder && matchesStatus;
     })
     .sort((a, b) => {
       switch (sortBy) {
@@ -168,8 +212,12 @@ const Clientes = () => {
 
   const activeFiltersCount = [
     orderFilter !== "all",
+    statusFilter !== "active",
     sortBy !== "recent"
   ].filter(Boolean).length;
+
+  const inactiveCount = customers.filter(c => !c.isActive).length;
+  const manualCount = customers.filter(c => c.isManualCustomer).length;
 
   const totalPages = Math.ceil(filteredCustomers.length / ITEMS_PER_PAGE);
   const paginatedCustomers = filteredCustomers.slice(
@@ -258,13 +306,26 @@ const Clientes = () => {
 
             {/* Quick Order Filter */}
             <Select value={orderFilter} onValueChange={(v) => { setOrderFilter(v); setCurrentPage(1); }}>
-              <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectTrigger className="w-full sm:w-[160px]">
                 <SelectValue placeholder="Pedidos" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="all">Todos pedidos</SelectItem>
                 <SelectItem value="with_orders">Com pedidos</SelectItem>
                 <SelectItem value="without_orders">Sem pedidos</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Status Filter */}
+            <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}>
+              <SelectTrigger className="w-full sm:w-[160px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Ativos ({customers.filter(c => c.isActive).length})</SelectItem>
+                <SelectItem value="inactive">Inativos ({inactiveCount})</SelectItem>
+                <SelectItem value="manual">Manuais ({manualCount})</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
               </SelectContent>
             </Select>
 
@@ -321,6 +382,14 @@ const Clientes = () => {
                 <Badge variant="secondary" className="gap-1">
                   {orderFilter === "with_orders" ? "Com pedidos" : "Sem pedidos"}
                   <button onClick={() => setOrderFilter("all")} className="ml-1 hover:text-destructive">
+                    <X className="w-3 h-3" />
+                  </button>
+                </Badge>
+              )}
+              {statusFilter !== "active" && (
+                <Badge variant="secondary" className="gap-1">
+                  {statusFilter === "inactive" ? "Inativos" : statusFilter === "manual" ? "Manuais" : "Todos status"}
+                  <button onClick={() => setStatusFilter("active")} className="ml-1 hover:text-destructive">
                     <X className="w-3 h-3" />
                   </button>
                 </Badge>
@@ -386,11 +455,17 @@ const Clientes = () => {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: index * 0.03 }}
-                        className="border-b border-border/20 hover:bg-muted/50 transition-colors"
+                        className={`border-b border-border/20 hover:bg-muted/50 transition-colors ${
+                          !customer.isActive ? 'opacity-50' : ''
+                        }`}
                       >
                         <td className="py-4 px-6">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                              !customer.isActive 
+                                ? 'bg-muted' 
+                                : 'bg-gradient-to-br from-primary/15 to-primary/5'
+                            }`}>
                               {customer.avatar_url ? (
                                 <img
                                   src={customer.avatar_url}
@@ -398,10 +473,22 @@ const Clientes = () => {
                                   className="w-full h-full object-cover rounded-xl"
                                 />
                               ) : (
-                                <User className="w-5 h-5 text-primary" />
+                                <User className={`w-5 h-5 ${!customer.isActive ? 'text-muted-foreground' : 'text-primary'}`} />
                               )}
                             </div>
-                            <span className="font-body font-medium">{customer.full_name || "Sem nome"}</span>
+                            <div className="flex flex-col">
+                              <span className="font-body font-medium">{customer.full_name || "Sem nome"}</span>
+                              <div className="flex gap-1 mt-0.5">
+                                {customer.isManualCustomer && (
+                                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">Manual</Badge>
+                                )}
+                                {!customer.isActive && (
+                                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
+                                    Inativo
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
                           </div>
                         </td>
                         <td className="py-4 px-6 font-body text-sm text-muted-foreground">
@@ -423,26 +510,48 @@ const Clientes = () => {
                           {new Date(customer.created_at).toLocaleDateString('pt-BR')}
                         </td>
                         <td className="py-4 px-6 text-right">
-                          <div className="flex items-center justify-end gap-2">
+                          <div className="flex items-center justify-end gap-1">
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => navigate(`/admin/clientes/${customer.id}`)}
-                              className="gap-2"
+                              className="gap-1.5 h-8 px-2"
                             >
                               <Eye className="w-4 h-4" />
-                              Ver
+                              <span className="hidden sm:inline">Ver</span>
                             </Button>
+                            
+                            {/* Deactivate/Reactivate button */}
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleDeleteClick(customer)}
-                              disabled={customer.ordersCount > 0}
-                              className="gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
-                              title={customer.ordersCount > 0 ? "Clientes com pedidos não podem ser excluídos" : "Excluir cliente"}
+                              onClick={() => handleDeactivate(customer)}
+                              className={`gap-1.5 h-8 px-2 ${
+                                customer.isActive 
+                                  ? 'text-orange-600 hover:text-orange-600 hover:bg-orange-100 dark:hover:bg-orange-900/20' 
+                                  : 'text-emerald-600 hover:text-emerald-600 hover:bg-emerald-100 dark:hover:bg-emerald-900/20'
+                              }`}
+                              title={customer.isActive ? "Desativar cliente" : "Reativar cliente"}
                             >
-                              <Trash2 className="w-4 h-4" />
+                              {customer.isActive ? (
+                                <UserX className="w-4 h-4" />
+                              ) : (
+                                <UserCheck className="w-4 h-4" />
+                              )}
                             </Button>
+                            
+                            {/* Delete button - only for manual customers without orders */}
+                            {customer.isManualCustomer && customer.ordersCount === 0 && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteClick(customer)}
+                                className="gap-1.5 h-8 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                title="Excluir permanentemente"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            )}
                           </div>
                         </td>
                       </motion.tr>
