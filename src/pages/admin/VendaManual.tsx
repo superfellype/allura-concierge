@@ -1178,6 +1178,11 @@ const VendaManual = () => {
                 <div className="text-right">
                   <span className="text-sm text-muted-foreground block">Total cobrado</span>
                   <span className="text-2xl font-bold">{formatFullPrice(total)}</span>
+                  {discountAmount > 0 && (
+                    <span className="text-xs text-muted-foreground block">
+                      (original: {formatFullPrice(subtotal)})
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
