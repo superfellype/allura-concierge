@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Plus, Trash2, Edit, TrendingUp, TrendingDown, Filter, Calendar, Download } from "lucide-react";
+import { Plus, Trash2, Edit, TrendingUp, TrendingDown, Filter, Calendar, Download, Search, X } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,19 +9,52 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Badge } from "@/components/ui/badge";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { toast } from "sonner";
 import { expensesService, Expense, EXPENSE_CATEGORIES, EXPENSE_PAYMENT_METHODS } from "@/services/expenses.service";
 import { formatCurrency } from "@/lib/price-utils";
 import { exportToCSV, formatDateForExport, formatCurrencyForExport } from "@/lib/export-utils";
-import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
+import { format, startOfMonth, endOfMonth, subMonths, startOfWeek, endOfWeek, subWeeks, startOfYear, isWithinInterval, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { DateRange } from "react-day-picker";
+import ConfirmDialog from "@/components/admin/ConfirmDialog";
+import { ExportModal, ExportColumn } from "@/components/admin/ExportModal";
+
+type DatePreset = "all" | "today" | "week" | "month" | "last_month" | "year" | "custom";
+
+const DATE_PRESETS: { id: DatePreset; label: string }[] = [
+  { id: "all", label: "Todas" },
+  { id: "today", label: "Hoje" },
+  { id: "week", label: "Esta semana" },
+  { id: "month", label: "Este mês" },
+  { id: "last_month", label: "Mês passado" },
+  { id: "year", label: "Este ano" },
+  { id: "custom", label: "Personalizado" },
+];
 
 export default function Despesas() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
-  const [filterCategory, setFilterCategory] = useState<string>('all');
+  
+  // Filters
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [filterPaymentMethod, setFilterPaymentMethod] = useState<string>("all");
+  const [datePreset, setDatePreset] = useState<DatePreset>("month");
+  const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>();
+  const [datePopoverOpen, setDatePopoverOpen] = useState(false);
+  
+  // Delete confirmation
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
+  
+  // Export
+  const [exportModalOpen, setExportModalOpen] = useState(false);
+  
   const [stats, setStats] = useState({ totalMonth: 0, totalLastMonth: 0, byCategory: {} as Record<string, number> });
   
   const [formData, setFormData] = useState({
@@ -52,6 +85,73 @@ export default function Despesas() {
   const loadStats = async () => {
     const statsData = await expensesService.getStats();
     setStats(statsData);
+  };
+
+  const getDateRange = (): { start: Date; end: Date } | null => {
+    const now = new Date();
+    switch (datePreset) {
+      case "today":
+        return { start: new Date(now.setHours(0, 0, 0, 0)), end: new Date() };
+      case "week":
+        return { start: startOfWeek(now, { locale: ptBR }), end: endOfWeek(now, { locale: ptBR }) };
+      case "month":
+        return { start: startOfMonth(now), end: endOfMonth(now) };
+      case "last_month":
+        const lastMonth = subMonths(now, 1);
+        return { start: startOfMonth(lastMonth), end: endOfMonth(lastMonth) };
+      case "year":
+        return { start: startOfYear(now), end: now };
+      case "custom":
+        if (customDateRange?.from && customDateRange?.to) {
+          return { start: customDateRange.from, end: customDateRange.to };
+        }
+        return null;
+      default:
+        return null;
+    }
+  };
+
+  const filteredExpenses = useMemo(() => {
+    return expenses.filter(expense => {
+      // Search filter
+      const matchesSearch = !searchQuery || 
+        expense.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (expense.notes?.toLowerCase().includes(searchQuery.toLowerCase()));
+      
+      // Category filter
+      const matchesCategory = filterCategory === "all" || expense.category === filterCategory;
+      
+      // Payment method filter
+      const matchesPayment = filterPaymentMethod === "all" || expense.payment_method === filterPaymentMethod;
+      
+      // Date filter
+      const dateRange = getDateRange();
+      const matchesDate = !dateRange || isWithinInterval(parseISO(expense.expense_date), {
+        start: dateRange.start,
+        end: dateRange.end
+      });
+      
+      return matchesSearch && matchesCategory && matchesPayment && matchesDate;
+    });
+  }, [expenses, searchQuery, filterCategory, filterPaymentMethod, datePreset, customDateRange]);
+
+  const filteredTotal = useMemo(() => {
+    return filteredExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
+  }, [filteredExpenses]);
+
+  const activeFiltersCount = [
+    searchQuery !== "",
+    filterCategory !== "all",
+    filterPaymentMethod !== "all",
+    datePreset !== "all"
+  ].filter(Boolean).length;
+
+  const clearFilters = () => {
+    setSearchQuery("");
+    setFilterCategory("all");
+    setFilterPaymentMethod("all");
+    setDatePreset("all");
+    setCustomDateRange(undefined);
   };
 
   const handleOpenDialog = (expense?: Expense) => {
@@ -116,8 +216,15 @@ export default function Despesas() {
     setDialogOpen(false);
   };
 
-  const handleDelete = async (id: string) => {
-    const { error } = await expensesService.delete(id);
+  const handleDeleteClick = (expense: Expense) => {
+    setExpenseToDelete(expense);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!expenseToDelete) return;
+    
+    const { error } = await expensesService.delete(expenseToDelete.id);
     if (error) {
       toast.error("Erro ao excluir despesa");
     } else {
@@ -125,24 +232,18 @@ export default function Despesas() {
       loadExpenses();
       loadStats();
     }
+    setDeleteDialogOpen(false);
+    setExpenseToDelete(null);
   };
 
-  const handleExport = () => {
-    const dataToExport = filteredExpenses.map(e => ({
-      Descrição: e.description,
-      Categoria: e.category,
-      Valor: formatCurrencyForExport(Number(e.amount)),
-      Data: formatDateForExport(e.expense_date),
-      'Forma de Pagamento': e.payment_method || '-',
-      Observações: e.notes || '-'
-    }));
-    exportToCSV(dataToExport, `despesas-${format(new Date(), 'yyyy-MM-dd')}`);
-    toast.success("Despesas exportadas!");
-  };
-
-  const filteredExpenses = filterCategory === 'all' 
-    ? expenses 
-    : expenses.filter(e => e.category === filterCategory);
+  const exportColumns: ExportColumn[] = [
+    { key: "description", label: "Descrição", defaultEnabled: true },
+    { key: "category", label: "Categoria", defaultEnabled: true },
+    { key: "amount", label: "Valor", defaultEnabled: true, format: (v) => formatCurrencyForExport(Number(v)) },
+    { key: "expense_date", label: "Data", defaultEnabled: true, format: (v) => formatDateForExport(v) },
+    { key: "payment_method", label: "Forma de Pagamento", defaultEnabled: true, format: (v) => v || "-" },
+    { key: "notes", label: "Observações", defaultEnabled: false, format: (v) => v || "-" },
+  ];
 
   const monthChange = stats.totalLastMonth > 0 
     ? ((stats.totalMonth - stats.totalLastMonth) / stats.totalLastMonth) * 100 
@@ -152,7 +253,7 @@ export default function Despesas() {
     <AdminLayout title="Despesas">
       <div className="space-y-6">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -202,15 +303,91 @@ export default function Despesas() {
               )}
             </CardContent>
           </Card>
+
+          <Card className="bg-primary/5 border-primary/20">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-primary">
+                Total Filtrado
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-primary">{formatCurrency(filteredTotal)}</div>
+              <div className="text-sm text-muted-foreground">
+                {filteredExpenses.length} despesa(s)
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Actions */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-muted-foreground" />
+        {/* Filters */}
+        <div className="space-y-3">
+          <div className="flex flex-col lg:flex-row gap-3">
+            {/* Search */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por descrição ou notas..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            {/* Date Preset */}
+            <Popover open={datePopoverOpen} onOpenChange={setDatePopoverOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="gap-2 min-w-[160px] justify-start">
+                  <Calendar className="w-4 h-4" />
+                  {DATE_PRESETS.find(p => p.id === datePreset)?.label}
+                  {datePreset === "custom" && customDateRange?.from && (
+                    <span className="text-xs text-muted-foreground ml-1">
+                      ({format(customDateRange.from, "dd/MM")} - {customDateRange.to ? format(customDateRange.to, "dd/MM") : "..."})
+                    </span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <div className="p-2 border-b">
+                  <div className="grid grid-cols-2 gap-1">
+                    {DATE_PRESETS.map(preset => (
+                      <Button
+                        key={preset.id}
+                        variant={datePreset === preset.id ? "default" : "ghost"}
+                        size="sm"
+                        onClick={() => {
+                          setDatePreset(preset.id);
+                          if (preset.id !== "custom") {
+                            setDatePopoverOpen(false);
+                          }
+                        }}
+                        className="justify-start"
+                      >
+                        {preset.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                {datePreset === "custom" && (
+                  <CalendarComponent
+                    mode="range"
+                    selected={customDateRange}
+                    onSelect={(range) => {
+                      setCustomDateRange(range);
+                      if (range?.from && range?.to) {
+                        setDatePopoverOpen(false);
+                      }
+                    }}
+                    locale={ptBR}
+                    numberOfMonths={2}
+                  />
+                )}
+              </PopoverContent>
+            </Popover>
+
+            {/* Category Filter */}
             <Select value={filterCategory} onValueChange={setFilterCategory}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Todas categorias" />
+              <SelectTrigger className="w-full lg:w-[180px]">
+                <SelectValue placeholder="Categoria" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas categorias</SelectItem>
@@ -219,17 +396,76 @@ export default function Despesas() {
                 ))}
               </SelectContent>
             </Select>
+
+            {/* Payment Method Filter */}
+            <Select value={filterPaymentMethod} onValueChange={setFilterPaymentMethod}>
+              <SelectTrigger className="w-full lg:w-[180px]">
+                <SelectValue placeholder="Pagamento" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos pagamentos</SelectItem>
+                {EXPENSE_PAYMENT_METHODS.map(method => (
+                  <SelectItem key={method} value={method}>{method}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-          
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handleExport} className="gap-2">
-              <Download className="w-4 h-4" />
-              Exportar
-            </Button>
-            <Button onClick={() => handleOpenDialog()} className="gap-2">
-              <Plus className="w-4 h-4" />
-              Nova Despesa
-            </Button>
+
+          {/* Active Filters & Actions */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              {activeFiltersCount > 0 && (
+                <>
+                  <span className="text-sm text-muted-foreground">Filtros ativos:</span>
+                  {searchQuery && (
+                    <Badge variant="secondary" className="gap-1">
+                      Busca: "{searchQuery}"
+                      <button onClick={() => setSearchQuery("")} className="ml-1 hover:text-destructive">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </Badge>
+                  )}
+                  {filterCategory !== "all" && (
+                    <Badge variant="secondary" className="gap-1">
+                      {filterCategory}
+                      <button onClick={() => setFilterCategory("all")} className="ml-1 hover:text-destructive">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </Badge>
+                  )}
+                  {filterPaymentMethod !== "all" && (
+                    <Badge variant="secondary" className="gap-1">
+                      {filterPaymentMethod}
+                      <button onClick={() => setFilterPaymentMethod("all")} className="ml-1 hover:text-destructive">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </Badge>
+                  )}
+                  {datePreset !== "all" && (
+                    <Badge variant="secondary" className="gap-1">
+                      {DATE_PRESETS.find(p => p.id === datePreset)?.label}
+                      <button onClick={() => setDatePreset("all")} className="ml-1 hover:text-destructive">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </Badge>
+                  )}
+                  <Button variant="ghost" size="sm" onClick={clearFilters} className="h-6 text-xs">
+                    Limpar todos
+                  </Button>
+                </>
+              )}
+            </div>
+            
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setExportModalOpen(true)} className="gap-2">
+                <Download className="w-4 h-4" />
+                Exportar
+              </Button>
+              <Button onClick={() => handleOpenDialog()} className="gap-2">
+                <Plus className="w-4 h-4" />
+                Nova Despesa
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -241,6 +477,11 @@ export default function Despesas() {
         ) : filteredExpenses.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
             <p>Nenhuma despesa encontrada</p>
+            {activeFiltersCount > 0 && (
+              <Button variant="link" onClick={clearFilters} className="mt-2">
+                Limpar filtros
+              </Button>
+            )}
           </div>
         ) : (
           <div className="border rounded-lg overflow-hidden">
@@ -289,7 +530,7 @@ export default function Despesas() {
                           <Edit className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDelete(expense.id)}
+                          onClick={() => handleDeleteClick(expense)}
                           className="p-1.5 hover:bg-muted rounded text-destructive"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -304,6 +545,7 @@ export default function Despesas() {
         )}
       </div>
 
+      {/* Edit/Create Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -401,6 +643,27 @@ export default function Despesas() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Excluir Despesa"
+        description={`Tem certeza que deseja excluir a despesa "${expenseToDelete?.description}"? Esta ação não pode ser desfeita.`}
+        confirmText="Excluir"
+        onConfirm={handleDeleteConfirm}
+        variant="destructive"
+      />
+
+      {/* Export Modal */}
+      <ExportModal
+        open={exportModalOpen}
+        onOpenChange={setExportModalOpen}
+        columns={exportColumns}
+        data={filteredExpenses}
+        filename={`despesas-${format(new Date(), 'yyyy-MM-dd')}`}
+        title="Exportar Despesas"
+      />
     </AdminLayout>
   );
 }

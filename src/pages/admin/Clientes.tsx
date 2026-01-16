@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Link, useNavigate } from "react-router-dom";
-import { Search, User, ShoppingBag, TrendingUp, Eye, Package, Calendar, Filter, X, ArrowUpDown } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Search, User, ShoppingBag, TrendingUp, Eye, Trash2, X, ArrowUpDown, Download } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import AdminPagination from "@/components/admin/AdminPagination";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +11,10 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
+import ConfirmDialog from "@/components/admin/ConfirmDialog";
+import { ExportModal, ExportColumn } from "@/components/admin/ExportModal";
+import { exportToCSV, formatDateForExport } from "@/lib/export-utils";
+import { format } from "date-fns";
 
 interface CustomerOrder {
   id: string;
@@ -59,6 +63,14 @@ const Clientes = () => {
   const [orderFilter, setOrderFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("recent");
   const [filtersOpen, setFiltersOpen] = useState(false);
+  
+  // Delete confirmation
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  
+  // Export
+  const [exportModalOpen, setExportModalOpen] = useState(false);
 
   useEffect(() => {
     fetchCustomers();
@@ -94,6 +106,39 @@ const Clientes = () => {
 
     setCustomers(customersWithOrders);
     setLoading(false);
+  };
+
+  const handleDeleteClick = (customer: Customer) => {
+    if (customer.ordersCount > 0) {
+      toast.error("Não é possível excluir clientes com pedidos");
+      return;
+    }
+    setCustomerToDelete(customer);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!customerToDelete) return;
+    
+    setDeleting(true);
+    
+    // Delete profile first
+    const { error: profileError } = await supabase
+      .from("profiles")
+      .delete()
+      .eq("id", customerToDelete.id);
+    
+    if (profileError) {
+      toast.error("Erro ao excluir cliente");
+      setDeleting(false);
+      return;
+    }
+    
+    toast.success("Cliente excluído com sucesso");
+    setDeleteDialogOpen(false);
+    setCustomerToDelete(null);
+    setDeleting(false);
+    fetchCustomers();
   };
 
   const filteredCustomers = customers
@@ -136,6 +181,14 @@ const Clientes = () => {
   const customersWithOrders = customers.filter(c => c.ordersCount > 0).length;
   const totalRevenue = customers.reduce((sum, c) => sum + c.totalSpent, 0);
   const averageTicket = customersWithOrders > 0 ? totalRevenue / customersWithOrders : 0;
+
+  const exportColumns: ExportColumn[] = [
+    { key: "full_name", label: "Nome", defaultEnabled: true, format: (v) => v || "Sem nome" },
+    { key: "phone", label: "Telefone", defaultEnabled: true, format: (v) => v || "-" },
+    { key: "ordersCount", label: "Qtd Pedidos", defaultEnabled: true },
+    { key: "totalSpent", label: "Total Gasto", defaultEnabled: true, format: (v) => `R$ ${Number(v).toFixed(2)}` },
+    { key: "created_at", label: "Data Cadastro", defaultEnabled: true, format: (v) => formatDateForExport(v) },
+  ];
 
   return (
     <AdminLayout title="Clientes">
@@ -253,6 +306,12 @@ const Clientes = () => {
                 </div>
               </PopoverContent>
             </Popover>
+
+            {/* Export Button */}
+            <Button variant="outline" onClick={() => setExportModalOpen(true)} className="gap-2">
+              <Download className="w-4 h-4" />
+              Exportar
+            </Button>
           </div>
 
           {/* Active Filters Tags */}
@@ -364,15 +423,27 @@ const Clientes = () => {
                           {new Date(customer.created_at).toLocaleDateString('pt-BR')}
                         </td>
                         <td className="py-4 px-6 text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => navigate(`/admin/clientes/${customer.id}`)}
-                            className="gap-2"
-                          >
-                            <Eye className="w-4 h-4" />
-                            Ver Perfil
-                          </Button>
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => navigate(`/admin/clientes/${customer.id}`)}
+                              className="gap-2"
+                            >
+                              <Eye className="w-4 h-4" />
+                              Ver
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteClick(customer)}
+                              disabled={customer.ordersCount > 0}
+                              className="gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              title={customer.ordersCount > 0 ? "Clientes com pedidos não podem ser excluídos" : "Excluir cliente"}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </td>
                       </motion.tr>
                     ))}
@@ -389,6 +460,27 @@ const Clientes = () => {
           </motion.div>
         )}
       </motion.div>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Excluir Cliente"
+        description={`Tem certeza que deseja excluir o cliente "${customerToDelete?.full_name || 'Sem nome'}"? Esta ação não pode ser desfeita.`}
+        confirmText={deleting ? "Excluindo..." : "Excluir"}
+        onConfirm={handleDeleteConfirm}
+        variant="destructive"
+      />
+
+      {/* Export Modal */}
+      <ExportModal
+        open={exportModalOpen}
+        onOpenChange={setExportModalOpen}
+        columns={exportColumns}
+        data={filteredCustomers}
+        filename={`clientes-${format(new Date(), 'yyyy-MM-dd')}`}
+        title="Exportar Clientes"
+      />
     </AdminLayout>
   );
 };
