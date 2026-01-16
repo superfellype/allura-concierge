@@ -43,6 +43,7 @@ interface Order {
   notes: string | null;
   origin: string | null;
   seller_id: string | null;
+  discount_total: number | null;
   profiles: { full_name: string | null; phone: string | null } | null;
   seller?: { id: string; name: string } | null;
   items?: OrderItem[];
@@ -685,6 +686,12 @@ const Pedidos = () => {
                   <span className="font-body text-sm text-muted-foreground">Frete</span>
                   <span className="font-body">R$ {Number(selectedOrder.shipping_cost).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                 </div>
+                {selectedOrder.discount_total && Number(selectedOrder.discount_total) > 0 && (
+                  <div className="flex justify-between mb-2">
+                    <span className="font-body text-sm text-green-600">Desconto</span>
+                    <span className="font-body text-green-600">- R$ {Number(selectedOrder.discount_total).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                )}
                 <div className="flex justify-between pt-2 border-t border-border/20">
                   <span className="font-body font-medium">Total</span>
                   <span className="glass-kpi glass-kpi-md">
