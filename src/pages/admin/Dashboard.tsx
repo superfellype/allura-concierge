@@ -472,74 +472,60 @@ const Dashboard = () => {
           </Link>
         </motion.div>
 
-        {/* KPI Cards - Bento Grid */}
-        <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-          {kpis.map((kpi, index) => {
+        {/* KPI Cards - Compact Grid */}
+        <motion.div variants={itemVariants} className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+          {kpis.map((kpi) => {
             const colors = colorClasses[kpi.color];
             const CardWrapper = kpi.href ? Link : 'div';
             const cardProps = kpi.href ? { to: kpi.href } : {};
             
             return (
-              <motion.div
+              <CardWrapper 
                 key={kpi.title}
-                variants={itemVariants}
+                {...cardProps as any}
+                className={`block p-4 rounded-xl border border-border/40 bg-card/60 hover:bg-card/80 hover:border-border/60 transition-all group ${kpi.href ? 'cursor-pointer' : ''}`}
               >
-                <CardWrapper 
-                  {...cardProps as any}
-                  className={`block p-5 rounded-2xl border border-border/40 bg-card/60 backdrop-blur-xl hover:bg-card/80 hover:border-border/60 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 group ${kpi.href ? 'cursor-pointer' : ''}`}
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className={`w-10 h-10 rounded-xl ${colors.bg} flex items-center justify-center`}>
-                      <kpi.icon className={`w-5 h-5 ${colors.icon}`} />
-                    </div>
-                    {kpi.change !== 0 && (
-                      <div className={`flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-lg ${
-                        kpi.change > 0 ? 'bg-emerald-500/10 text-emerald-600' : 'bg-destructive/10 text-destructive'
-                      }`}>
-                        {kpi.change > 0 ? (
-                          <ArrowUpRight className="w-3 h-3" />
-                        ) : (
-                          <ArrowDownRight className="w-3 h-3" />
-                        )}
-                        {Math.abs(kpi.change)}%
-                      </div>
-                    )}
+                <div className="flex items-center gap-2 mb-2">
+                  <div className={`w-8 h-8 rounded-lg ${colors.bg} flex items-center justify-center`}>
+                    <kpi.icon className={`w-4 h-4 ${colors.icon}`} />
                   </div>
-                  <p className="font-display text-2xl font-bold text-foreground mb-1 group-hover:text-primary transition-colors">
-                    {kpi.value}
-                  </p>
-                  <p className="font-body text-xs text-muted-foreground">
-                    {kpi.title}
-                  </p>
-                </CardWrapper>
-              </motion.div>
+                  {kpi.change !== 0 && (
+                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
+                      kpi.change > 0 ? 'bg-emerald-500/10 text-emerald-600' : 'bg-destructive/10 text-destructive'
+                    }`}>
+                      {kpi.change > 0 ? '+' : ''}{kpi.change}%
+                    </span>
+                  )}
+                </div>
+                <p className="font-display text-lg font-bold text-foreground group-hover:text-primary transition-colors truncate">
+                  {kpi.value}
+                </p>
+                <p className="font-body text-[11px] text-muted-foreground truncate">
+                  {kpi.title}
+                </p>
+              </CardWrapper>
             );
           })}
         </motion.div>
 
-        {/* Main Content Grid - Bento Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Revenue Chart - Takes 8 columns */}
+        {/* Main Content Grid - Charts side by side */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Revenue Chart - Takes 2 columns */}
           <motion.div
             variants={itemVariants}
-            className="lg:col-span-8 p-6 rounded-2xl border border-border/40 bg-card/60 backdrop-blur-xl"
+            className="lg:col-span-2 p-5 rounded-xl border border-border/40 bg-card/60"
           >
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/15 to-emerald-500/5 flex items-center justify-center">
-                  <TrendingUp className="w-5 h-5 text-emerald-600" />
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500/15 to-emerald-500/5 flex items-center justify-center">
+                  <TrendingUp className="w-4 h-4 text-emerald-600" />
                 </div>
                 <div>
-                  <h2 className="font-display text-lg font-semibold">Receita</h2>
-                  <p className="font-body text-xs text-muted-foreground">Últimos 7 dias</p>
+                  <h2 className="font-display text-sm font-semibold">Receita - Últimos 7 dias</h2>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-primary"></span>
-                <span className="font-body text-xs text-muted-foreground">Vendas</span>
-              </div>
             </div>
-            <div className="h-64">
+            <div className="h-48">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={revenueData}>
                   <defs>
@@ -557,379 +543,277 @@ const Dashboard = () => {
                   <XAxis 
                     dataKey="name" 
                     stroke="hsl(var(--muted-foreground))"
-                    fontSize={11}
+                    fontSize={10}
                     tickLine={false}
                     axisLine={false}
-                    dy={10}
                   />
                   <YAxis 
                     stroke="hsl(var(--muted-foreground))"
-                    fontSize={11}
+                    fontSize={10}
                     tickLine={false}
                     axisLine={false}
                     tickFormatter={(value) => value > 0 ? `${(value/1000).toFixed(0)}k` : '0'}
-                    width={40}
-                    dx={-10}
+                    width={35}
                   />
                   <Tooltip 
                     contentStyle={{ 
                       background: 'hsl(var(--card))',
-                      backdropFilter: 'blur(20px)',
                       border: '1px solid hsl(var(--border))',
-                      borderRadius: '12px',
-                      fontFamily: 'Inter',
-                      fontSize: '13px',
-                      boxShadow: '0 8px 32px hsl(0 0% 0% / 0.1)'
+                      borderRadius: '8px',
+                      fontSize: '12px',
                     }}
                     formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR')}`, 'Receita']}
-                    labelStyle={{ color: 'hsl(var(--muted-foreground))' }}
                   />
                   <Area 
                     type="monotone" 
                     dataKey="receita" 
                     stroke="hsl(16 60% 50%)" 
-                    strokeWidth={2.5}
+                    strokeWidth={2}
                     fill="url(#revenueGradient)"
                     dot={false}
-                    activeDot={{ 
-                      r: 6, 
-                      fill: 'hsl(16 60% 50%)',
-                      stroke: 'hsl(var(--background))',
-                      strokeWidth: 2
-                    }}
                   />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
           </motion.div>
 
-          {/* Top Products - 4 columns */}
+          {/* Top Products - 1 column */}
           <motion.div
             variants={itemVariants}
-            className="lg:col-span-4 p-6 rounded-2xl border border-border/40 bg-card/60 backdrop-blur-xl"
+            className="p-5 rounded-xl border border-border/40 bg-card/60"
           >
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500/15 to-violet-500/5 flex items-center justify-center">
-                  <Zap className="w-5 h-5 text-violet-600" />
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500/15 to-violet-500/5 flex items-center justify-center">
+                  <Zap className="w-4 h-4 text-violet-600" />
                 </div>
-                <h2 className="font-display text-lg font-semibold">Top Produtos</h2>
+                <h2 className="font-display text-sm font-semibold">Top Produtos</h2>
               </div>
-              <Link to="/admin/produtos" className="text-primary text-xs font-medium hover:underline">
+              <Link to="/admin/produtos" className="text-primary text-xs hover:underline">
                 Ver todos
               </Link>
             </div>
             
             {topProducts.length === 0 ? (
-              <div className="text-center py-8">
-                <Package className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-                <p className="font-body text-sm text-muted-foreground">
-                  Nenhuma venda ainda
-                </p>
+              <div className="text-center py-6">
+                <Package className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
+                <p className="font-body text-xs text-muted-foreground">Nenhuma venda</p>
               </div>
             ) : (
-              <div className="space-y-3">
-                {topProducts.map((product, idx) => (
-                  <motion.div 
+              <div className="space-y-2">
+                {topProducts.slice(0, 4).map((product, idx) => (
+                  <div 
                     key={product.id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: idx * 0.05 }}
-                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors"
+                    className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/50 transition-colors"
                   >
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center font-display font-bold text-sm text-primary">
+                    <span className="w-5 h-5 rounded bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
                       {idx + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-body text-sm font-medium truncate">
-                        {product.name}
-                      </p>
-                      <p className="font-body text-xs text-muted-foreground">
-                        {product.sales} vendidos
-                      </p>
-                    </div>
-                    <p className="font-display text-sm font-semibold text-emerald-600">
-                      R$ {product.revenue.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
-                    </p>
-                  </motion.div>
+                    </span>
+                    <span className="flex-1 text-xs font-medium truncate">{product.name}</span>
+                    <span className="text-xs font-semibold text-emerald-600">
+                      R$ {product.revenue.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
+                    </span>
+                  </div>
                 ))}
               </div>
             )}
           </motion.div>
         </div>
 
-        {/* Bottom Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-          {/* Recent Orders */}
+        {/* Bottom Row - Reorganized */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Recent Orders - Compact */}
           <motion.div
             variants={itemVariants}
-            className="p-6 rounded-2xl border border-border/40 bg-card/60 backdrop-blur-xl"
+            className="p-5 rounded-xl border border-border/40 bg-card/60"
           >
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center">
-                  <ShoppingCart className="w-5 h-5 text-primary" />
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center">
+                  <ShoppingCart className="w-4 h-4 text-primary" />
                 </div>
-                <h2 className="font-display text-lg font-semibold">Pedidos Recentes</h2>
+                <h2 className="font-display text-sm font-semibold">Pedidos Recentes</h2>
               </div>
-              <Link to="/admin/pedidos" className="text-primary text-xs font-medium hover:underline flex items-center gap-1">
-                Ver todos <ArrowRight className="w-3 h-3" />
+              <Link to="/admin/pedidos" className="text-primary text-xs hover:underline">
+                Ver todos
               </Link>
             </div>
             
             {recentOrders.length === 0 ? (
-              <div className="text-center py-8">
-                <ShoppingCart className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-                <p className="font-body text-sm text-muted-foreground">
-                  Nenhum pedido ainda
-                </p>
+              <div className="text-center py-6">
+                <ShoppingCart className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
+                <p className="font-body text-xs text-muted-foreground">Nenhum pedido</p>
               </div>
             ) : (
-              <div className="space-y-2">
-                {recentOrders.slice(0, 5).map((order, idx) => {
+              <div className="space-y-1">
+                {recentOrders.slice(0, 4).map((order) => {
                   const badge = getStatusBadge(order.status);
                   return (
-                    <motion.div 
+                    <div 
                       key={order.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: idx * 0.05 }}
-                      className="flex items-center justify-between p-3 rounded-xl hover:bg-muted/50 transition-colors"
+                      className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors"
                     >
                       <div className="flex-1 min-w-0">
-                        <p className="font-body text-sm font-medium truncate">
+                        <p className="text-xs font-medium truncate">
                           {order.profiles?.full_name || 'Cliente'}
                         </p>
-                        <p className="font-body text-xs text-muted-foreground">
-                          {formatTimeAgo(new Date(order.created_at))} atrás
+                        <p className="text-[10px] text-muted-foreground">
+                          {formatTimeAgo(new Date(order.created_at))}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`text-xs font-medium px-2 py-1 rounded-lg ${badge.class}`}>
-                          {badge.label}
-                        </span>
-                        <span className="font-display text-sm font-semibold min-w-[70px] text-right">
-                          R$ {Number(order.total).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
-                        </span>
-                      </div>
-                    </motion.div>
+                      <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${badge.class}`}>
+                        {badge.label}
+                      </span>
+                    </div>
                   );
                 })}
               </div>
             )}
           </motion.div>
 
-          {/* Expenses Summary Card */}
+          {/* Expenses - Compact */}
           <motion.div
             variants={itemVariants}
-            className="p-6 rounded-2xl border border-border/40 bg-card/60 backdrop-blur-xl"
+            className="p-5 rounded-xl border border-border/40 bg-card/60"
           >
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-500/15 to-rose-500/5 flex items-center justify-center">
-                  <Receipt className="w-5 h-5 text-rose-600" />
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-rose-500/15 to-rose-500/5 flex items-center justify-center">
+                  <Receipt className="w-4 h-4 text-rose-600" />
                 </div>
-                <h2 className="font-display text-lg font-semibold">Despesas</h2>
+                <h2 className="font-display text-sm font-semibold">Despesas</h2>
               </div>
-              <Link to="/admin/despesas" className="text-primary text-xs font-medium hover:underline flex items-center gap-1">
-                Gerenciar <ArrowRight className="w-3 h-3" />
-              </Link>
-            </div>
-            
-            <div className="space-y-4">
-              <div className="p-4 rounded-xl bg-gradient-to-br from-rose-500/10 to-rose-500/5 border border-rose-500/20">
-                <p className="font-body text-xs text-muted-foreground mb-1">Este mês</p>
-                <p className="font-display text-2xl font-bold text-rose-600">
-                  R$ {expenseStats.totalMonth.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
-                </p>
-                {expenseStats.totalLastMonth > 0 && (
-                  <div className={`flex items-center gap-1 text-xs mt-1 ${
-                    expenseStats.totalMonth > expenseStats.totalLastMonth 
-                      ? 'text-rose-600' 
-                      : 'text-emerald-600'
-                  }`}>
-                    {expenseStats.totalMonth > expenseStats.totalLastMonth ? (
-                      <TrendingUp className="w-3 h-3" />
-                    ) : (
-                      <TrendingDown className="w-3 h-3" />
-                    )}
-                    {Math.abs(((expenseStats.totalMonth - expenseStats.totalLastMonth) / expenseStats.totalLastMonth) * 100).toFixed(0)}% vs mês anterior
-                  </div>
-                )}
-              </div>
-
-              {Object.keys(expenseStats.byCategory).length > 0 && (
-                <div className="space-y-2">
-                  <p className="font-body text-xs text-muted-foreground">Por categoria</p>
-                  {Object.entries(expenseStats.byCategory)
-                    .sort((a, b) => b[1] - a[1])
-                    .slice(0, 3)
-                    .map(([category, amount]) => (
-                      <div key={category} className="flex items-center justify-between">
-                        <span className="font-body text-sm">{category}</span>
-                        <span className="font-body text-sm font-medium">
-                          R$ {amount.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
-                        </span>
-                      </div>
-                    ))
-                  }
-                </div>
-              )}
-            </div>
-          </motion.div>
-
-          {/* Cost Summary Card */}
-          <motion.div
-            variants={itemVariants}
-            className="p-6 rounded-2xl border border-border/40 bg-card/60 backdrop-blur-xl"
-          >
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500/15 to-cyan-500/5 flex items-center justify-center">
-                  <Wallet className="w-5 h-5 text-cyan-600" />
-                </div>
-                <h2 className="font-display text-lg font-semibold">Custos</h2>
-              </div>
-              <Link to="/admin/custos" className="text-primary text-xs font-medium hover:underline flex items-center gap-1">
-                Ver detalhes <ArrowRight className="w-3 h-3" />
-              </Link>
-            </div>
-            
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-br from-cyan-500/10 to-cyan-500/5 border border-cyan-500/20">
-                <div>
-                  <p className="font-body text-xs text-muted-foreground">Custo em Estoque</p>
-                  <p className="font-display text-lg font-bold text-cyan-600">
-                    R$ {costStats.totalStockCost.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="font-body text-xs text-muted-foreground">Valor de Venda</p>
-                  <p className="font-display text-lg font-bold text-emerald-600">
-                    R$ {costStats.totalSalesValue.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 rounded-xl bg-muted/50">
-                  <p className="font-body text-xs text-muted-foreground mb-1">Margem Média</p>
-                  <p className={`font-display text-xl font-bold ${
-                    costStats.avgMargin >= 30 ? 'text-emerald-600' : costStats.avgMargin >= 15 ? 'text-amber-600' : 'text-rose-600'
-                  }`}>
-                    {costStats.avgMargin.toFixed(1)}%
-                  </p>
-                </div>
-                <div className="p-3 rounded-xl bg-muted/50">
-                  <p className="font-body text-xs text-muted-foreground mb-1">Sem Custo</p>
-                  <p className={`font-display text-xl font-bold ${
-                    costStats.productsWithoutCost > 0 ? 'text-amber-600' : 'text-emerald-600'
-                  }`}>
-                    {costStats.productsWithoutCost}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Quick Actions */}
-          <motion.div
-            variants={itemVariants}
-            className="p-6 rounded-2xl border border-border/40 bg-card/60 backdrop-blur-xl"
-          >
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-500/15 to-sky-500/5 flex items-center justify-center">
-                <Zap className="w-5 h-5 text-sky-600" />
-              </div>
-              <h2 className="font-display text-lg font-semibold">Ações Rápidas</h2>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-3">
-              <Link 
-                to="/admin/venda-manual" 
-                className="p-4 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 hover:border-primary/40 transition-all group"
-              >
-                <DollarSign className="w-6 h-6 text-primary mb-2 group-hover:scale-110 transition-transform" />
-                <p className="font-body text-sm font-medium">Nova Venda</p>
-              </Link>
-              <Link 
-                to="/admin/produtos/novo" 
-                className="p-4 rounded-xl bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border border-emerald-500/20 hover:border-emerald-500/40 transition-all group"
-              >
-                <Package className="w-6 h-6 text-emerald-600 mb-2 group-hover:scale-110 transition-transform" />
-                <p className="font-body text-sm font-medium">Novo Produto</p>
-              </Link>
-              <Link 
-                to="/admin/despesas" 
-                className="p-4 rounded-xl bg-gradient-to-br from-amber-500/10 to-amber-500/5 border border-amber-500/20 hover:border-amber-500/40 transition-all group"
-              >
-                <Receipt className="w-6 h-6 text-amber-600 mb-2 group-hover:scale-110 transition-transform" />
-                <p className="font-body text-sm font-medium">Despesas</p>
-              </Link>
-              <Link 
-                to="/admin/clientes" 
-                className="p-4 rounded-xl bg-gradient-to-br from-violet-500/10 to-violet-500/5 border border-violet-500/20 hover:border-violet-500/40 transition-all group"
-              >
-                <Users className="w-6 h-6 text-violet-600 mb-2 group-hover:scale-110 transition-transform" />
-                <p className="font-body text-sm font-medium">Clientes</p>
-              </Link>
-            </div>
-          </motion.div>
-
-          {/* Stock Alerts */}
-          <motion.div
-            variants={itemVariants}
-            className="p-6 rounded-2xl border border-border/40 bg-card/60 backdrop-blur-xl"
-          >
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500/15 to-amber-500/5 flex items-center justify-center">
-                  <AlertTriangle className="w-5 h-5 text-amber-600" />
-                </div>
-                <h2 className="font-display text-lg font-semibold">Alertas de Estoque</h2>
-              </div>
-              <Link to="/admin/estoque" className="text-primary text-xs font-medium hover:underline">
+              <Link to="/admin/despesas" className="text-primary text-xs hover:underline">
                 Gerenciar
               </Link>
             </div>
             
-            {lowStockProducts.length === 0 ? (
-              <div className="text-center py-8">
-                <div className="w-12 h-12 rounded-xl bg-emerald-500/10 mx-auto mb-3 flex items-center justify-center">
-                  <Package className="w-6 h-6 text-emerald-600" />
-                </div>
-                <p className="font-body text-sm font-medium text-emerald-600">
-                  Estoque em dia!
-                </p>
-                <p className="font-body text-xs text-muted-foreground mt-1">
-                  Todos os produtos com estoque adequado
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {lowStockProducts.map((product, idx) => (
-                  <motion.div 
-                    key={product.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.05 }}
-                    className="flex items-center justify-between p-3 rounded-xl hover:bg-muted/50 transition-colors"
-                  >
-                    <p className="font-body text-sm truncate flex-1 pr-4">
-                      {product.name}
-                    </p>
-                    <span className={`text-xs font-medium px-2 py-1 rounded-lg ${
-                      product.stock_quantity === 0 
-                        ? 'bg-destructive/10 text-destructive' 
-                        : 'bg-amber-500/10 text-amber-600'
-                    }`}>
-                      {product.stock_quantity === 0 ? 'Esgotado' : `${product.stock_quantity} un`}
-                    </span>
-                  </motion.div>
-                ))}
+            <div className="p-3 rounded-lg bg-gradient-to-br from-rose-500/10 to-rose-500/5 border border-rose-500/20 mb-3">
+              <p className="text-[10px] text-muted-foreground">Este mês</p>
+              <p className="font-display text-xl font-bold text-rose-600">
+                R$ {expenseStats.totalMonth.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
+              </p>
+            </div>
+
+            {Object.keys(expenseStats.byCategory).length > 0 && (
+              <div className="space-y-1">
+                {Object.entries(expenseStats.byCategory)
+                  .sort((a, b) => b[1] - a[1])
+                  .slice(0, 2)
+                  .map(([category, amount]) => (
+                    <div key={category} className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground truncate">{category}</span>
+                      <span className="font-medium">R$ {amount.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</span>
+                    </div>
+                  ))
+                }
               </div>
             )}
           </motion.div>
+
+          {/* Costs - Compact */}
+          <motion.div
+            variants={itemVariants}
+            className="p-5 rounded-xl border border-border/40 bg-card/60"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500/15 to-cyan-500/5 flex items-center justify-center">
+                  <Wallet className="w-4 h-4 text-cyan-600" />
+                </div>
+                <h2 className="font-display text-sm font-semibold">Custos</h2>
+              </div>
+              <Link to="/admin/custos" className="text-primary text-xs hover:underline">
+                Detalhes
+              </Link>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              <div className="p-2 rounded-lg bg-muted/50">
+                <p className="text-[10px] text-muted-foreground">Estoque</p>
+                <p className="font-display text-sm font-bold text-cyan-600">
+                  R$ {(costStats.totalStockCost / 1000).toFixed(1)}k
+                </p>
+              </div>
+              <div className="p-2 rounded-lg bg-muted/50">
+                <p className="text-[10px] text-muted-foreground">Venda</p>
+                <p className="font-display text-sm font-bold text-emerald-600">
+                  R$ {(costStats.totalSalesValue / 1000).toFixed(1)}k
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
+              <span className="text-xs text-muted-foreground">Margem média</span>
+              <span className={`font-display text-sm font-bold ${
+                costStats.avgMargin >= 30 ? 'text-emerald-600' : costStats.avgMargin >= 15 ? 'text-amber-600' : 'text-rose-600'
+              }`}>
+                {costStats.avgMargin.toFixed(0)}%
+              </span>
+            </div>
+          </motion.div>
+
+          {/* Stock Alerts + Quick Actions Combined */}
+          <motion.div
+            variants={itemVariants}
+            className="p-5 rounded-xl border border-border/40 bg-card/60"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500/15 to-amber-500/5 flex items-center justify-center">
+                  <AlertTriangle className="w-4 h-4 text-amber-600" />
+                </div>
+                <h2 className="font-display text-sm font-semibold">Alertas</h2>
+              </div>
+              <Link to="/admin/estoque" className="text-primary text-xs hover:underline">
+                Estoque
+              </Link>
+            </div>
+            
+            {lowStockProducts.length === 0 ? (
+              <div className="text-center py-4 mb-3">
+                <div className="w-10 h-10 rounded-lg bg-emerald-500/10 mx-auto mb-2 flex items-center justify-center">
+                  <Package className="w-5 h-5 text-emerald-600" />
+                </div>
+                <p className="text-xs font-medium text-emerald-600">Estoque OK!</p>
+              </div>
+            ) : (
+              <div className="space-y-1 mb-3">
+                {lowStockProducts.slice(0, 3).map((product) => (
+                  <div 
+                    key={product.id}
+                    className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50"
+                  >
+                    <span className="text-xs truncate flex-1 pr-2">{product.name}</span>
+                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
+                      product.stock_quantity === 0 ? 'bg-destructive/10 text-destructive' : 'bg-amber-500/10 text-amber-600'
+                    }`}>
+                      {product.stock_quantity === 0 ? 'Esgotado' : `${product.stock_quantity}un`}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Quick Actions */}
+            <div className="grid grid-cols-2 gap-2 pt-3 border-t border-border/40">
+              <Link 
+                to="/admin/venda-manual" 
+                className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors text-center"
+              >
+                <DollarSign className="w-4 h-4 text-primary mx-auto mb-1" />
+                <span className="text-[10px] font-medium">Venda</span>
+              </Link>
+              <Link 
+                to="/admin/produtos/novo" 
+                className="p-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 transition-colors text-center"
+              >
+                <Package className="w-4 h-4 text-emerald-600 mx-auto mb-1" />
+                <span className="text-[10px] font-medium">Produto</span>
+              </Link>
+            </div>
+          </motion.div>
+
         </div>
       </motion.div>
     </AdminLayout>
