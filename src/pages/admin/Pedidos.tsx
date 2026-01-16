@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Search, Eye, Package, Truck, CheckCircle, X, MapPin, CreditCard, Filter, Calendar, ChevronDown } from "lucide-react";
+import { Search, Eye, Package, Truck, CheckCircle, X, MapPin, CreditCard, Filter, Calendar, ChevronDown, Users } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import AdminPagination from "@/components/admin/AdminPagination";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
@@ -42,7 +42,9 @@ interface Order {
   payment_id: string | null;
   notes: string | null;
   origin: string | null;
+  seller_id: string | null;
   profiles: { full_name: string | null; phone: string | null } | null;
+  seller?: { id: string; name: string } | null;
   items?: OrderItem[];
 }
 
@@ -92,6 +94,7 @@ const Pedidos = () => {
   }, []);
 
   const fetchOrders = async () => {
+    setLoading(true);
     const { data, error } = await supabase
       .from("orders")
       .select("*")
@@ -99,9 +102,23 @@ const Pedidos = () => {
 
     if (error) {
       toast.error("Erro ao carregar pedidos");
+      setLoading(false);
       return;
     }
 
+    // Fetch all unique seller_ids
+    const sellerIds = [...new Set((data || []).map(o => o.seller_id).filter(Boolean))] as string[];
+    
+    // Fetch sellers in one query
+    const { data: sellers } = sellerIds.length > 0 
+      ? await supabase.from("sellers").select("id, name").in("id", sellerIds)
+      : { data: [] };
+    
+    const sellerMap = new Map<string, { id: string; name: string }>(
+      (sellers || []).map(s => [s.id, s] as [string, { id: string; name: string }])
+    );
+
+    // Fetch profiles for each order
     const ordersWithProfiles = await Promise.all(
       (data || []).map(async (order) => {
         const { data: profile } = await supabase
@@ -109,7 +126,11 @@ const Pedidos = () => {
           .select("full_name, phone")
           .eq("user_id", order.user_id)
           .maybeSingle();
-        return { ...order, profiles: profile };
+        return { 
+          ...order, 
+          profiles: profile,
+          seller: order.seller_id ? sellerMap.get(order.seller_id) : null
+        };
       })
     );
 
@@ -469,6 +490,11 @@ const Pedidos = () => {
                     </div>
                     <p className="font-body text-sm text-muted-foreground">
                       {order.profiles?.full_name || "Cliente"} • {new Date(order.created_at).toLocaleDateString('pt-BR')}
+                      {order.seller && (
+                        <span className="ml-1 text-primary">
+                          • Vendedor: {order.seller.name}
+                        </span>
+                      )}
                     </p>
                   </div>
 
@@ -568,6 +594,16 @@ const Pedidos = () => {
                   <p className="font-body text-sm text-muted-foreground">{selectedOrder.profiles.phone}</p>
                 )}
               </div>
+
+              {/* Seller Info */}
+              {selectedOrder.seller && (
+                <div className="liquid-glass-card p-4">
+                  <h3 className="font-body font-medium mb-3 flex items-center gap-2">
+                    <Users className="w-4 h-4" /> Vendedor
+                  </h3>
+                  <p className="font-body text-sm">{selectedOrder.seller.name}</p>
+                </div>
+              )}
 
               {/* Shipping Address */}
               <div className="liquid-glass-card p-4">
