@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { FileSpreadsheet, Download, Calendar, Users, ShoppingCart, Tag, Package, TrendingUp, Percent, Clock } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { FileSpreadsheet, Download, Calendar, Users, ShoppingCart, Tag, Package, TrendingUp, Percent, Clock, Settings2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,10 +11,12 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/lib/price-utils";
-import { exportToCSV, formatDateForExport, formatCurrencyForExport } from "@/lib/export-utils";
-import { format, subDays, startOfMonth, endOfMonth, startOfWeek, endOfWeek, startOfYear, isWithinInterval, parseISO } from "date-fns";
+import { formatDateForExport, formatCurrencyForExport } from "@/lib/export-utils";
+import { format, subDays, startOfMonth, endOfMonth, startOfYear, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { DateRange } from "react-day-picker";
+import { ExportModal, ExportColumn, useExportModal } from "@/components/admin/ExportModal";
+import { ReportFilters, FilterConfig } from "@/components/admin/ReportFilters";
 
 type DatePreset = 'today' | '7days' | '30days' | 'this_month' | 'last_month' | 'this_year' | 'custom';
 
@@ -59,16 +61,51 @@ const statusLabels: Record<string, string> = {
   cancelled: 'Cancelado',
 };
 
+const statusOptions = [
+  { value: 'created', label: 'Criado' },
+  { value: 'pending_payment', label: 'Aguardando' },
+  { value: 'paid', label: 'Pago' },
+  { value: 'packing', label: 'Embalando' },
+  { value: 'shipped', label: 'Enviado' },
+  { value: 'delivered', label: 'Entregue' },
+  { value: 'cancelled', label: 'Cancelado' },
+];
+
+const originOptions = [
+  { value: 'site', label: 'Site' },
+  { value: 'manual', label: 'Manual' },
+];
+
+type SortConfig = { key: string; direction: 'asc' | 'desc' } | null;
+
 export default function Relatorios() {
   const [datePreset, setDatePreset] = useState<DatePreset>('this_month');
   const [customRange, setCustomRange] = useState<DateRange | undefined>(undefined);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('sales');
   
   const [salesData, setSalesData] = useState<any[]>([]);
   const [clientsData, setClientsData] = useState<any[]>([]);
   const [productsData, setProductsData] = useState<any[]>([]);
   const [couponsData, setCouponsData] = useState<any[]>([]);
+
+  // Filters state
+  const [salesFilters, setSalesFilters] = useState<Record<string, any>>({});
+  const [clientsFilters, setClientsFilters] = useState<Record<string, any>>({});
+  const [productsFilters, setProductsFilters] = useState<Record<string, any>>({});
+  const [couponsFilters, setCouponsFilters] = useState<Record<string, any>>({});
+
+  // Sort state
+  const [salesSort, setSalesSort] = useState<SortConfig>({ key: 'created_at', direction: 'desc' });
+  const [productsSort, setProductsSort] = useState<SortConfig>({ key: 'revenue', direction: 'desc' });
+  const [clientsSort, setClientsSort] = useState<SortConfig>({ key: 'totalSpent', direction: 'desc' });
+
+  // Export modals
+  const salesExport = useExportModal();
+  const clientsExport = useExportModal();
+  const productsExport = useExportModal();
+  const couponsExport = useExportModal();
 
   // Get effective date range
   const getEffectiveDateRange = () => {
@@ -87,6 +124,102 @@ export default function Relatorios() {
 
   const { start: startDate, end: endDate } = getEffectiveDateRange();
 
+  // Filter configs
+  const salesFilterConfig: FilterConfig[] = [
+    { key: 'search', type: 'search', label: 'Busca', placeholder: 'Buscar por cliente, pedido...' },
+    { key: 'status', type: 'select', label: 'Status', options: statusOptions },
+    { key: 'origin', type: 'select', label: 'Origem', options: originOptions },
+    { key: 'paymentMethod', type: 'multiselect', label: 'Forma de Pagamento', options: [
+      { value: 'pix', label: 'PIX' },
+      { value: 'credit_card', label: 'Cartão de Crédito' },
+      { value: 'boleto', label: 'Boleto' },
+      { value: 'cash', label: 'Dinheiro' },
+    ]},
+  ];
+
+  const clientsFilterConfig: FilterConfig[] = [
+    { key: 'search', type: 'search', label: 'Busca', placeholder: 'Buscar por nome, telefone, CPF...' },
+    { key: 'type', type: 'select', label: 'Tipo', options: [
+      { value: 'manual', label: 'Manual' },
+      { value: 'site', label: 'Site' },
+    ]},
+    { key: 'hasOrders', type: 'select', label: 'Pedidos', options: [
+      { value: 'yes', label: 'Com pedidos' },
+      { value: 'no', label: 'Sem pedidos' },
+    ]},
+  ];
+
+  const productsFilterConfig: FilterConfig[] = [
+    { key: 'search', type: 'search', label: 'Busca', placeholder: 'Buscar produto, SKU...' },
+    { key: 'brand', type: 'multiselect', label: 'Marca', options: [
+      { value: 'VeryRio', label: 'VeryRio' },
+      { value: 'Chalita', label: 'Chalita' },
+      { value: 'LaytonVivian', label: 'LaytonVivian' },
+      { value: 'Outro', label: 'Outro' },
+    ]},
+  ];
+
+  const couponsFilterConfig: FilterConfig[] = [
+    { key: 'search', type: 'search', label: 'Busca', placeholder: 'Buscar código...' },
+    { key: 'type', type: 'select', label: 'Tipo', options: [
+      { value: 'percentage', label: 'Percentual' },
+      { value: 'fixed', label: 'Valor fixo' },
+    ]},
+  ];
+
+  // Export columns
+  const salesExportColumns: ExportColumn[] = [
+    { key: 'id', label: 'ID Pedido', format: (v) => v?.slice(0, 8) || '-' },
+    { key: 'customerName', label: 'Cliente' },
+    { key: 'customerPhone', label: 'Telefone' },
+    { key: 'status', label: 'Status', format: (v) => statusLabels[v] || v },
+    { key: 'payment_method', label: 'Forma de Pagamento' },
+    { key: 'origin', label: 'Origem' },
+    { key: 'itemsCount', label: 'Qtd Itens' },
+    { key: 'subtotal', label: 'Subtotal', format: (v) => formatCurrencyForExport(Number(v) || 0) },
+    { key: 'discount_total', label: 'Desconto', format: (v) => formatCurrencyForExport(Number(v) || 0) },
+    { key: 'shipping_cost', label: 'Frete', format: (v) => formatCurrencyForExport(Number(v) || 0) },
+    { key: 'total', label: 'Total', format: (v) => formatCurrencyForExport(Number(v) || 0) },
+    { key: 'notes', label: 'Observações' },
+    { key: 'created_at', label: 'Data', format: (v) => formatDateForExport(v) },
+  ];
+
+  const clientsExportColumns: ExportColumn[] = [
+    { key: 'full_name', label: 'Nome' },
+    { key: 'phone', label: 'Telefone' },
+    { key: 'cpf', label: 'CPF' },
+    { key: 'birthDate', label: 'Data de Nascimento' },
+    { key: 'orderCount', label: 'Total de Pedidos' },
+    { key: 'totalSpent', label: 'Total Gasto', format: (v) => formatCurrencyForExport(v || 0) },
+    { key: 'lastOrder', label: 'Último Pedido', format: (v) => v ? formatDateForExport(v) : '-' },
+    { key: 'isManual', label: 'Cliente Manual', format: (v) => v ? 'Sim' : 'Não' },
+    { key: 'created_at', label: 'Data Cadastro', format: (v) => formatDateForExport(v) },
+  ];
+
+  const productsExportColumns: ExportColumn[] = [
+    { key: 'name', label: 'Produto' },
+    { key: 'sku', label: 'SKU' },
+    { key: 'category', label: 'Categoria' },
+    { key: 'brand', label: 'Marca' },
+    { key: 'quantity', label: 'Qtd Vendida' },
+    { key: 'avgPrice', label: 'Preço Médio', format: (v) => formatCurrencyForExport(v || 0) },
+    { key: 'revenue', label: 'Receita', format: (v) => formatCurrencyForExport(v || 0) },
+    { key: 'costPrice', label: 'Custo Unitário', format: (v) => formatCurrencyForExport(v || 0) },
+    { key: 'profit', label: 'Lucro', format: (v) => formatCurrencyForExport(v || 0) },
+    { key: 'margin', label: 'Margem %', format: (v) => `${(v || 0).toFixed(1)}%` },
+    { key: 'stock', label: 'Estoque Atual' },
+  ];
+
+  const couponsExportColumns: ExportColumn[] = [
+    { key: 'code', label: 'Código' },
+    { key: 'discountType', label: 'Tipo', format: (v) => v === 'percentage' ? 'Percentual' : 'Valor fixo' },
+    { key: 'discount_applied', label: 'Desconto Aplicado', format: (v) => formatCurrencyForExport(Number(v) || 0) },
+    { key: 'currentUses', label: 'Usos Atuais' },
+    { key: 'maxUses', label: 'Máximo de Usos', format: (v) => v || '∞' },
+    { key: 'created_at', label: 'Data', format: (v) => formatDateForExport(v) },
+  ];
+
+  // Load functions
   const loadSales = async () => {
     setLoading(true);
     const { data: orders, error } = await supabase
@@ -106,7 +239,6 @@ export default function Relatorios() {
       .order('created_at', { ascending: false });
 
     if (!error && orders) {
-      // Get customer names
       const userIds = [...new Set(orders.map(o => o.user_id))];
       const { data: profiles } = await supabase
         .from('profiles')
@@ -118,6 +250,9 @@ export default function Relatorios() {
       const enrichedOrders = orders.map(order => ({
         ...order,
         customer: profileMap.get(order.user_id) || null,
+        customerName: profileMap.get(order.user_id)?.full_name || '-',
+        customerPhone: profileMap.get(order.user_id)?.phone || '-',
+        itemsCount: order.order_items?.length || 0,
       }));
       
       setSalesData(enrichedOrders);
@@ -128,21 +263,18 @@ export default function Relatorios() {
   const loadClients = async () => {
     setLoading(true);
     
-    // Get all profiles
     const { data: profiles, error } = await supabase
       .from('profiles')
       .select('*')
       .order('created_at', { ascending: false });
 
     if (!error && profiles) {
-      // Get orders for each customer
       const userIds = profiles.map(p => p.user_id);
       const { data: orders } = await supabase
         .from('orders')
         .select('user_id, total, status, created_at')
         .in('user_id', userIds);
       
-      // Aggregate orders by user
       const orderStats = new Map<string, { orderCount: number; totalSpent: number; lastOrder: string | null }>();
       orders?.forEach(order => {
         const existing = orderStats.get(order.user_id) || { orderCount: 0, totalSpent: 0, lastOrder: null };
@@ -161,7 +293,6 @@ export default function Relatorios() {
         orderCount: orderStats.get(client.user_id)?.orderCount || 0,
         totalSpent: orderStats.get(client.user_id)?.totalSpent || 0,
         lastOrder: orderStats.get(client.user_id)?.lastOrder || null,
-        // Extract preferences
         cpf: (client.preferences as any)?.cpf || null,
         birthDate: (client.preferences as any)?.birth_date || null,
         isManual: (client.preferences as any)?.is_manual_customer || false,
@@ -175,7 +306,6 @@ export default function Relatorios() {
   const loadProducts = async () => {
     setLoading(true);
     
-    // Get all order items within date range
     const { data: orderItems, error } = await supabase
       .from('order_items')
       .select(`
@@ -190,7 +320,6 @@ export default function Relatorios() {
       .lte('created_at', endDate + 'T23:59:59');
 
     if (!error && orderItems) {
-      // Aggregate by product
       const aggregated: Record<string, { 
         name: string; 
         sku: string | null;
@@ -203,6 +332,7 @@ export default function Relatorios() {
         costPrice: number;
         profit: number;
         avgPrice: number;
+        margin: number;
       }> = {};
       
       orderItems.forEach(item => {
@@ -224,6 +354,7 @@ export default function Relatorios() {
             costPrice,
             profit: 0,
             avgPrice: 0,
+            margin: 0,
           };
         }
         aggregated[productId].quantity += item.quantity;
@@ -231,9 +362,9 @@ export default function Relatorios() {
         aggregated[productId].profit += itemProfit;
       });
 
-      // Calculate avg price
       Object.values(aggregated).forEach(p => {
         p.avgPrice = p.quantity > 0 ? p.revenue / p.quantity : 0;
+        p.margin = p.revenue > 0 ? (p.profit / p.revenue) * 100 : 0;
       });
 
       setProductsData(Object.entries(aggregated).map(([id, data]) => ({ id, ...data })));
@@ -254,77 +385,132 @@ export default function Relatorios() {
       .order('created_at', { ascending: false });
 
     if (!error) {
-      setCouponsData(data || []);
+      const enrichedCoupons = (data || []).map(use => ({
+        ...use,
+        code: (use.coupons as any)?.code || '-',
+        discountType: (use.coupons as any)?.discount_type,
+        currentUses: (use.coupons as any)?.current_uses || 0,
+        maxUses: (use.coupons as any)?.max_uses,
+      }));
+      setCouponsData(enrichedCoupons);
     }
     setLoading(false);
   };
 
-  // Enhanced exports
-  const handleExportClients = () => {
-    const dataToExport = clientsData.map(c => ({
-      Nome: c.full_name || '-',
-      Telefone: c.phone || '-',
-      CPF: c.cpf || '-',
-      'Data Nascimento': c.birthDate || '-',
-      'Total Pedidos': c.orderCount,
-      'Total Gasto': formatCurrencyForExport(c.totalSpent),
-      'Último Pedido': c.lastOrder ? formatDateForExport(c.lastOrder) : '-',
-      'Cliente Manual': c.isManual ? 'Sim' : 'Não',
-      'Cadastro': formatDateForExport(c.created_at)
-    }));
-    exportToCSV(dataToExport, `clientes-${format(new Date(), 'yyyy-MM-dd')}`);
-    toast.success("Clientes exportados!");
-  };
+  // Filter and sort data
+  const filteredSales = useMemo(() => {
+    let result = [...salesData];
+    
+    // Apply filters
+    const { search, status, origin, paymentMethod } = salesFilters;
+    if (search) {
+      const searchLower = search.toLowerCase();
+      result = result.filter(s => 
+        s.customerName?.toLowerCase().includes(searchLower) ||
+        s.id?.toLowerCase().includes(searchLower) ||
+        s.customerPhone?.includes(search)
+      );
+    }
+    if (status && status !== 'all') {
+      result = result.filter(s => s.status === status);
+    }
+    if (origin && origin !== 'all') {
+      result = result.filter(s => s.origin === origin);
+    }
+    if (paymentMethod && paymentMethod.length > 0) {
+      result = result.filter(s => paymentMethod.includes(s.payment_method));
+    }
 
-  const handleExportSales = () => {
-    const dataToExport = salesData.map(s => ({
-      Pedido: s.id.slice(0, 8),
-      Cliente: s.customer?.full_name || '-',
-      Telefone: s.customer?.phone || '-',
-      Status: statusLabels[s.status] || s.status,
-      'Forma Pagamento': s.payment_method || '-',
-      Origem: s.origin || 'site',
-      Itens: s.order_items?.length || 0,
-      Subtotal: formatCurrencyForExport(Number(s.subtotal)),
-      Desconto: formatCurrencyForExport(Number(s.discount_total) || 0),
-      Frete: formatCurrencyForExport(Number(s.shipping_cost)),
-      Total: formatCurrencyForExport(Number(s.total)),
-      Observações: s.notes || '-',
-      Data: formatDateForExport(s.created_at)
-    }));
-    exportToCSV(dataToExport, `vendas-${startDate}-a-${endDate}`);
-    toast.success("Vendas exportadas!");
-  };
+    // Apply sort
+    if (salesSort) {
+      result.sort((a, b) => {
+        const aVal = a[salesSort.key];
+        const bVal = b[salesSort.key];
+        const multiplier = salesSort.direction === 'asc' ? 1 : -1;
+        if (typeof aVal === 'number') return (aVal - bVal) * multiplier;
+        return String(aVal || '').localeCompare(String(bVal || '')) * multiplier;
+      });
+    }
 
-  const handleExportProducts = () => {
-    const dataToExport = productsData.sort((a, b) => b.quantity - a.quantity).map(p => ({
-      Produto: p.name,
-      SKU: p.sku || '-',
-      Categoria: p.category,
-      Marca: p.brand || '-',
-      'Qtd Vendida': p.quantity,
-      'Preço Médio': formatCurrencyForExport(p.avgPrice),
-      Receita: formatCurrencyForExport(p.revenue),
-      'Custo Unit.': formatCurrencyForExport(p.costPrice),
-      Lucro: formatCurrencyForExport(p.profit),
-      'Margem %': p.revenue > 0 ? ((p.profit / p.revenue) * 100).toFixed(1) + '%' : '0%',
-      'Estoque Atual': p.stock
-    }));
-    exportToCSV(dataToExport, `produtos-${startDate}-a-${endDate}`);
-    toast.success("Produtos exportados!");
-  };
+    return result;
+  }, [salesData, salesFilters, salesSort]);
 
-  const handleExportCoupons = () => {
-    const dataToExport = couponsData.map(use => ({
-      Código: (use.coupons as any)?.code || '-',
-      Tipo: (use.coupons as any)?.discount_type === 'percentage' ? 'Percentual' : 'Valor fixo',
-      'Valor Desconto': formatCurrencyForExport(Number(use.discount_applied)),
-      'Usos / Máximo': `${(use.coupons as any)?.current_uses || 0} / ${(use.coupons as any)?.max_uses || '∞'}`,
-      Data: formatDateForExport(use.created_at)
-    }));
-    exportToCSV(dataToExport, `cupons-${startDate}-a-${endDate}`);
-    toast.success("Cupons exportados!");
-  };
+  const filteredClients = useMemo(() => {
+    let result = [...clientsData];
+    
+    const { search, type, hasOrders } = clientsFilters;
+    if (search) {
+      const searchLower = search.toLowerCase();
+      result = result.filter(c => 
+        c.full_name?.toLowerCase().includes(searchLower) ||
+        c.phone?.includes(search) ||
+        c.cpf?.includes(search)
+      );
+    }
+    if (type && type !== 'all') {
+      if (type === 'manual') result = result.filter(c => c.isManual);
+      else result = result.filter(c => !c.isManual);
+    }
+    if (hasOrders && hasOrders !== 'all') {
+      if (hasOrders === 'yes') result = result.filter(c => c.orderCount > 0);
+      else result = result.filter(c => c.orderCount === 0);
+    }
+
+    if (clientsSort) {
+      result.sort((a, b) => {
+        const aVal = a[clientsSort.key];
+        const bVal = b[clientsSort.key];
+        const multiplier = clientsSort.direction === 'asc' ? 1 : -1;
+        if (typeof aVal === 'number') return (aVal - bVal) * multiplier;
+        return String(aVal || '').localeCompare(String(bVal || '')) * multiplier;
+      });
+    }
+
+    return result;
+  }, [clientsData, clientsFilters, clientsSort]);
+
+  const filteredProducts = useMemo(() => {
+    let result = [...productsData];
+    
+    const { search, brand } = productsFilters;
+    if (search) {
+      const searchLower = search.toLowerCase();
+      result = result.filter(p => 
+        p.name?.toLowerCase().includes(searchLower) ||
+        p.sku?.toLowerCase().includes(searchLower)
+      );
+    }
+    if (brand && brand.length > 0) {
+      result = result.filter(p => brand.includes(p.brand));
+    }
+
+    if (productsSort) {
+      result.sort((a, b) => {
+        const aVal = a[productsSort.key];
+        const bVal = b[productsSort.key];
+        const multiplier = productsSort.direction === 'asc' ? 1 : -1;
+        if (typeof aVal === 'number') return (aVal - bVal) * multiplier;
+        return String(aVal || '').localeCompare(String(bVal || '')) * multiplier;
+      });
+    }
+
+    return result;
+  }, [productsData, productsFilters, productsSort]);
+
+  const filteredCoupons = useMemo(() => {
+    let result = [...couponsData];
+    
+    const { search, type } = couponsFilters;
+    if (search) {
+      const searchLower = search.toLowerCase();
+      result = result.filter(c => c.code?.toLowerCase().includes(searchLower));
+    }
+    if (type && type !== 'all') {
+      result = result.filter(c => c.discountType === type);
+    }
+
+    return result;
+  }, [couponsData, couponsFilters]);
 
   // Stats calculations
   const totalSales = salesData.reduce((sum, s) => sum + Number(s.total), 0);
@@ -338,6 +524,31 @@ export default function Relatorios() {
   const totalProductProfit = productsData.reduce((sum, p) => sum + p.profit, 0);
 
   const totalCouponDiscount = couponsData.reduce((sum, c) => sum + Number(c.discount_applied), 0);
+
+  // Sort helper
+  const toggleSort = (key: string, currentSort: SortConfig, setSort: (s: SortConfig) => void) => {
+    if (currentSort?.key === key) {
+      if (currentSort.direction === 'desc') setSort({ key, direction: 'asc' });
+      else setSort(null);
+    } else {
+      setSort({ key, direction: 'desc' });
+    }
+  };
+
+  const SortIcon = ({ sortKey, sort }: { sortKey: string; sort: SortConfig }) => {
+    if (sort?.key !== sortKey) return <ArrowUpDown className="w-3 h-3 ml-1 opacity-40" />;
+    return sort.direction === 'desc' 
+      ? <ArrowDown className="w-3 h-3 ml-1" /> 
+      : <ArrowUp className="w-3 h-3 ml-1" />;
+  };
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    if (value === 'sales') loadSales();
+    else if (value === 'clients') loadClients();
+    else if (value === 'products') loadProducts();
+    else if (value === 'coupons') loadCoupons();
+  };
 
   return (
     <AdminLayout title="Relatórios">
@@ -401,12 +612,7 @@ export default function Relatorios() {
         </Card>
 
         {/* Tabs */}
-        <Tabs defaultValue="sales" onValueChange={(v) => {
-          if (v === 'sales') loadSales();
-          else if (v === 'clients') loadClients();
-          else if (v === 'products') loadProducts();
-          else if (v === 'coupons') loadCoupons();
-        }}>
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="sales" className="gap-2">
               <ShoppingCart className="w-4 h-4" />
@@ -428,7 +634,6 @@ export default function Relatorios() {
 
           {/* Sales Tab */}
           <TabsContent value="sales" className="space-y-4">
-            {/* Summary Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Card className="p-4">
                 <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
@@ -460,9 +665,17 @@ export default function Relatorios() {
               </Card>
             </div>
 
+            <ReportFilters
+              filters={salesFilterConfig}
+              values={salesFilters}
+              onChange={(key, value) => setSalesFilters(prev => ({ ...prev, [key]: value }))}
+              onClear={() => setSalesFilters({})}
+              resultCount={filteredSales.length}
+            />
+
             <div className="flex justify-end">
-              <Button variant="outline" size="sm" onClick={handleExportSales} className="gap-2">
-                <Download className="w-4 h-4" />
+              <Button variant="outline" size="sm" onClick={salesExport.openModal} className="gap-2">
+                <Settings2 className="w-4 h-4" />
                 Exportar CSV
               </Button>
             </div>
@@ -481,12 +694,28 @@ export default function Relatorios() {
                       <TableHead>Status</TableHead>
                       <TableHead>Pagamento</TableHead>
                       <TableHead>Origem</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
-                      <TableHead>Data</TableHead>
+                      <TableHead 
+                        className="text-right cursor-pointer hover:bg-muted/50"
+                        onClick={() => toggleSort('total', salesSort, setSalesSort)}
+                      >
+                        <span className="flex items-center justify-end">
+                          Total
+                          <SortIcon sortKey="total" sort={salesSort} />
+                        </span>
+                      </TableHead>
+                      <TableHead 
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => toggleSort('created_at', salesSort, setSalesSort)}
+                      >
+                        <span className="flex items-center">
+                          Data
+                          <SortIcon sortKey="created_at" sort={salesSort} />
+                        </span>
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {salesData.slice(0, 100).map(order => (
+                    {filteredSales.slice(0, 100).map(order => (
                       <TableRow key={order.id}>
                         <TableCell className="font-mono text-xs">{order.id.slice(0, 8)}</TableCell>
                         <TableCell>
@@ -549,9 +778,17 @@ export default function Relatorios() {
               </Card>
             </div>
 
+            <ReportFilters
+              filters={clientsFilterConfig}
+              values={clientsFilters}
+              onChange={(key, value) => setClientsFilters(prev => ({ ...prev, [key]: value }))}
+              onClear={() => setClientsFilters({})}
+              resultCount={filteredClients.length}
+            />
+
             <div className="flex justify-end">
-              <Button variant="outline" size="sm" onClick={handleExportClients} className="gap-2">
-                <Download className="w-4 h-4" />
+              <Button variant="outline" size="sm" onClick={clientsExport.openModal} className="gap-2">
+                <Settings2 className="w-4 h-4" />
                 Exportar CSV
               </Button>
             </div>
@@ -568,15 +805,31 @@ export default function Relatorios() {
                       <TableHead>Nome</TableHead>
                       <TableHead>Telefone</TableHead>
                       <TableHead>CPF</TableHead>
-                      <TableHead className="text-right">Pedidos</TableHead>
-                      <TableHead className="text-right">Total Gasto</TableHead>
+                      <TableHead 
+                        className="text-right cursor-pointer hover:bg-muted/50"
+                        onClick={() => toggleSort('orderCount', clientsSort, setClientsSort)}
+                      >
+                        <span className="flex items-center justify-end">
+                          Pedidos
+                          <SortIcon sortKey="orderCount" sort={clientsSort} />
+                        </span>
+                      </TableHead>
+                      <TableHead 
+                        className="text-right cursor-pointer hover:bg-muted/50"
+                        onClick={() => toggleSort('totalSpent', clientsSort, setClientsSort)}
+                      >
+                        <span className="flex items-center justify-end">
+                          Total Gasto
+                          <SortIcon sortKey="totalSpent" sort={clientsSort} />
+                        </span>
+                      </TableHead>
                       <TableHead>Último Pedido</TableHead>
                       <TableHead>Tipo</TableHead>
                       <TableHead>Cadastro</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {clientsData.map(client => (
+                    {filteredClients.map(client => (
                       <TableRow key={client.id}>
                         <TableCell className="font-medium">{client.full_name || '-'}</TableCell>
                         <TableCell>{client.phone || '-'}</TableCell>
@@ -627,9 +880,17 @@ export default function Relatorios() {
               </Card>
             </div>
 
+            <ReportFilters
+              filters={productsFilterConfig}
+              values={productsFilters}
+              onChange={(key, value) => setProductsFilters(prev => ({ ...prev, [key]: value }))}
+              onClear={() => setProductsFilters({})}
+              resultCount={filteredProducts.length}
+            />
+
             <div className="flex justify-end">
-              <Button variant="outline" size="sm" onClick={handleExportProducts} className="gap-2">
-                <Download className="w-4 h-4" />
+              <Button variant="outline" size="sm" onClick={productsExport.openModal} className="gap-2">
+                <Settings2 className="w-4 h-4" />
                 Exportar CSV
               </Button>
             </div>
@@ -646,43 +907,72 @@ export default function Relatorios() {
                       <TableHead>Produto</TableHead>
                       <TableHead>SKU</TableHead>
                       <TableHead>Categoria</TableHead>
-                      <TableHead className="text-right">Qtd</TableHead>
-                      <TableHead className="text-right">Receita</TableHead>
-                      <TableHead className="text-right">Lucro</TableHead>
-                      <TableHead className="text-right">Margem</TableHead>
+                      <TableHead 
+                        className="text-right cursor-pointer hover:bg-muted/50"
+                        onClick={() => toggleSort('quantity', productsSort, setProductsSort)}
+                      >
+                        <span className="flex items-center justify-end">
+                          Qtd
+                          <SortIcon sortKey="quantity" sort={productsSort} />
+                        </span>
+                      </TableHead>
+                      <TableHead 
+                        className="text-right cursor-pointer hover:bg-muted/50"
+                        onClick={() => toggleSort('revenue', productsSort, setProductsSort)}
+                      >
+                        <span className="flex items-center justify-end">
+                          Receita
+                          <SortIcon sortKey="revenue" sort={productsSort} />
+                        </span>
+                      </TableHead>
+                      <TableHead 
+                        className="text-right cursor-pointer hover:bg-muted/50"
+                        onClick={() => toggleSort('profit', productsSort, setProductsSort)}
+                      >
+                        <span className="flex items-center justify-end">
+                          Lucro
+                          <SortIcon sortKey="profit" sort={productsSort} />
+                        </span>
+                      </TableHead>
+                      <TableHead 
+                        className="text-right cursor-pointer hover:bg-muted/50"
+                        onClick={() => toggleSort('margin', productsSort, setProductsSort)}
+                      >
+                        <span className="flex items-center justify-end">
+                          Margem
+                          <SortIcon sortKey="margin" sort={productsSort} />
+                        </span>
+                      </TableHead>
                       <TableHead className="text-right">Estoque</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {productsData.sort((a, b) => b.revenue - a.revenue).map(product => {
-                      const margin = product.revenue > 0 ? (product.profit / product.revenue) * 100 : 0;
-                      return (
-                        <TableRow key={product.id}>
-                          <TableCell className="font-medium">{product.name}</TableCell>
-                          <TableCell className="font-mono text-xs">{product.sku || '-'}</TableCell>
-                          <TableCell className="text-sm">{product.category}</TableCell>
-                          <TableCell className="text-right">{product.quantity}</TableCell>
-                          <TableCell className="text-right font-semibold">
-                            {formatCurrency(product.revenue)}
-                          </TableCell>
-                          <TableCell className="text-right font-semibold text-primary">
-                            {formatCurrency(product.profit)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <span className={`font-medium ${
-                              margin >= 30 ? 'text-emerald-600' : margin >= 15 ? 'text-amber-600' : 'text-destructive'
-                            }`}>
-                              {margin.toFixed(1)}%
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <span className={product.stock < 5 ? 'text-destructive font-medium' : ''}>
-                              {product.stock}
-                            </span>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
+                    {filteredProducts.map(product => (
+                      <TableRow key={product.id}>
+                        <TableCell className="font-medium">{product.name}</TableCell>
+                        <TableCell className="font-mono text-xs">{product.sku || '-'}</TableCell>
+                        <TableCell className="text-sm">{product.category}</TableCell>
+                        <TableCell className="text-right">{product.quantity}</TableCell>
+                        <TableCell className="text-right font-semibold">
+                          {formatCurrency(product.revenue)}
+                        </TableCell>
+                        <TableCell className="text-right font-semibold text-primary">
+                          {formatCurrency(product.profit)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span className={`font-medium ${
+                            product.margin >= 30 ? 'text-emerald-600' : product.margin >= 15 ? 'text-amber-600' : 'text-destructive'
+                          }`}>
+                            {product.margin.toFixed(1)}%
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span className={product.stock < 5 ? 'text-destructive font-medium' : ''}>
+                            {product.stock}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    ))}
                   </TableBody>
                 </Table>
               </div>
@@ -708,9 +998,17 @@ export default function Relatorios() {
               </Card>
             </div>
 
+            <ReportFilters
+              filters={couponsFilterConfig}
+              values={couponsFilters}
+              onChange={(key, value) => setCouponsFilters(prev => ({ ...prev, [key]: value }))}
+              onClear={() => setCouponsFilters({})}
+              resultCount={filteredCoupons.length}
+            />
+
             <div className="flex justify-end">
-              <Button variant="outline" size="sm" onClick={handleExportCoupons} className="gap-2">
-                <Download className="w-4 h-4" />
+              <Button variant="outline" size="sm" onClick={couponsExport.openModal} className="gap-2">
+                <Settings2 className="w-4 h-4" />
                 Exportar CSV
               </Button>
             </div>
@@ -719,7 +1017,7 @@ export default function Relatorios() {
               <div className="flex justify-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
-            ) : couponsData.length === 0 ? (
+            ) : filteredCoupons.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
                 <Tag className="w-12 h-12 mx-auto mb-3 opacity-30" />
                 <p>Nenhum cupom utilizado no período</p>
@@ -737,19 +1035,17 @@ export default function Relatorios() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {couponsData.map(use => (
+                    {filteredCoupons.map(use => (
                       <TableRow key={use.id}>
-                        <TableCell className="font-mono font-medium">
-                          {(use.coupons as any)?.code || '-'}
-                        </TableCell>
+                        <TableCell className="font-mono font-medium">{use.code}</TableCell>
                         <TableCell>
-                          {(use.coupons as any)?.discount_type === 'percentage' ? 'Percentual' : 'Valor fixo'}
+                          {use.discountType === 'percentage' ? 'Percentual' : 'Valor fixo'}
                         </TableCell>
                         <TableCell className="text-right font-semibold text-primary">
                           {formatCurrency(Number(use.discount_applied))}
                         </TableCell>
                         <TableCell>
-                          {(use.coupons as any)?.current_uses || 0} / {(use.coupons as any)?.max_uses || '∞'}
+                          {use.currentUses} / {use.maxUses || '∞'}
                         </TableCell>
                         <TableCell>{format(new Date(use.created_at), 'dd/MM/yy HH:mm')}</TableCell>
                       </TableRow>
@@ -761,6 +1057,47 @@ export default function Relatorios() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Export Modals */}
+      <ExportModal
+        open={salesExport.open}
+        onOpenChange={salesExport.setOpen}
+        title="Exportar Vendas"
+        description="Selecione as colunas que deseja incluir no relatório"
+        columns={salesExportColumns}
+        data={filteredSales}
+        filename={`vendas-${startDate}-a-${endDate}`}
+      />
+
+      <ExportModal
+        open={clientsExport.open}
+        onOpenChange={clientsExport.setOpen}
+        title="Exportar Clientes"
+        description="Selecione as colunas que deseja incluir no relatório"
+        columns={clientsExportColumns}
+        data={filteredClients}
+        filename={`clientes-${format(new Date(), 'yyyy-MM-dd')}`}
+      />
+
+      <ExportModal
+        open={productsExport.open}
+        onOpenChange={productsExport.setOpen}
+        title="Exportar Produtos"
+        description="Selecione as colunas que deseja incluir no relatório"
+        columns={productsExportColumns}
+        data={filteredProducts}
+        filename={`produtos-${startDate}-a-${endDate}`}
+      />
+
+      <ExportModal
+        open={couponsExport.open}
+        onOpenChange={couponsExport.setOpen}
+        title="Exportar Cupons"
+        description="Selecione as colunas que deseja incluir no relatório"
+        columns={couponsExportColumns}
+        data={filteredCoupons}
+        filename={`cupons-${startDate}-a-${endDate}`}
+      />
     </AdminLayout>
   );
 }
