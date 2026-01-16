@@ -280,7 +280,7 @@ const Dashboard = () => {
       },
       { 
         title: "Receita Mensal", 
-        value: `R$ ${monthlyRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`, 
+        value: `R$ ${monthlyRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
         change: revenueChange,
         changeLabel: "vs mês anterior",
         icon: TrendingUp,
@@ -289,7 +289,7 @@ const Dashboard = () => {
       },
       { 
         title: "Ticket Médio", 
-        value: `R$ ${averageTicket.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`, 
+        value: `R$ ${averageTicket.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
         change: ticketChange,
         changeLabel: "vs mês anterior",
         icon: Target, 
@@ -315,7 +315,7 @@ const Dashboard = () => {
       },
       { 
         title: "Receita Líquida", 
-        value: `R$ ${netRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`, 
+        value: `R$ ${netRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
         change: revenueChange,
         changeLabel: "após despesas",
         icon: DollarSign,

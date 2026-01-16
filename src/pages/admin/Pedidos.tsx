@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Search, Eye, Package, Truck, CheckCircle, X, MapPin, CreditCard, Filter, Calendar, ChevronDown, Users } from "lucide-react";
+import { Search, Eye, Package, Truck, CheckCircle, X, MapPin, CreditCard, Filter, Calendar, ChevronDown, Users, Wallet } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import AdminPagination from "@/components/admin/AdminPagination";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
@@ -16,6 +16,7 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { DateRange } from "react-day-picker";
+import { calculateNetAmount, formatCurrency } from "@/lib/price-utils";
 
 type OrderStatus = Database["public"]["Enums"]["order_status"];
 
@@ -692,12 +693,33 @@ const Pedidos = () => {
                     <span className="font-body text-green-600">- R$ {Number(selectedOrder.discount_total).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                   </div>
                 )}
-                <div className="flex justify-between pt-2 border-t border-border/20">
-                  <span className="font-body font-medium">Total</span>
-                  <span className="glass-kpi glass-kpi-md">
-                    R$ {Number(selectedOrder.total).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  </span>
-                </div>
+                {/* Taxa estimada da maquininha - usando média de 3.5% */}
+                {(() => {
+                  const { tax, net } = calculateNetAmount(Number(selectedOrder.total), 3.5);
+                  return (
+                    <>
+                      <div className="flex justify-between mb-2">
+                        <span className="font-body text-sm text-muted-foreground flex items-center gap-1">
+                          Taxa estimada
+                          <span className="text-xs bg-muted px-1.5 py-0.5 rounded">3.5%</span>
+                        </span>
+                        <span className="font-body text-destructive">- {formatCurrency(tax)}</span>
+                      </div>
+                      <div className="flex justify-between pt-2 border-t border-border/20">
+                        <span className="font-body font-medium">Total cobrado</span>
+                        <span className="glass-kpi glass-kpi-md">
+                          R$ {Number(selectedOrder.total).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      <div className="flex justify-between mt-2">
+                        <span className="font-body text-sm text-muted-foreground flex items-center gap-1">
+                          <Wallet className="w-3 h-3" /> Você recebe
+                        </span>
+                        <span className="font-body font-semibold text-emerald-600">{formatCurrency(net)}</span>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
 
               {/* Notes */}
