@@ -330,6 +330,7 @@ const Dashboard = () => {
       { 
         title: "Lucro Real", 
         value: `R$ ${(monthlyRevenue - costStats.monthlySalesCost - monthlyTaxes - expenseStats.totalMonth).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
+        subValue: `Custo: R$ ${costStats.monthlySalesCost.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
         change: 0,
         changeLabel: "este mês",
         icon: Wallet, 
