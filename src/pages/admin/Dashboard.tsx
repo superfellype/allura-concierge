@@ -39,6 +39,8 @@ import { expensesService } from "@/services/expenses.service";
 interface KPICard {
   title: string;
   value: string;
+  subValue?: string;
+  subLabel?: string;
   change: number;
   changeLabel: string;
   icon: React.ElementType;
@@ -300,6 +302,7 @@ const Dashboard = () => {
       { 
         title: "Receita Mensal", 
         value: `R$ ${monthlyRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
+        subValue: `Você recebe: R$ ${(monthlyRevenue - monthlyTaxes).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
         change: revenueChange,
         changeLabel: "vs mês anterior",
         icon: TrendingUp,
@@ -335,6 +338,7 @@ const Dashboard = () => {
       { 
         title: "Receita Líquida", 
         value: `R$ ${netRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
+        subValue: `Você recebe: R$ ${netRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
         change: revenueChange,
         changeLabel: "após despesas e taxas",
         icon: DollarSign,
@@ -532,6 +536,11 @@ const Dashboard = () => {
                 <p className="font-display text-lg font-bold text-foreground group-hover:text-primary transition-colors truncate">
                   {kpi.value}
                 </p>
+                {kpi.subValue && (
+                  <p className="font-body text-[10px] text-emerald-600 font-medium truncate">
+                    {kpi.subValue}
+                  </p>
+                )}
                 <p className="font-body text-[11px] text-muted-foreground truncate">
                   {kpi.title}
                 </p>
