@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      brands: {
+        Row: {
+          created_at: string
+          display_order: number | null
+          id: string
+          is_active: boolean | null
+          logo_url: string | null
+          name: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          logo_url?: string | null
+          name: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          logo_url?: string | null
+          name?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       cart_items: {
         Row: {
           attributes: Json | null
@@ -778,6 +811,36 @@ export type Database = {
           setting_key?: string
           setting_value?: Json
           updated_at?: string
+        }
+        Relationships: []
+      }
+      theme_drafts: {
+        Row: {
+          created_at: string
+          id: string
+          is_published: boolean | null
+          published_at: string | null
+          theme_data: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_published?: boolean | null
+          published_at?: string | null
+          theme_data?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_published?: boolean | null
+          published_at?: string | null
+          theme_data?: Json
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
