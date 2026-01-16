@@ -501,9 +501,24 @@ const Pedidos = () => {
                   </div>
 
                   <div className="flex items-center gap-4">
-                    <span className="glass-kpi glass-kpi-md">
-                      R$ {Number(order.total).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </span>
+                    <div className="text-right">
+                      <span className="glass-kpi glass-kpi-md block">
+                        R$ {Number(order.total).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </span>
+                      {order.notes && (() => {
+                        const taxMatch = order.notes.match(/Taxa:\s*([\d.,]+)%/);
+                        if (taxMatch) {
+                          const taxRate = parseFloat(taxMatch[1].replace(',', '.'));
+                          const netAmount = Number(order.total) * (1 - taxRate / 100);
+                          return (
+                            <span className="text-xs text-emerald-600 font-medium">
+                              Você recebe: R$ {netAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </span>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </div>
                     <button
                       onClick={() => openOrderDetail(order)}
                       className="glass-button p-2.5 rounded-xl"
