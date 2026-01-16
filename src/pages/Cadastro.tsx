@@ -10,7 +10,9 @@ import {
   Phone, 
   Camera,
   Check,
-  Sparkles
+  Sparkles,
+  CreditCard,
+  Calendar
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -33,6 +35,8 @@ interface FormData {
   avatarPreview: string;
   email: string;
   whatsapp: string;
+  cpf: string;
+  birthDate: string;
   whatsappOptIn: boolean;
   stylePreferences: string[];
   occasions: string[];
@@ -77,6 +81,8 @@ const Cadastro = () => {
     avatarPreview: "",
     email: "",
     whatsapp: "",
+    cpf: "",
+    birthDate: "",
     whatsappOptIn: false,
     stylePreferences: [],
     occasions: [],
@@ -149,6 +155,21 @@ const Cadastro = () => {
     return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 3)} ${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
   };
 
+  const formatCpf = (value: string) => {
+    const numbers = value.replace(/\D/g, "");
+    if (numbers.length <= 3) return numbers;
+    if (numbers.length <= 6) return `${numbers.slice(0, 3)}.${numbers.slice(3)}`;
+    if (numbers.length <= 9) return `${numbers.slice(0, 3)}.${numbers.slice(3, 6)}.${numbers.slice(6)}`;
+    return `${numbers.slice(0, 3)}.${numbers.slice(3, 6)}.${numbers.slice(6, 9)}-${numbers.slice(9, 11)}`;
+  };
+
+  const formatBirthDate = (value: string) => {
+    const numbers = value.replace(/\D/g, "");
+    if (numbers.length <= 2) return numbers;
+    if (numbers.length <= 4) return `${numbers.slice(0, 2)}/${numbers.slice(2)}`;
+    return `${numbers.slice(0, 2)}/${numbers.slice(2, 4)}/${numbers.slice(4, 8)}`;
+  };
+
   const handleSignUp = async () => {
     if (formData.password !== formData.confirmPassword) {
       toast.error("As senhas não coincidem");
@@ -198,6 +219,13 @@ const Cadastro = () => {
 
       // Update profile with all preferences
       if (authData.user) {
+        // Parse birth date from DD/MM/YYYY to YYYY-MM-DD
+        let birthDateFormatted = null;
+        if (formData.birthDate && formData.birthDate.length === 10) {
+          const [day, month, year] = formData.birthDate.split('/');
+          birthDateFormatted = `${year}-${month}-${day}`;
+        }
+
         const { error: profileError } = await supabase.from('profiles').upsert(
           {
             user_id: authData.user.id,
@@ -209,6 +237,8 @@ const Cadastro = () => {
               style_preferences: formData.stylePreferences,
               occasions: formData.occasions,
               whatsapp_opt_in: formData.whatsappOptIn,
+              cpf: formData.cpf.replace(/\D/g, ""),
+              birth_date: birthDateFormatted,
             }
           },
           { onConflict: 'user_id' }
@@ -494,6 +524,45 @@ const Cadastro = () => {
                         maxLength={18}
                       />
                     </div>
+                  </div>
+
+                  {/* CPF Field */}
+                  <div>
+                    <label className="font-body text-sm text-foreground/70 mb-1.5 block">
+                      CPF
+                    </label>
+                    <div className="relative">
+                      <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <input
+                        type="text"
+                        value={formData.cpf}
+                        onChange={(e) => updateForm({ cpf: formatCpf(e.target.value) })}
+                        className="w-full pl-11 pr-4 py-3.5 liquid-glass rounded-2xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
+                        placeholder="000.000.000-00"
+                        maxLength={14}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Birth Date Field */}
+                  <div>
+                    <label className="font-body text-sm text-foreground/70 mb-1.5 block">
+                      Data de Nascimento
+                    </label>
+                    <div className="relative">
+                      <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <input
+                        type="text"
+                        value={formData.birthDate}
+                        onChange={(e) => updateForm({ birthDate: formatBirthDate(e.target.value) })}
+                        className="w-full pl-11 pr-4 py-3.5 liquid-glass rounded-2xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
+                        placeholder="DD/MM/AAAA"
+                        maxLength={10}
+                      />
+                    </div>
+                    <p className="font-body text-xs text-muted-foreground mt-2">
+                      Para enviarmos um presente especial no seu dia! 🎂
+                    </p>
                   </div>
 
                   {/* WhatsApp Opt-in */}
