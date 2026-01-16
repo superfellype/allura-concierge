@@ -125,32 +125,41 @@ const Dashboard = () => {
   const [kpisLoading, setKpisLoading] = useState(true);
   const [expenseStats, setExpenseStats] = useState({ totalMonth: 0, totalLastMonth: 0, byCategory: {} as Record<string, number> });
   const [costStats, setCostStats] = useState({ totalSalesCost: 0, monthlySalesCost: 0, totalSalesRevenue: 0, avgMargin: 0, grossProfit: 0 });
+  const [dataReady, setDataReady] = useState(false);
 
   useEffect(() => {
     fetchAllData();
   }, []);
 
-  // Re-calculate KPIs when costStats or expenseStats change
+  // Re-calculate KPIs when costStats or expenseStats change AND data is ready
   useEffect(() => {
-    if (costStats.monthlySalesCost > 0 || expenseStats.totalMonth > 0) {
-      fetchKPIs();
+    if (dataReady) {
+      fetchKPIs(costStats, expenseStats);
     }
-  }, [costStats.monthlySalesCost, expenseStats.totalMonth]);
+  }, [dataReady, costStats.monthlySalesCost, expenseStats.totalMonth]);
 
   const fetchAllData = async () => {
-    // First fetch cost and expense stats
-    await Promise.all([
+    setDataReady(false);
+    setKpisLoading(true);
+    
+    // Fetch cost and expense stats first and get values directly
+    const [expenseResult, costResult] = await Promise.all([
       fetchExpenseStats(),
       fetchCostStats(),
     ]);
-    // Then fetch KPIs and other data
+    
+    // Now fetch KPIs with the actual values (not from state which may be stale)
+    await fetchKPIs(costResult, expenseResult);
+    
+    // Fetch other data in parallel
     await Promise.all([
-      fetchKPIs(),
       fetchRecentOrders(),
       fetchRevenueData(),
       fetchLowStock(),
       fetchTopProducts(),
     ]);
+    
+    setDataReady(true);
     setLoading(false);
   };
 
@@ -165,8 +174,9 @@ const Dashboard = () => {
       .neq("status", "cancelled");
 
     if (!orders || orders.length === 0) {
-      setCostStats({ totalSalesCost: 0, monthlySalesCost: 0, totalSalesRevenue: 0, avgMargin: 0, grossProfit: 0 });
-      return;
+      const result = { totalSalesCost: 0, monthlySalesCost: 0, totalSalesRevenue: 0, avgMargin: 0, grossProfit: 0 };
+      setCostStats(result);
+      return result;
     }
 
     // Separar pedidos do mês atual
@@ -186,8 +196,9 @@ const Dashboard = () => {
       .in("order_id", orderIds);
 
     if (!orderItems || orderItems.length === 0) {
-      setCostStats({ totalSalesCost: 0, monthlySalesCost: 0, totalSalesRevenue, avgMargin: 0, grossProfit: totalSalesRevenue });
-      return;
+      const result = { totalSalesCost: 0, monthlySalesCost: 0, totalSalesRevenue, avgMargin: 0, grossProfit: totalSalesRevenue };
+      setCostStats(result);
+      return result;
     }
 
     // Buscar cost_price dos produtos
@@ -217,21 +228,27 @@ const Dashboard = () => {
     const grossProfit = totalSalesRevenue - totalSalesCost;
     const avgMargin = totalSalesRevenue > 0 ? (grossProfit / totalSalesRevenue) * 100 : 0;
 
-    setCostStats({
+    const result = {
       totalSalesCost,
       monthlySalesCost,
       totalSalesRevenue,
       avgMargin,
       grossProfit,
-    });
+    };
+    setCostStats(result);
+    return result;
   };
 
   const fetchExpenseStats = async () => {
     const stats = await expensesService.getStats();
     setExpenseStats(stats);
+    return stats;
   };
 
-  const fetchKPIs = async () => {
+  const fetchKPIs = async (
+    costs: typeof costStats = costStats,
+    expenses: typeof expenseStats = expenseStats
+  ) => {
     setKpisLoading(true);
     const { count: productsCount } = await supabase
       .from("products")
@@ -305,7 +322,7 @@ const Dashboard = () => {
       : monthlyRevenue > 0 ? 100 : 0;
 
     // Net revenue = revenue - expenses - transaction fees
-    const netRevenue = monthlyRevenue - expenseStats.totalMonth - monthlyTaxes;
+    const netRevenue = monthlyRevenue - expenses.totalMonth - monthlyTaxes;
 
     // Average ticket
     const paidOrders = orders?.filter(o => o.status !== 'cancelled' && o.status !== 'created') || [];
@@ -326,7 +343,10 @@ const Dashboard = () => {
       : averageTicket > 0 ? 100 : 0;
 
     const netReceived = monthlyRevenue - monthlyTaxes;
-    const netAfterExpenses = netReceived - expenseStats.totalMonth;
+    const netAfterExpenses = netReceived - expenses.totalMonth;
+
+    // Calculate real profit using passed parameters
+    const realProfit = monthlyRevenue - costs.monthlySalesCost - monthlyTaxes - expenses.totalMonth;
 
     setKpis([
       { 
@@ -351,12 +371,12 @@ const Dashboard = () => {
       },
       { 
         title: "Lucro Real", 
-        value: `R$ ${(monthlyRevenue - costStats.monthlySalesCost - monthlyTaxes - expenseStats.totalMonth).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
+        value: `R$ ${realProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
         change: 0,
         changeLabel: "este mês",
         icon: Wallet, 
-        color: (monthlyRevenue - costStats.monthlySalesCost - monthlyTaxes - expenseStats.totalMonth) >= 0 ? "success" : "warning",
-        tooltip: `Receita: R$ ${monthlyRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n- Custo produtos: R$ ${costStats.monthlySalesCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n- Taxas maquininha: R$ ${monthlyTaxes.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n- Despesas: R$ ${expenseStats.totalMonth.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+        color: realProfit >= 0 ? "success" : "warning",
+        tooltip: `Receita: R$ ${monthlyRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n- Custo produtos: R$ ${costs.monthlySalesCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n- Taxas maquininha: R$ ${monthlyTaxes.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n- Despesas: R$ ${expenses.totalMonth.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
       },
       { 
         title: "Clientes Ativos", 
@@ -386,7 +406,7 @@ const Dashboard = () => {
         icon: DollarSign,
         color: netAfterExpenses >= 0 ? "success" : "warning",
         href: "/admin/despesas",
-        tooltip: `Você recebe: R$ ${netReceived.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n- Despesas: R$ ${expenseStats.totalMonth.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n= Líquido: R$ ${netAfterExpenses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+        tooltip: `Você recebe: R$ ${netReceived.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n- Despesas: R$ ${expenses.totalMonth.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n= Líquido: R$ ${netAfterExpenses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
       },
     ]);
     setKpisLoading(false);
