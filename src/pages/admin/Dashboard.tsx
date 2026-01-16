@@ -35,6 +35,8 @@ import {
 import AdminLayout from "@/components/admin/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { expensesService } from "@/services/expenses.service";
+import { Tooltip as TooltipUI, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Info } from "lucide-react";
 
 interface KPICard {
   title: string;
@@ -46,6 +48,7 @@ interface KPICard {
   icon: React.ElementType;
   color: "primary" | "success" | "warning" | "info" | "purple";
   href?: string;
+  tooltip?: string;
 }
 
 interface RevenueData {
@@ -335,6 +338,7 @@ const Dashboard = () => {
         changeLabel: "este mês",
         icon: Wallet, 
         color: (monthlyRevenue - costStats.monthlySalesCost - monthlyTaxes - expenseStats.totalMonth) >= 0 ? "success" : "warning",
+        tooltip: `Receita: R$ ${monthlyRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n- Custo produtos: R$ ${costStats.monthlySalesCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n- Taxas maquininha: R$ ${monthlyTaxes.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n- Despesas: R$ ${expenseStats.totalMonth.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
       },
       { 
         title: "Clientes Ativos", 
@@ -529,43 +533,63 @@ const Dashboard = () => {
 
         {/* KPI Cards - Compact Grid */}
         <motion.div variants={itemVariants} className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-          {kpis.map((kpi) => {
-            const colors = colorClasses[kpi.color];
-            const CardWrapper = kpi.href ? Link : 'div';
-            const cardProps = kpi.href ? { to: kpi.href } : {};
-            
-            return (
-              <CardWrapper 
-                key={kpi.title}
-                {...cardProps as any}
-                className={`block p-4 rounded-xl border border-border/40 bg-card/60 hover:bg-card/80 hover:border-border/60 transition-all group ${kpi.href ? 'cursor-pointer' : ''}`}
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <div className={`w-8 h-8 rounded-lg ${colors.bg} flex items-center justify-center`}>
-                    <kpi.icon className={`w-4 h-4 ${colors.icon}`} />
+          <TooltipProvider>
+            {kpis.map((kpi) => {
+              const colors = colorClasses[kpi.color];
+              const CardWrapper = kpi.href ? Link : 'div';
+              const cardProps = kpi.href ? { to: kpi.href } : {};
+              
+              const cardContent = (
+                <CardWrapper 
+                  key={kpi.title}
+                  {...cardProps as any}
+                  className={`block p-4 rounded-xl border border-border/40 bg-card/60 hover:bg-card/80 hover:border-border/60 transition-all group ${kpi.href ? 'cursor-pointer' : ''}`}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className={`w-8 h-8 rounded-lg ${colors.bg} flex items-center justify-center`}>
+                      <kpi.icon className={`w-4 h-4 ${colors.icon}`} />
+                    </div>
+                    {kpi.change !== 0 && (
+                      <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
+                        kpi.change > 0 ? 'bg-emerald-500/10 text-emerald-600' : 'bg-destructive/10 text-destructive'
+                      }`}>
+                        {kpi.change > 0 ? '+' : ''}{kpi.change}%
+                      </span>
+                    )}
+                    {kpi.tooltip && (
+                      <Info className="w-3 h-3 text-muted-foreground/50" />
+                    )}
                   </div>
-                  {kpi.change !== 0 && (
-                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
-                      kpi.change > 0 ? 'bg-emerald-500/10 text-emerald-600' : 'bg-destructive/10 text-destructive'
-                    }`}>
-                      {kpi.change > 0 ? '+' : ''}{kpi.change}%
-                    </span>
-                  )}
-                </div>
-                <p className="font-display text-lg font-bold text-foreground group-hover:text-primary transition-colors truncate">
-                  {kpi.value}
-                </p>
-                {kpi.subValue && (
-                  <p className="font-body text-[10px] text-emerald-600 font-medium truncate">
-                    {kpi.subValue}
+                  <p className="font-display text-lg font-bold text-foreground group-hover:text-primary transition-colors truncate">
+                    {kpi.value}
                   </p>
-                )}
-                <p className="font-body text-[11px] text-muted-foreground truncate">
-                  {kpi.title}
-                </p>
-              </CardWrapper>
-            );
-          })}
+                  {kpi.subValue && (
+                    <p className="font-body text-[10px] text-emerald-600 font-medium truncate">
+                      {kpi.subValue}
+                    </p>
+                  )}
+                  <p className="font-body text-[11px] text-muted-foreground truncate">
+                    {kpi.title}
+                  </p>
+                </CardWrapper>
+              );
+
+              if (kpi.tooltip) {
+                return (
+                  <TooltipUI key={kpi.title}>
+                    <TooltipTrigger asChild>
+                      {cardContent}
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-xs">
+                      <p className="whitespace-pre-line text-xs">{kpi.tooltip}</p>
+                    </TooltipContent>
+                  </TooltipUI>
+                );
+              }
+
+              return cardContent;
+            })}
+          </TooltipProvider>
         </motion.div>
 
         {/* Main Content Grid - Charts side by side */}
