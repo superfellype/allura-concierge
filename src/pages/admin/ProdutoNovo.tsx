@@ -8,6 +8,7 @@ import {
 import AdminLayout from "@/components/admin/AdminLayout";
 import ImageUpload from "@/components/admin/ImageUpload";
 import CategorySelect from "@/components/admin/CategorySelect";
+import BrandSelect from "@/components/admin/BrandSelect";
 import { supabase } from "@/integrations/supabase/client";
 import { categoriesService } from "@/services/categories.service";
 import { toast } from "sonner";
@@ -17,15 +18,6 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { sanitizeSlug } from "@/lib/validation-utils";
-
-type ProductBrand = "VeryRio" | "Chalita" | "LaytonVivian" | "Outro";
-
-const PRODUCT_BRANDS: { id: ProductBrand; label: string }[] = [
-  { id: "VeryRio", label: "VeryRio" },
-  { id: "Chalita", label: "Chalita" },
-  { id: "LaytonVivian", label: "Layton Vivian" },
-  { id: "Outro", label: "Outro" },
-];
 
 async function ensureUniqueSlug(base: string) {
   const cleanBase = (base || "").trim() || `produto-${Date.now()}`;
@@ -45,12 +37,13 @@ async function ensureUniqueSlug(base: string) {
   return `${cleanBase}-${Date.now()}`;
 }
 
+
 export default function ProdutoNovo() {
   const navigate = useNavigate();
 
   const [name, setName] = useState("");
   const [sku, setSku] = useState("");
-  const [brand, setBrand] = useState<ProductBrand>("Outro");
+  const [brand, setBrand] = useState("");
   const [price, setPrice] = useState("");
   const [originalPrice, setOriginalPrice] = useState("");
   const [stock, setStock] = useState("0");
@@ -92,11 +85,24 @@ export default function ProdutoNovo() {
       const baseSlug = sanitizeSlug(name);
       const slug = await ensureUniqueSlug(baseSlug);
 
-      const payload = {
+      const payload: {
+        name: string;
+        slug: string;
+        sku: string | null;
+        brand: "VeryRio" | "Chalita" | "LaytonVivian" | "Outro" | null;
+        price: number;
+        original_price: number | null;
+        category: string;
+        description: string | null;
+        stock_quantity: number;
+        images: string[] | null;
+        is_active: boolean;
+        is_featured: boolean;
+      } = {
         name: name.trim(),
         slug,
         sku: sku.trim() ? sku.trim().toUpperCase() : null,
-        brand,
+        brand: (brand as "VeryRio" | "Chalita" | "LaytonVivian" | "Outro") || null,
         price: priceNum,
         original_price: originalPriceNum > 0 ? originalPriceNum : null,
         category: categoryName,
@@ -234,22 +240,7 @@ export default function ProdutoNovo() {
 
                   <div className="space-y-2">
                     <Label htmlFor="brand" className="text-sm font-medium">Marca</Label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {PRODUCT_BRANDS.map((b) => (
-                        <button
-                          key={b.id}
-                          type="button"
-                          onClick={() => setBrand(b.id)}
-                          className={`px-3 py-2.5 rounded-xl text-sm font-medium transition-all border-2 ${
-                            brand === b.id
-                              ? 'border-primary bg-primary/10 text-primary'
-                              : 'border-border bg-background hover:border-primary/40'
-                          }`}
-                        >
-                          {b.label}
-                        </button>
-                      ))}
-                    </div>
+                    <BrandSelect value={brand} onChange={setBrand} />
                   </div>
                 </div>
               </div>

@@ -27,6 +27,7 @@ import AdminProdutos from "./pages/admin/Produtos";
 import AdminProdutoEditar from "./pages/admin/ProdutoEditar";
 import AdminProdutoNovo from "./pages/admin/ProdutoNovo";
 import Categorias from "./pages/admin/Categorias";
+import Marcas from "./pages/admin/Marcas";
 
 import Cupons from "./pages/admin/Cupons";
 import Estoque from "./pages/admin/Estoque";
@@ -43,6 +44,7 @@ import Despesas from "./pages/admin/Despesas";
 import Relatorios from "./pages/admin/Relatorios";
 import WhatsApp from "./pages/admin/WhatsApp";
 import Personalizacao from "./pages/admin/Personalizacao";
+import EditorTema from "./pages/admin/EditorTema";
 import Custos from "./pages/admin/Custos";
 
 const queryClient = new QueryClient();
@@ -78,6 +80,7 @@ const App = () => (
             <Route path="/admin/produtos/novo" element={<ProtectedRoute requireAdmin><AdminProdutoNovo /></ProtectedRoute>} />
             <Route path="/admin/produtos/:id" element={<ProtectedRoute requireAdmin><AdminProdutoEditar /></ProtectedRoute>} />
             <Route path="/admin/categorias" element={<ProtectedRoute requireAdmin><Categorias /></ProtectedRoute>} />
+            <Route path="/admin/marcas" element={<ProtectedRoute requireAdmin><Marcas /></ProtectedRoute>} />
             
             <Route path="/admin/cupons" element={<ProtectedRoute requireAdmin><Cupons /></ProtectedRoute>} />
             <Route path="/admin/estoque" element={<ProtectedRoute requireAdmin><Estoque /></ProtectedRoute>} />
@@ -93,6 +96,7 @@ const App = () => (
             <Route path="/admin/relatorios" element={<ProtectedRoute requireAdmin><Relatorios /></ProtectedRoute>} />
             <Route path="/admin/whatsapp" element={<ProtectedRoute requireAdmin><WhatsApp /></ProtectedRoute>} />
             <Route path="/admin/personalizacao" element={<ProtectedRoute requireAdmin><Personalizacao /></ProtectedRoute>} />
+            <Route path="/admin/editor-tema" element={<ProtectedRoute requireAdmin><EditorTema /></ProtectedRoute>} />
             <Route path="/admin/custos" element={<ProtectedRoute requireAdmin><Custos /></ProtectedRoute>} />
 
             {/* Catch-all */}
