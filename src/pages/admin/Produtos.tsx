@@ -151,10 +151,11 @@ const Produtos = () => {
                     </div>
                     <span className={`status-badge ${stockStatus.class}`}>{stockStatus.label}</span>
                   </div>
-                  {product.weight_grams && product.weight_grams > 0 && (
+                  {product.weight_grams != null && product.weight_grams > 0 && (
                     <div className="flex items-center gap-2 mb-3 text-xs text-muted-foreground">
                       <Weight className="w-3 h-3" /><span>{product.weight_grams}g</span>
-                      {product.height_cm && product.width_cm && product.length_cm && (
+                      {product.height_cm != null && product.width_cm != null && product.length_cm != null && 
+                       product.height_cm > 0 && product.width_cm > 0 && product.length_cm > 0 && (
                         <><Ruler className="w-3 h-3 ml-2" /><span>{product.height_cm}×{product.width_cm}×{product.length_cm}cm</span></>
                       )}
                     </div>
