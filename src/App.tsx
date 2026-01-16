@@ -45,6 +45,7 @@ import Relatorios from "./pages/admin/Relatorios";
 import WhatsApp from "./pages/admin/WhatsApp";
 import EditorTema from "./pages/admin/EditorTema";
 import Custos from "./pages/admin/Custos";
+import Preview from "./pages/Preview";
 
 const queryClient = new QueryClient();
 
@@ -68,6 +69,7 @@ const App = () => (
             <Route path="/sobre" element={<Sobre />} />
             <Route path="/pedido/sucesso" element={<PedidoSucesso />} />
             <Route path="/pedido/cancelado" element={<PedidoCancelado />} />
+            <Route path="/preview" element={<Preview />} />
 
             {/* Protected User Routes */}
             <Route path="/minha-conta" element={<ProtectedRoute><MinhaConta /></ProtectedRoute>} />
