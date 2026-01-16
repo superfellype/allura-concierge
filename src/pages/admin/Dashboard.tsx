@@ -310,6 +310,9 @@ const Dashboard = () => {
       ? Math.round(((averageTicket - lastMonthAvgTicket) / lastMonthAvgTicket) * 100)
       : averageTicket > 0 ? 100 : 0;
 
+    const netReceived = monthlyRevenue - monthlyTaxes;
+    const netAfterExpenses = netReceived - expenseStats.totalMonth;
+
     setKpis([
       { 
         title: "Pedidos Hoje", 
@@ -318,22 +321,22 @@ const Dashboard = () => {
         changeLabel: "vs ontem",
         icon: ShoppingCart, 
         color: "primary",
-        href: "/admin/pedidos"
+        href: "/admin/pedidos",
+        tooltip: `Pedidos realizados hoje: ${todayOrdersCount}\nOntem: ${yesterdayOrdersCount}`,
       },
       { 
-        title: "Receita Mensal", 
-        value: `R$ ${monthlyRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
-        subValue: `Você recebe: R$ ${(monthlyRevenue - monthlyTaxes).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        title: "Você Recebe", 
+        value: `R$ ${netReceived.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
         change: revenueChange,
         changeLabel: "vs mês anterior",
         icon: TrendingUp,
         color: "success",
-        href: "/admin/relatorios"
+        href: "/admin/relatorios",
+        tooltip: `Receita bruta: R$ ${monthlyRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n- Taxas maquininha: R$ ${monthlyTaxes.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n= Você recebe: R$ ${netReceived.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
       },
       { 
         title: "Lucro Real", 
         value: `R$ ${(monthlyRevenue - costStats.monthlySalesCost - monthlyTaxes - expenseStats.totalMonth).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
-        subValue: `Custo: R$ ${costStats.monthlySalesCost.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
         change: 0,
         changeLabel: "este mês",
         icon: Wallet, 
@@ -347,7 +350,8 @@ const Dashboard = () => {
         changeLabel: "total",
         icon: Users, 
         color: "info",
-        href: "/admin/clientes"
+        href: "/admin/clientes",
+        tooltip: `Total de clientes cadastrados: ${customersCount || 0}`,
       },
       { 
         title: "Produtos Ativos", 
@@ -356,17 +360,18 @@ const Dashboard = () => {
         changeLabel: "no catálogo",
         icon: Package, 
         color: "warning",
-        href: "/admin/produtos"
+        href: "/admin/produtos",
+        tooltip: `Produtos ativos no catálogo: ${productsCount || 0}`,
       },
       { 
         title: "Receita Líquida", 
-        value: `R$ ${netRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
-        subValue: `Você recebe: R$ ${netRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        value: `R$ ${netAfterExpenses.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
         change: revenueChange,
-        changeLabel: "após despesas e taxas",
+        changeLabel: "após taxas e despesas",
         icon: DollarSign,
-        color: "success",
-        href: "/admin/despesas"
+        color: netAfterExpenses >= 0 ? "success" : "warning",
+        href: "/admin/despesas",
+        tooltip: `Você recebe: R$ ${netReceived.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n- Despesas: R$ ${expenseStats.totalMonth.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n= Líquido: R$ ${netAfterExpenses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
       },
     ]);
   };
