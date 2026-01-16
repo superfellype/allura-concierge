@@ -52,10 +52,8 @@ interface Payment {
     status: string;
     total: number;
     user_id: string;
-    profiles?: {
-      full_name: string | null;
-    };
   };
+  customer_name?: string;
 }
 
 const statusConfig: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
@@ -99,7 +97,29 @@ const Pagamentos = () => {
         .limit(500);
 
       if (error) throw error;
-      setPayments(data || []);
+      
+      // Fetch customer names for each unique user_id
+      const userIds = [...new Set(data?.map(p => p.orders?.user_id).filter(Boolean) as string[])];
+      let profilesMap: Record<string, string> = {};
+      
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('user_id, full_name')
+          .in('user_id', userIds);
+        
+        profiles?.forEach(p => {
+          profilesMap[p.user_id] = p.full_name || '-';
+        });
+      }
+      
+      // Map payments with customer names
+      const paymentsWithNames = data?.map(p => ({
+        ...p,
+        customer_name: p.orders?.user_id ? profilesMap[p.orders.user_id] : undefined
+      })) || [];
+      
+      setPayments(paymentsWithNames);
     } catch (error) {
       console.error("Error fetching payments:", error);
       toast.error("Erro ao carregar pagamentos");
@@ -120,7 +140,8 @@ const Pagamentos = () => {
     const matchesSearch = 
       payment.id.toLowerCase().includes(search.toLowerCase()) ||
       payment.order_id.toLowerCase().includes(search.toLowerCase()) ||
-      (payment.provider_reference?.toLowerCase().includes(search.toLowerCase()) ?? false);
+      (payment.provider_reference?.toLowerCase().includes(search.toLowerCase()) ?? false) ||
+      (payment.customer_name?.toLowerCase().includes(search.toLowerCase()) ?? false);
     
     const matchesStatus = statusFilter === "all" || payment.status === statusFilter;
     const matchesProvider = providerFilter === "all" || payment.provider === providerFilter;
@@ -268,6 +289,7 @@ const Pagamentos = () => {
                 <TableRow className="border-border/50">
                   <TableHead>ID</TableHead>
                   <TableHead>Pedido</TableHead>
+                  <TableHead>Cliente</TableHead>
                   <TableHead>Provedor</TableHead>
                   <TableHead>Método</TableHead>
                   <TableHead>Status</TableHead>
@@ -292,6 +314,9 @@ const Pagamentos = () => {
                         >
                           {payment.order_id.slice(0, 8)}...
                         </Link>
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {payment.customer_name || '-'}
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="capitalize">
