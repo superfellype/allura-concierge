@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import { Menu, X, Search, ShoppingBag, User, LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { supabase } from "@/integrations/supabase/client";
 
 const navLinks = [
@@ -15,9 +16,14 @@ const navLinks = [
 const Navbar = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { getSetting } = useSiteSettings();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
+
+  // Dynamic brand settings from database
+  const logoUrl = getSetting("logo_url", "/lovable-uploads/7ecf856e-0acd-4c3f-b8da-b31b1958088b.png");
+  const brandName = getSetting("brand_name", "Allura");
 
   useEffect(() => {
     const handleScroll = () => {
@@ -99,9 +105,9 @@ const Navbar = () => {
               className="flex items-center gap-2"
             >
               <img
-                alt="Allura"
+                alt={brandName}
                 className="h-8 w-auto"
-                src="/lovable-uploads/7ecf856e-0acd-4c3f-b8da-b31b1958088b.png"
+                src={logoUrl}
               />
             </motion.div>
           </Link>
