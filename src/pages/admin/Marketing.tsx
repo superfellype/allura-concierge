@@ -3,8 +3,9 @@ import { motion } from "framer-motion";
 import { 
   Cake, Gift, Users, TrendingUp, Download, Mail, 
   MessageSquare, Calendar, Star, Clock, ShoppingBag,
-  UserCheck, UserX, ArrowRight, Sparkles
+  UserCheck, UserX, ArrowRight, Sparkles, FileText
 } from "lucide-react";
+import { pdf } from "@react-pdf/renderer";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,11 +15,12 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { format, parseISO, isWithinInterval, startOfMonth, endOfMonth, subMonths, differenceInDays } from "date-fns";
+import { format, parseISO, isWithinInterval, startOfMonth, endOfMonth, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { exportToCSV, formatDateForExport } from "@/lib/export-utils";
 import { formatCurrency } from "@/lib/price-utils";
 import { ExportModal, ExportColumn } from "@/components/admin/ExportModal";
+import BirthdayPdfDocument from "@/components/admin/BirthdayPdfDocument";
+import CatalogPdfDocument from "@/components/admin/CatalogPdfDocument";
 
 interface CustomerWithStats {
   id: string;
@@ -30,6 +32,15 @@ interface CustomerWithStats {
   totalSpent: number;
   lastOrderDate: string | null;
   preferences?: Record<string, unknown> | null;
+}
+
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  original_price: number | null;
+  category: string;
+  images: string[] | null;
 }
 
 const containerVariants = {
@@ -64,15 +75,25 @@ const MONTHS = [
   { value: "12", label: "Dezembro" },
 ];
 
+const STORE_INFO = {
+  name: "Allura",
+  whatsapp: "(34) 99999-9999",
+  instagram: "allurastore",
+  address: "Uberlândia, MG"
+};
+
 export default function Marketing() {
   const [customers, setCustomers] = useState<CustomerWithStats[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState(String(new Date().getMonth() + 1));
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [exportType, setExportType] = useState<string>("");
+  const [generatingPdf, setGeneratingPdf] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCustomers();
+    fetchProducts();
   }, []);
 
   const fetchCustomers = async () => {
@@ -89,7 +110,6 @@ export default function Marketing() {
       return;
     }
 
-    // Filter out inactive/deactivated customers
     const activeProfiles = (profiles || []).filter(p => {
       const prefs = p.preferences as Record<string, any> | null;
       return prefs?.is_active !== false;
@@ -121,11 +141,20 @@ export default function Marketing() {
     setLoading(false);
   };
 
+  const fetchProducts = async () => {
+    const { data } = await supabase
+      .from("products")
+      .select("id, name, price, original_price, category, images")
+      .eq("is_active", true)
+      .order("created_at", { ascending: false });
+    
+    setProducts(data || []);
+  };
+
   // Birthday customers for selected month
   const birthdayCustomers = useMemo(() => {
     return customers.filter(c => {
       const prefs = c.preferences as Record<string, unknown> | null;
-      // Check both "birth_date" (manual customers) and "birthdate" (legacy)
       const birthdate = prefs?.birth_date || prefs?.birthdate;
       if (typeof birthdate !== 'string') return false;
       
@@ -138,11 +167,18 @@ export default function Marketing() {
     });
   }, [customers, selectedMonth]);
 
+  // Get birthday date from customer
+  const getBirthday = (customer: CustomerWithStats) => {
+    const prefs = customer.preferences as Record<string, unknown> | null;
+    const birthdate = prefs?.birth_date || prefs?.birthdate;
+    return typeof birthdate === 'string' ? birthdate : null;
+  };
+
   // Inactive customers (no orders in 60+ days)
   const inactiveCustomers = useMemo(() => {
     const now = new Date();
     return customers.filter(c => {
-      if (!c.lastOrderDate) return c.ordersCount > 0; // Had orders but none recently
+      if (!c.lastOrderDate) return c.ordersCount > 0;
       const daysSinceLastOrder = differenceInDays(now, parseISO(c.lastOrderDate));
       return daysSinceLastOrder > 60;
     });
@@ -192,8 +228,8 @@ export default function Marketing() {
     { key: "phone", label: "Telefone", defaultEnabled: true, format: (v) => v || "-" },
     { key: "ordersCount", label: "Qtd Pedidos", defaultEnabled: true },
     { key: "totalSpent", label: "Total Gasto", defaultEnabled: true, format: (v) => `R$ ${Number(v).toFixed(2)}` },
-    { key: "lastOrderDate", label: "Último Pedido", defaultEnabled: true, format: (v) => v ? formatDateForExport(v) : "Nunca" },
-    { key: "created_at", label: "Data Cadastro", defaultEnabled: false, format: (v) => formatDateForExport(v) },
+    { key: "lastOrderDate", label: "Último Pedido", defaultEnabled: true, format: (v) => v ? format(parseISO(v), "dd/MM/yyyy") : "Nunca" },
+    { key: "created_at", label: "Data Cadastro", defaultEnabled: false, format: (v) => format(parseISO(v), "dd/MM/yyyy") },
   ];
 
   const handleExportClick = (type: string) => {
@@ -223,6 +259,71 @@ export default function Marketing() {
       recurrent: "recorrentes",
     };
     return `clientes-${typeLabels[exportType] || "lista"}-${format(new Date(), 'yyyy-MM-dd')}`;
+  };
+
+  // PDF Export - Birthday (Spec 1.5)
+  const handleExportBirthdayPdf = async () => {
+    setGeneratingPdf("birthday");
+    try {
+      const monthLabel = MONTHS.find(m => m.value === selectedMonth)?.label || "";
+      
+      const customerData = birthdayCustomers.map(c => ({
+        full_name: c.full_name,
+        phone: c.phone,
+        ordersCount: c.ordersCount,
+        totalSpent: c.totalSpent,
+        preferences: c.preferences,
+      }));
+
+      const blob = await pdf(
+        <BirthdayPdfDocument
+          customers={customerData}
+          monthLabel={monthLabel}
+        />
+      ).toBlob();
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `aniversariantes-${monthLabel.toLowerCase()}-${format(new Date(), "yyyy-MM-dd")}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+      
+      toast.success("PDF gerado com sucesso!");
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      toast.error("Erro ao gerar PDF");
+    } finally {
+      setGeneratingPdf(null);
+    }
+  };
+
+  // PDF Export - Catalog (Spec 3.1)
+  const handleExportCatalogPdf = async () => {
+    setGeneratingPdf("catalog");
+    try {
+      const blob = await pdf(
+        <CatalogPdfDocument
+          products={products}
+          storeInfo={STORE_INFO}
+          generatedAt={new Date()}
+        />
+      ).toBlob();
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `catalogo-allura-${format(new Date(), "yyyy-MM-dd")}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+      
+      toast.success("Catálogo PDF gerado com sucesso!");
+    } catch (error) {
+      console.error("Error generating catalog PDF:", error);
+      toast.error("Erro ao gerar catálogo PDF");
+    } finally {
+      setGeneratingPdf(null);
+    }
   };
 
   const CustomerTable = ({ data, emptyMessage }: { data: CustomerWithStats[]; emptyMessage: string }) => (
@@ -280,6 +381,18 @@ export default function Marketing() {
         animate="visible"
         className="space-y-6"
       >
+        {/* Quick Actions - PDF Exports */}
+        <motion.div variants={itemVariants} className="flex gap-3 flex-wrap">
+          <Button
+            onClick={handleExportCatalogPdf}
+            disabled={generatingPdf === "catalog" || products.length === 0}
+            className="gap-2"
+          >
+            <FileText className="w-4 h-4" />
+            {generatingPdf === "catalog" ? "Gerando..." : "Exportar Catálogo PDF"}
+          </Button>
+        </motion.div>
+
         {/* Quick Stats */}
         <motion.div variants={itemVariants} className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
           <Card className="col-span-1">
@@ -403,7 +516,7 @@ export default function Marketing() {
                           Clientes que fazem aniversário no mês selecionado
                         </CardDescription>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <Select value={selectedMonth} onValueChange={setSelectedMonth}>
                           <SelectTrigger className="w-[140px]">
                             <SelectValue />
@@ -417,13 +530,22 @@ export default function Marketing() {
                           </SelectContent>
                         </Select>
                         <Button 
+                          onClick={handleExportBirthdayPdf}
+                          variant="default"
+                          disabled={birthdayCustomers.length === 0 || generatingPdf === "birthday"}
+                          className="gap-2"
+                        >
+                          <FileText className="w-4 h-4" />
+                          {generatingPdf === "birthday" ? "Gerando..." : "PDF"}
+                        </Button>
+                        <Button 
                           onClick={() => handleExportClick("birthdays")} 
                           variant="outline"
                           disabled={birthdayCustomers.length === 0}
                           className="gap-2"
                         >
                           <Download className="w-4 h-4" />
-                          Exportar
+                          CSV
                         </Button>
                       </div>
                     </div>
