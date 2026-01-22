@@ -306,7 +306,6 @@ export default function Marketing() {
         <CatalogPdfDocument
           products={products}
           storeInfo={STORE_INFO}
-          generatedAt={new Date()}
         />
       ).toBlob();
 
