@@ -109,10 +109,14 @@ export default function CouponForm({
             control={control}
             render={({ field }) => (
               <Select value={field.value} onValueChange={field.onChange}>
-                <SelectTrigger className="mt-1.5 glass-input">
+                <SelectTrigger className="mt-1.5 glass-input h-10">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent 
+                  position="popper" 
+                  sideOffset={4}
+                  className="min-w-[var(--radix-select-trigger-width)]"
+                >
                   <SelectItem value="percentage">Porcentagem (%)</SelectItem>
                   <SelectItem value="fixed">Valor Fixo (R$)</SelectItem>
                 </SelectContent>

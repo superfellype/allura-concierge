@@ -168,23 +168,25 @@ const Cupons = () => {
                 Novo Cupom
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-lg liquid-glass-card border-0">
+            <DialogContent className="sm:max-w-lg liquid-glass-card border-0 overflow-hidden">
               <DialogHeader>
                 <DialogTitle className="font-display text-xl">
                   {editingCoupon ? 'Editar Cupom' : 'Novo Cupom'}
                 </DialogTitle>
               </DialogHeader>
-              <CouponForm
-                key={editingCoupon?.id || 'new'}
-                defaultValues={getDefaultValues(editingCoupon)}
-                onSubmit={handleFormSubmit}
-                onCancel={() => {
-                  setDialogOpen(false);
-                  setEditingCoupon(null);
-                }}
-                isEditing={!!editingCoupon}
-                isSaving={saving}
-              />
+              <div className="min-h-[420px]">
+                <CouponForm
+                  key={editingCoupon?.id || 'new'}
+                  defaultValues={getDefaultValues(editingCoupon)}
+                  onSubmit={handleFormSubmit}
+                  onCancel={() => {
+                    setDialogOpen(false);
+                    setEditingCoupon(null);
+                  }}
+                  isEditing={!!editingCoupon}
+                  isSaving={saving}
+                />
+              </div>
             </DialogContent>
           </Dialog>
         </div>
