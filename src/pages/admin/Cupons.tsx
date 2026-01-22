@@ -3,17 +3,12 @@ import { motion } from "framer-motion";
 import { Plus, Pencil, Trash2, Copy, Percent, DollarSign } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { couponsService, Coupon } from "@/services/coupons.service";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
+import CouponForm, { CouponFormValues } from "@/components/admin/CouponForm";
 import { format } from "date-fns";
-
-type CouponFormInput = Omit<Coupon, 'id' | 'current_uses' | 'created_at' | 'updated_at'>;
 
 const itemVariants = {
   hidden: { opacity: 0, y: 10 },
@@ -32,19 +27,6 @@ const Cupons = () => {
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const [form, setForm] = useState<CouponFormInput>({
-    code: '',
-    discount_type: 'percentage',
-    discount_value: 0,
-    min_order_value: 0,
-    max_uses: null,
-    starts_at: null,
-    expires_at: null,
-    is_active: true,
-    applicable_products: null,
-    applicable_categories: null
-  });
-
   useEffect(() => {
     fetchCoupons();
   }, []);
@@ -60,65 +42,40 @@ const Cupons = () => {
     setLoading(false);
   };
 
-  const resetForm = () => {
-    setForm({
-      code: '',
-      discount_type: 'percentage',
-      discount_value: 0,
-      min_order_value: 0,
-      max_uses: null,
-      starts_at: null,
-      expires_at: null,
-      is_active: true,
-      applicable_products: null,
-      applicable_categories: null
-    });
-    setEditingCoupon(null);
-  };
-
   const openEditDialog = (coupon: Coupon) => {
     setEditingCoupon(coupon);
-    setForm({
-      code: coupon.code,
-      discount_type: coupon.discount_type,
-      discount_value: coupon.discount_value,
-      min_order_value: coupon.min_order_value || 0,
-      max_uses: coupon.max_uses,
-      starts_at: coupon.starts_at,
-      expires_at: coupon.expires_at,
-      is_active: coupon.is_active || true,
-      applicable_products: coupon.applicable_products,
-      applicable_categories: coupon.applicable_categories
-    });
     setDialogOpen(true);
   };
 
-  const handleSubmit = async () => {
-    if (!form.code.trim()) {
-      toast.error('Código é obrigatório');
-      return;
-    }
-
-    if (form.discount_value <= 0) {
-      toast.error('Valor do desconto deve ser maior que zero');
-      return;
-    }
-
+  const handleFormSubmit = async (data: CouponFormValues) => {
     setSaving(true);
 
     try {
+      const couponData = {
+        code: data.code,
+        discount_type: data.discount_type,
+        discount_value: data.discount_value,
+        min_order_value: data.min_order_value || 0,
+        max_uses: data.max_uses || null,
+        starts_at: data.starts_at || null,
+        expires_at: data.expires_at || null,
+        is_active: data.is_active,
+        applicable_products: null,
+        applicable_categories: null,
+      };
+
       if (editingCoupon) {
-        const { error } = await couponsService.update(editingCoupon.id, form);
+        const { error } = await couponsService.update(editingCoupon.id, couponData);
         if (error) throw error;
         toast.success('Cupom atualizado');
       } else {
-        const { error } = await couponsService.create(form);
+        const { error } = await couponsService.create(couponData);
         if (error) throw error;
         toast.success('Cupom criado');
       }
 
       setDialogOpen(false);
-      resetForm();
+      setEditingCoupon(null);
       fetchCoupons();
     } catch (error: any) {
       toast.error(error.message || 'Erro ao salvar cupom');
@@ -176,6 +133,20 @@ const Cupons = () => {
     return <span className="status-badge status-badge-success">Ativo</span>;
   };
 
+  const getDefaultValues = (coupon: Coupon | null): Partial<CouponFormValues> => {
+    if (!coupon) return {};
+    return {
+      code: coupon.code,
+      discount_type: coupon.discount_type as "percentage" | "fixed",
+      discount_value: coupon.discount_value,
+      min_order_value: coupon.min_order_value || 0,
+      max_uses: coupon.max_uses,
+      starts_at: coupon.starts_at,
+      expires_at: coupon.expires_at,
+      is_active: coupon.is_active ?? true,
+    };
+  };
+
   return (
     <AdminLayout title="Cupons">
       <div className="space-y-6">
@@ -184,150 +155,36 @@ const Cupons = () => {
           <p className="text-muted-foreground font-body">
             Gerencie cupons de desconto para seus clientes.
           </p>
-          <Dialog open={dialogOpen} onOpenChange={(open) => {
-            setDialogOpen(open);
-            if (!open) resetForm();
-          }}>
+          <Dialog 
+            open={dialogOpen} 
+            onOpenChange={(open) => {
+              setDialogOpen(open);
+              if (!open) setEditingCoupon(null);
+            }}
+          >
             <DialogTrigger asChild>
               <Button className="glass-btn">
                 <Plus className="w-4 h-4 mr-2" />
                 Novo Cupom
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto liquid-glass-card border-0">
+            <DialogContent className="sm:max-w-lg liquid-glass-card border-0">
               <DialogHeader>
                 <DialogTitle className="font-display text-xl">
                   {editingCoupon ? 'Editar Cupom' : 'Novo Cupom'}
                 </DialogTitle>
               </DialogHeader>
-              <div className="space-y-5 mt-4">
-                <div>
-                  <Label htmlFor="code" className="font-body">Código do Cupom</Label>
-                  <Input
-                    id="code"
-                    value={form.code}
-                    onChange={(e) => setForm(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
-                    placeholder="Ex: PRIMEIRACOMPRA"
-                    className="mt-1.5 glass-input uppercase"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="discount_type" className="font-body">Tipo de Desconto</Label>
-                    <Select
-                      value={form.discount_type}
-                      onValueChange={(value: "percentage" | "fixed") => setForm(prev => ({ ...prev, discount_type: value }))}
-                    >
-                      <SelectTrigger className="mt-1.5 glass-input">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="percentage">Porcentagem (%)</SelectItem>
-                        <SelectItem value="fixed">Valor Fixo (R$)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="discount_value" className="font-body">Valor</Label>
-                    <Input
-                      id="discount_value"
-                      type="number"
-                      min="0"
-                      step={form.discount_type === 'percentage' ? '1' : '0.01'}
-                      value={form.discount_value}
-                      onChange={(e) => setForm(prev => ({ ...prev, discount_value: parseFloat(e.target.value) || 0 }))}
-                      className="mt-1.5 glass-input"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="min_order_value" className="font-body">Pedido Mínimo (R$)</Label>
-                    <Input
-                      id="min_order_value"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={form.min_order_value || ''}
-                      onChange={(e) => setForm(prev => ({ ...prev, min_order_value: parseFloat(e.target.value) || 0 }))}
-                      placeholder="0.00"
-                      className="mt-1.5 glass-input"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="max_uses" className="font-body">Limite de Usos</Label>
-                    <Input
-                      id="max_uses"
-                      type="number"
-                      min="1"
-                      value={form.max_uses || ''}
-                      onChange={(e) => setForm(prev => ({ ...prev, max_uses: parseInt(e.target.value) || null }))}
-                      placeholder="Ilimitado"
-                      className="mt-1.5 glass-input"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="starts_at" className="font-body">Início</Label>
-                    <Input
-                      id="starts_at"
-                      type="datetime-local"
-                      value={form.starts_at ? form.starts_at.slice(0, 16) : ''}
-                      onChange={(e) => setForm(prev => ({ 
-                        ...prev, 
-                        starts_at: e.target.value ? new Date(e.target.value).toISOString() : null 
-                      }))}
-                      className="mt-1.5 glass-input"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="expires_at" className="font-body">Expiração</Label>
-                    <Input
-                      id="expires_at"
-                      type="datetime-local"
-                      value={form.expires_at ? form.expires_at.slice(0, 16) : ''}
-                      onChange={(e) => setForm(prev => ({ 
-                        ...prev, 
-                        expires_at: e.target.value ? new Date(e.target.value).toISOString() : null 
-                      }))}
-                      className="mt-1.5 glass-input"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="is_active" className="font-body">Ativo</Label>
-                  <Switch
-                    id="is_active"
-                    checked={form.is_active}
-                    onCheckedChange={(checked) => setForm(prev => ({ ...prev, is_active: checked }))}
-                  />
-                </div>
-
-                <div className="flex justify-end gap-3 pt-4">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setDialogOpen(false);
-                      resetForm();
-                    }}
-                    className="glass-btn-secondary"
-                  >
-                    Cancelar
-                  </Button>
-                  <Button
-                    onClick={handleSubmit}
-                    disabled={saving}
-                    className="glass-btn"
-                  >
-                    {saving ? 'Salvando...' : 'Salvar'}
-                  </Button>
-                </div>
-              </div>
+              <CouponForm
+                key={editingCoupon?.id || 'new'}
+                defaultValues={getDefaultValues(editingCoupon)}
+                onSubmit={handleFormSubmit}
+                onCancel={() => {
+                  setDialogOpen(false);
+                  setEditingCoupon(null);
+                }}
+                isEditing={!!editingCoupon}
+                isSaving={saving}
+              />
             </DialogContent>
           </Dialog>
         </div>
