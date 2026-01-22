@@ -34,6 +34,7 @@ const Produtos = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all"); // Spec 2.2
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; id: string | null }>({ open: false, id: null });
 
   useEffect(() => {
@@ -56,11 +57,22 @@ const Produtos = () => {
     fetchProducts();
   };
 
-  const filteredProducts = products.filter((p) =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (p.sku && p.sku.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  // Filter by search query AND status (Spec 2.2)
+  const filteredProducts = products.filter((p) => {
+    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (p.sku && p.sku.toLowerCase().includes(searchQuery.toLowerCase()));
+    
+    const matchesStatus = statusFilter === "all" || 
+      (statusFilter === "active" && p.is_active) ||
+      (statusFilter === "inactive" && !p.is_active);
+    
+    return matchesSearch && matchesStatus;
+  });
+  
+  // Count active products (Spec 2.4)
+  const activeCount = products.filter(p => p.is_active).length;
+  const inactiveCount = products.filter(p => !p.is_active).length;
 
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
   const paginatedProducts = filteredProducts.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
@@ -74,6 +86,19 @@ const Produtos = () => {
 
   return (
     <AdminLayout title="Produtos">
+      {/* Stats bar - Spec 2.4 */}
+      <div className="flex gap-4 mb-4 text-sm">
+        <span className="text-muted-foreground">
+          Total: <strong>{products.length}</strong>
+        </span>
+        <span className="text-emerald-600">
+          Ativos: <strong>{activeCount}</strong>
+        </span>
+        <span className="text-muted-foreground">
+          Inativos: <strong>{inactiveCount}</strong>
+        </span>
+      </div>
+      
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <div className="relative flex-1">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -85,6 +110,16 @@ const Produtos = () => {
             className="glass-input pl-11" 
           />
         </div>
+        {/* Status filter - Spec 2.2 */}
+        <select
+          value={statusFilter}
+          onChange={(e) => { setStatusFilter(e.target.value as any); setCurrentPage(1); }}
+          className="glass-input w-auto min-w-[140px]"
+        >
+          <option value="all">Todos</option>
+          <option value="active">Ativos</option>
+          <option value="inactive">Inativos</option>
+        </select>
         <motion.button 
           whileHover={{ scale: 1.02 }} 
           whileTap={{ scale: 0.98 }} 
