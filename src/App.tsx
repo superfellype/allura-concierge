@@ -42,7 +42,7 @@ import PedidoCancelado from "./pages/PedidoCancelado";
 import Notas from "./pages/admin/Notas";
 import Despesas from "./pages/admin/Despesas";
 import Relatorios from "./pages/admin/Relatorios";
-import WhatsApp from "./pages/admin/WhatsApp";
+
 import EditorTema from "./pages/admin/EditorTema";
 import Custos from "./pages/admin/Custos";
 import Vendedores from "./pages/admin/Vendedores";
@@ -97,7 +97,7 @@ const App = () => (
             <Route path="/admin/notas" element={<ProtectedRoute requireAdmin><Notas /></ProtectedRoute>} />
             <Route path="/admin/despesas" element={<ProtectedRoute requireAdmin><Despesas /></ProtectedRoute>} />
             <Route path="/admin/relatorios" element={<ProtectedRoute requireAdmin><Relatorios /></ProtectedRoute>} />
-            <Route path="/admin/whatsapp" element={<ProtectedRoute requireAdmin><WhatsApp /></ProtectedRoute>} />
+            
             <Route path="/admin/editor-tema" element={<ProtectedRoute requireAdmin><EditorTema /></ProtectedRoute>} />
             <Route path="/admin/custos" element={<ProtectedRoute requireAdmin><Custos /></ProtectedRoute>} />
             <Route path="/admin/vendedores" element={<ProtectedRoute requireAdmin><Vendedores /></ProtectedRoute>} />
