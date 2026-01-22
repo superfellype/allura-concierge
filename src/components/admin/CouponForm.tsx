@@ -115,7 +115,7 @@ export default function CouponForm({
                 <SelectContent 
                   position="popper" 
                   sideOffset={4}
-                  className="min-w-[var(--radix-select-trigger-width)]"
+                  className="z-50 min-w-[var(--radix-select-trigger-width)] bg-popover text-popover-foreground"
                 >
                   <SelectItem value="percentage">Porcentagem (%)</SelectItem>
                   <SelectItem value="fixed">Valor Fixo (R$)</SelectItem>

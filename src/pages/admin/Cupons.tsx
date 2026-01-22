@@ -168,7 +168,7 @@ const Cupons = () => {
                 Novo Cupom
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-lg liquid-glass-card border-0 overflow-hidden">
+            <DialogContent className="sm:max-w-lg liquid-glass-card-static border-0 overflow-hidden">
               <DialogHeader>
                 <DialogTitle className="font-display text-xl">
                   {editingCoupon ? 'Editar Cupom' : 'Novo Cupom'}
