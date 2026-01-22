@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { createPaymentGateway, formatPrice } from "@/lib/payment/infinitepay-adapter";
+import { formatCep, fetchAddressByCep, isValidCep } from "@/lib/cep-utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -149,28 +150,21 @@ const Checkout = () => {
     }
   };
 
-  const fetchAddressByCep = async (cep: string) => {
-    const cleanCep = cep.replace(/\D/g, '');
-    if (cleanCep.length !== 8) return;
+  const handleCepLookup = async (cep: string) => {
+    const addressData = await fetchAddressByCep(cep);
+    
+    if (addressData) {
+      setAddress(prev => ({
+        ...prev,
+        street: addressData.street,
+        neighborhood: addressData.neighborhood,
+        city: addressData.city,
+        state: addressData.state
+      }));
 
-    try {
-      const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
-      const data = await response.json();
-      
-      if (!data.erro) {
-        setAddress(prev => ({
-          ...prev,
-          street: data.logradouro || '',
-          neighborhood: data.bairro || '',
-          city: data.localidade || '',
-          state: data.uf || ''
-        }));
-
-        // Calculate shipping after getting address
-        calculateShipping(cleanCep);
-      }
-    } catch (error) {
-      console.error('Error fetching CEP:', error);
+      // Calculate shipping after getting address
+      calculateShipping(cep.replace(/\D/g, ''));
+      toast.success("Endereço preenchido automaticamente!");
     }
   };
 
@@ -197,11 +191,11 @@ const Checkout = () => {
   };
 
   const handleCepChange = (value: string) => {
-    const formatted = value.replace(/\D/g, '').replace(/(\d{5})(\d)/, '$1-$2').slice(0, 9);
+    const formatted = formatCep(value);
     setAddress(prev => ({ ...prev, cep: formatted }));
     
-    if (formatted.replace(/\D/g, '').length === 8) {
-      fetchAddressByCep(formatted);
+    if (isValidCep(formatted)) {
+      handleCepLookup(formatted);
     }
   };
 
