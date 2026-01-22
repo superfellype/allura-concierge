@@ -50,18 +50,33 @@ export default function BrandSelect({ value, onChange }: BrandSelectProps) {
     }
 
     setCreating(true);
-    const { data, error } = await brandsService.create({ name: newBrandName.trim() });
-    
-    if (error) {
-      toast.error("Erro ao criar marca");
-    } else if (data) {
-      toast.success("Marca criada!");
-      onChange(data.name);
-      await refetch();
-      setShowNewDialog(false);
-      setNewBrandName("");
+    try {
+      const { data, error } = await brandsService.create({ name: newBrandName.trim() });
+      
+      if (error) {
+        // Tratamento específico para duplicata
+        if (error.message?.includes('duplicate') || error.message?.includes('unique') || error.message?.includes('already exists')) {
+          toast.error("Esta marca já existe");
+        } else {
+          toast.error("Erro ao criar marca");
+        }
+        return;
+      }
+      
+      if (data) {
+        // CRITICAL: Aguardar refetch ANTES de propagar o valor
+        // Isso evita race condition entre cache e estado
+        await refetch();
+        onChange(data.name);
+        toast.success("Marca criada!");
+        setShowNewDialog(false);
+        setNewBrandName("");
+      }
+    } catch (e) {
+      toast.error("Erro inesperado ao criar marca");
+    } finally {
+      setCreating(false);
     }
-    setCreating(false);
   };
 
   return (

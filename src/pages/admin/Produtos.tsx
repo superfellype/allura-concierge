@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Plus, Search, Edit, Trash2, Image as ImageIcon, Package, Weight, Ruler, AlertTriangle, Percent } from "lucide-react";
@@ -12,7 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { NumericFormat } from "react-number-format";
-
+import { pricingService, type MassDiscountPreview } from "@/services/pricing.service";
+import { isPriceBelowCost } from "@/lib/price-utils";
 interface Product {
   id: string;
   name: string;
@@ -55,10 +56,10 @@ const Produtos = () => {
   const [colorFilter, setColorFilter] = useState<string>("all");
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; id: string | null }>({ open: false, id: null });
   
-  // Mass discount modal (Spec 3.2)
+  // Mass discount modal (Spec 3.2) - Uses isolated pricing service
   const [massDiscountOpen, setMassDiscountOpen] = useState(false);
   const [massDiscountPercent, setMassDiscountPercent] = useState<number>(0);
-  const [massDiscountPreview, setMassDiscountPreview] = useState<{name: string; oldPrice: number; newPrice: number; belowCost: boolean}[]>([]);
+  const [massDiscountPreview, setMassDiscountPreview] = useState<MassDiscountPreview[]>([]);
   const [applyingDiscount, setApplyingDiscount] = useState(false);
 
   useEffect(() => {
@@ -105,19 +106,25 @@ const Produtos = () => {
     return colors.sort();
   }, [products]);
 
-  // Filter products
+  // Filter products with normalized comparison
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
-      const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (p.sku && p.sku.toLowerCase().includes(searchQuery.toLowerCase()));
+      const searchLower = searchQuery.toLowerCase().trim();
+      const matchesSearch = !searchLower || 
+        p.name.toLowerCase().includes(searchLower) ||
+        p.category.toLowerCase().includes(searchLower) ||
+        (p.sku && p.sku.toLowerCase().includes(searchLower));
       
       const matchesStatus = statusFilter === "all" || 
         (statusFilter === "active" && p.is_active) ||
         (statusFilter === "inactive" && !p.is_active);
       
+      // Normalized category comparison (case-insensitive, trimmed)
+      const normalizedCategoryFilter = categoryFilter.toLowerCase().trim();
+      const normalizedProductCategory = p.category.toLowerCase().trim();
       const matchesCategory = categoryFilter === "all" || 
-        p.category.toLowerCase().includes(categoryFilter.toLowerCase());
+        normalizedProductCategory === normalizedCategoryFilter ||
+        normalizedProductCategory.includes(normalizedCategoryFilter);
       
       const matchesBrand = brandFilter === "all" || p.brand === brandFilter;
       const matchesColor = colorFilter === "all" || p.color === colorFilter;
@@ -130,21 +137,17 @@ const Produtos = () => {
   const activeCount = products.filter(p => p.is_active).length;
   const inactiveCount = products.filter(p => !p.is_active).length;
   
-  // Stats by category
+  // Stats by category - memoized with explicit dependency
   const categoryStats = useMemo(() => {
     const stats: Record<string, number> = {};
-    products.filter(p => p.is_active).forEach(p => {
-      const cat = p.category || "Sem categoria";
+    const activeProducts = products.filter(p => p.is_active);
+    activeProducts.forEach(p => {
+      // Normalize category name for consistent stats
+      const cat = (p.category || "Sem categoria").trim();
       stats[cat] = (stats[cat] || 0) + 1;
     });
     return stats;
   }, [products]);
-
-  // Check if price is below cost (Spec 3.3)
-  const isPriceBelowCost = (price: number, costPrice: number | null) => {
-    if (!costPrice || costPrice <= 0) return false;
-    return price < costPrice;
-  };
 
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
   const paginatedProducts = filteredProducts.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
@@ -156,62 +159,53 @@ const Produtos = () => {
     return { label: `${qty} un.`, class: "status-badge-neutral" };
   };
 
-  // Mass discount preview (Spec 3.2)
-  const handleMassDiscountPreview = (percent: number) => {
+  // Mass discount preview using pricing service (Spec 3.2)
+  const handleMassDiscountPreview = useCallback((percent: number) => {
     setMassDiscountPercent(percent);
-    if (percent <= 0 || percent > 100) {
+    
+    const validation = pricingService.validateDiscountPercent(percent);
+    if (!validation.valid) {
       setMassDiscountPreview([]);
       return;
     }
     
-    const activeProducts = products.filter(p => p.is_active);
-    const preview = activeProducts.slice(0, 10).map(p => {
-      const newPrice = p.price * (1 - percent / 100);
-      const belowCost = isPriceBelowCost(newPrice, p.cost_price);
-      return {
-        name: p.name,
-        oldPrice: p.price,
-        newPrice,
-        belowCost
-      };
-    });
+    const preview = pricingService.calculateMassDiscountPreview(products, percent, 10);
     setMassDiscountPreview(preview);
-  };
+  }, [products]);
 
-  const handleApplyMassDiscount = async () => {
-    if (massDiscountPercent <= 0 || massDiscountPercent > 100) {
-      toast.error("Percentual inválido");
+  // Apply mass discount using isolated pricing service
+  const handleApplyMassDiscount = useCallback(async () => {
+    const validation = pricingService.validateDiscountPercent(massDiscountPercent);
+    if (!validation.valid) {
+      toast.error(validation.error || "Percentual inválido");
       return;
     }
     
     setApplyingDiscount(true);
     
     try {
-      const activeProducts = products.filter(p => p.is_active);
+      const result = await pricingService.applyMassDiscount(products, massDiscountPercent);
       
-      for (const product of activeProducts) {
-        const newPrice = parseFloat((product.price * (1 - massDiscountPercent / 100)).toFixed(2));
+      if (result.success) {
+        toast.success(`Desconto de ${massDiscountPercent}% aplicado a ${result.updatedCount} produtos!`);
         
-        await supabase
-          .from("products")
-          .update({ 
-            original_price: product.price, // Save original as reference
-            price: newPrice 
-          })
-          .eq("id", product.id);
+        if (result.belowCostWarnings.length > 0) {
+          toast.warning(`${result.belowCostWarnings.length} produto(s) ficaram abaixo do custo`);
+        }
+        
+        setMassDiscountOpen(false);
+        setMassDiscountPercent(0);
+        setMassDiscountPreview([]);
+        fetchProducts();
+      } else {
+        toast.error(`Erros ao aplicar desconto: ${result.errors.slice(0, 3).join(', ')}`);
       }
-      
-      toast.success(`Desconto de ${massDiscountPercent}% aplicado a ${activeProducts.length} produtos!`);
-      setMassDiscountOpen(false);
-      setMassDiscountPercent(0);
-      setMassDiscountPreview([]);
-      fetchProducts();
     } catch (error) {
-      toast.error("Erro ao aplicar desconto");
+      toast.error("Erro inesperado ao aplicar desconto");
     } finally {
       setApplyingDiscount(false);
     }
-  };
+  }, [products, massDiscountPercent]);
 
   const clearFilters = () => {
     setSearchQuery("");

@@ -117,12 +117,16 @@ export function useProductSearch() {
   return { results, searching, search };
 }
 
-// Utility function to format installment price
+// Re-export formatting functions from centralized utils
+// These are deprecated - prefer importing directly from price-utils
+import { formatInstallmentWithPreposition, formatCurrency } from "@/lib/price-utils";
+
+/** @deprecated Use formatInstallmentWithPreposition from @/lib/price-utils */
 export function formatInstallmentPrice(price: number, installments: number = 3): string {
-  const installmentValue = price / installments;
-  return `${installments}x de R$ ${installmentValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+  return formatInstallmentWithPreposition(price, installments);
 }
 
+/** @deprecated Use formatCurrency from @/lib/price-utils */
 export function formatFullPrice(price: number): string {
-  return `R$ ${price.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+  return formatCurrency(price);
 }
