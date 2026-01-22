@@ -81,9 +81,9 @@ export default function CouponForm({
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 contain-layout">
       {/* Code */}
-      <div>
+      <div className="min-h-[72px]">
         <Label htmlFor="code" className="font-body">
           Código do Cupom
         </Label>
@@ -91,7 +91,7 @@ export default function CouponForm({
           id="code"
           {...register("code")}
           placeholder="Ex: PRIMEIRACOMPRA"
-          className="mt-1.5 glass-input uppercase"
+          className="mt-1.5 glass-input-stable uppercase"
         />
         {errors.code && (
           <p className="text-sm text-destructive mt-1">{errors.code.message}</p>
@@ -100,7 +100,7 @@ export default function CouponForm({
 
       {/* Type & Value */}
       <div className="grid grid-cols-2 gap-4">
-        <div>
+        <div className="min-h-[72px]">
           <Label htmlFor="discount_type" className="font-body">
             Tipo de Desconto
           </Label>
@@ -109,13 +109,13 @@ export default function CouponForm({
             control={control}
             render={({ field }) => (
               <Select value={field.value} onValueChange={field.onChange}>
-                <SelectTrigger className="mt-1.5 glass-input h-10">
+                <SelectTrigger className="mt-1.5 glass-input-stable h-10">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent 
                   position="popper" 
                   sideOffset={4}
-                  className="z-50 min-w-[var(--radix-select-trigger-width)] bg-popover text-popover-foreground"
+                  className="z-[100] min-w-[var(--radix-select-trigger-width)] bg-popover text-popover-foreground border shadow-lg"
                 >
                   <SelectItem value="percentage">Porcentagem (%)</SelectItem>
                   <SelectItem value="fixed">Valor Fixo (R$)</SelectItem>
@@ -124,7 +124,7 @@ export default function CouponForm({
             )}
           />
         </div>
-        <div>
+        <div className="min-h-[72px]">
           <Label htmlFor="discount_value" className="font-body">
             Valor
           </Label>
@@ -144,7 +144,7 @@ export default function CouponForm({
                 decimalSeparator=","
                 prefix={discountType === "fixed" ? "R$ " : ""}
                 suffix={discountType === "percentage" ? "%" : ""}
-                className="mt-1.5 w-full px-3 py-2 glass-input rounded-md"
+                className="mt-1.5 w-full px-3 py-2 glass-input-stable rounded-md"
                 placeholder={discountType === "percentage" ? "10%" : "R$ 50,00"}
               />
             )}
@@ -159,7 +159,7 @@ export default function CouponForm({
 
       {/* Min Order & Max Uses */}
       <div className="grid grid-cols-2 gap-4">
-        <div>
+        <div className="min-h-[72px]">
           <Label htmlFor="min_order_value" className="font-body">
             Pedido Mínimo (R$)
           </Label>
@@ -178,13 +178,13 @@ export default function CouponForm({
                 thousandSeparator="."
                 decimalSeparator=","
                 prefix="R$ "
-                className="mt-1.5 w-full px-3 py-2 glass-input rounded-md"
+                className="mt-1.5 w-full px-3 py-2 glass-input-stable rounded-md"
                 placeholder="R$ 0,00"
               />
             )}
           />
         </div>
-        <div>
+        <div className="min-h-[72px]">
           <Label htmlFor="max_uses" className="font-body">
             Limite de Usos
           </Label>
@@ -202,7 +202,7 @@ export default function CouponForm({
                   field.onChange(val ? parseInt(val) : null);
                 }}
                 placeholder="Ilimitado"
-                className="mt-1.5 glass-input"
+                className="mt-1.5 glass-input-stable"
               />
             )}
           />
@@ -211,7 +211,7 @@ export default function CouponForm({
 
       {/* Dates */}
       <div className="grid grid-cols-2 gap-4">
-        <div>
+        <div className="min-h-[72px]">
           <Label htmlFor="starts_at" className="font-body">
             Início
           </Label>
@@ -230,12 +230,12 @@ export default function CouponForm({
                       : null
                   );
                 }}
-                className="mt-1.5 glass-input"
+                className="mt-1.5 glass-input-stable"
               />
             )}
           />
         </div>
-        <div>
+        <div className="min-h-[72px]">
           <Label htmlFor="expires_at" className="font-body">
             Expiração
           </Label>
@@ -254,7 +254,7 @@ export default function CouponForm({
                       : null
                   );
                 }}
-                className="mt-1.5 glass-input"
+                className="mt-1.5 glass-input-stable"
               />
             )}
           />

@@ -746,6 +746,30 @@
     border-color: hsl(0 0% 100% / 0.1);
   }
 
+  /* ----- GLASS INPUT STABLE (no layout shift on focus) ----- */
+  /* Use inside modals/popovers where box-shadow expansion causes reflow */
+  .glass-input-stable {
+    @apply w-full px-4 py-3 rounded-xl font-body text-sm;
+    background: hsl(0 0% 100% / 0.5);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid hsl(0 0% 100% / 0.3);
+    box-shadow: inset 0 1px 2px hsl(0 0% 0% / 0.05);
+    transition: border-color 0.2s, outline-color 0.2s;
+  }
+
+  .glass-input-stable:focus {
+    outline: 2px solid hsl(var(--primary) / 0.4);
+    outline-offset: -2px;
+    border-color: hsl(var(--primary) / 0.5);
+    box-shadow: inset 0 1px 2px hsl(0 0% 0% / 0.05);
+  }
+
+  .dark .glass-input-stable {
+    background: hsl(0 0% 100% / 0.08);
+    border-color: hsl(0 0% 100% / 0.1);
+  }
+
   /* ----- GLASS BUTTON ----- */
   .glass-btn {
     @apply relative px-6 py-3 rounded-xl font-body font-medium text-sm overflow-hidden transition-all duration-300;
