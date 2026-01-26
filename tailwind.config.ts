@@ -74,12 +74,20 @@ export default {
           400: "hsl(35 25% 85%)",
           500: "hsl(35 22% 78%)",
         },
-        // Vitrine Premium Colors
+        // Vitrine Premium Colors - Editorial Design System
         vitrine: {
-          cream: "hsl(40 30% 96%)",
-          sand: "hsl(35 25% 90%)",
-          charcoal: "hsl(30 10% 18%)",
-          gold: "hsl(38 35% 60%)",
+          // Core palette from spec
+          bg: "hsl(35 18% 96%)",           // #F7F5F2
+          surface: "hsl(0 0% 100%)",        // #FFFFFF
+          text: "hsl(0 0% 11%)",            // #1C1C1C
+          "text-secondary": "hsl(0 0% 43%)", // #6E6E6E
+          accent: "hsl(35 20% 71%)",        // #C7B8A3
+          border: "hsl(35 12% 90%)",        // #E6E3DE
+          // Legacy aliases
+          cream: "hsl(35 18% 96%)",
+          sand: "hsl(35 20% 90%)",
+          charcoal: "hsl(0 0% 11%)",
+          gold: "hsl(35 20% 71%)",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",

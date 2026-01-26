@@ -7,14 +7,6 @@ import { formatCurrency } from "@/lib/price-utils";
 import VitrineNav from "@/components/vitrine/VitrineNav";
 import VitrineFooter from "@/components/vitrine/VitrineFooter";
 
-const fadeIn = {
-  hidden: { opacity: 0 },
-  visible: { 
-    opacity: 1,
-    transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] as const }
-  }
-};
-
 const VitrineProduto = () => {
   const { slug } = useParams<{ slug: string }>();
 
@@ -23,7 +15,7 @@ const VitrineProduto = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, slug, price, description, images, brand")
+        .select("id, name, slug, price, description, images, brand, category")
         .eq("slug", slug)
         .eq("is_active", true)
         .single();
@@ -42,23 +34,23 @@ const VitrineProduto = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-vitrine-cream flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-vitrine-charcoal/20 border-t-vitrine-charcoal rounded-full animate-spin" />
+      <div className="min-h-screen bg-vitrine-bg flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-vitrine-text/20 border-t-vitrine-text rounded-full animate-spin" />
       </div>
     );
   }
 
   if (!product) {
     return (
-      <div className="min-h-screen bg-vitrine-cream">
+      <div className="min-h-screen bg-vitrine-bg">
         <VitrineNav />
-        <div className="container mx-auto px-6 py-32 text-center">
-          <h1 className="font-serif text-3xl text-vitrine-charcoal mb-6">
+        <div className="max-w-[1440px] mx-auto px-5 md:px-12 lg:px-24 pt-32 pb-20 text-center">
+          <h1 className="font-serif text-3xl text-vitrine-text mb-6">
             Produto não encontrado
           </h1>
           <Link 
             to="/vitrine" 
-            className="inline-flex items-center gap-2 text-vitrine-charcoal/60 hover:text-vitrine-charcoal transition-colors"
+            className="inline-flex items-center gap-2 text-[13px] tracking-[0.12em] uppercase text-vitrine-text/60 hover:text-vitrine-text transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             Voltar à vitrine
@@ -70,34 +62,37 @@ const VitrineProduto = () => {
   }
 
   const mainImage = product.images?.[0] || "/placeholder.svg";
+  const category = product.category?.toLowerCase() || "bolsas";
 
   return (
-    <div className="min-h-screen bg-vitrine-cream text-vitrine-charcoal">
+    <div className="min-h-screen bg-vitrine-bg text-vitrine-text">
       <VitrineNav />
       
-      <motion.main 
-        className="pt-24 pb-20"
-        initial="hidden"
-        animate="visible"
-        variants={fadeIn}
-      >
-        <div className="container mx-auto px-6">
+      <main className="pt-24 pb-20">
+        <div className="max-w-[1440px] mx-auto px-5 md:px-12 lg:px-24">
           {/* Back link */}
-          <Link 
-            to="/vitrine" 
-            className="inline-flex items-center gap-2 text-sm text-vitrine-charcoal/50 hover:text-vitrine-charcoal transition-colors mb-12"
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4 }}
           >
-            <ArrowLeft className="w-4 h-4" />
-            Voltar
-          </Link>
+            <Link 
+              to="/vitrine" 
+              className="inline-flex items-center gap-2 text-[13px] tracking-[0.12em] uppercase text-vitrine-text/50 hover:text-vitrine-text transition-colors mb-12"
+            >
+              <ArrowLeft className="w-4 h-4" strokeWidth={1.5} />
+              Voltar
+            </Link>
+          </motion.div>
 
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 max-w-6xl mx-auto">
-            {/* Image */}
+          {/* Product Layout - 60/40 split as per spec */}
+          <div className="grid lg:grid-cols-[60%_40%] gap-12 lg:gap-16">
+            {/* Image - 60% */}
             <motion.div 
-              className="aspect-[4/5] bg-vitrine-sand rounded-sm overflow-hidden"
+              className="aspect-[3/4] bg-vitrine-sand overflow-hidden"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
+              transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
             >
               <img
                 src={mainImage}
@@ -106,51 +101,53 @@ const VitrineProduto = () => {
               />
             </motion.div>
 
-            {/* Details */}
+            {/* Details - 40% */}
             <motion.div 
-              className="flex flex-col justify-center py-8"
+              className="flex flex-col justify-center lg:pl-8"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8, delay: 0.3 }}
+              transition={{ duration: 0.6, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
             >
-              {product.brand && product.brand !== "Outro" && (
-                <span className="text-xs tracking-[0.3em] uppercase text-vitrine-charcoal/40 mb-4">
-                  {product.brand}
-                </span>
-              )}
+              {/* Category */}
+              <span className="text-[11px] tracking-[0.12em] uppercase text-vitrine-text-secondary mb-4">
+                {category}
+              </span>
 
-              <h1 className="font-serif text-4xl md:text-5xl font-light text-vitrine-charcoal leading-tight mb-6">
+              {/* Name */}
+              <h1 className="font-serif text-3xl md:text-4xl lg:text-5xl font-normal text-vitrine-text leading-[1.1] tracking-[0.02em] mb-6">
                 {product.name}
               </h1>
 
-              <p className="text-2xl font-light text-vitrine-charcoal/80 mb-8">
+              {/* Price */}
+              <p className="text-xl md:text-2xl font-normal text-vitrine-text/80 mb-8">
                 {formatCurrency(product.price)}
               </p>
 
+              {/* Description */}
               {product.description && (
-                <p className="text-vitrine-charcoal/60 leading-relaxed mb-12 max-w-md">
+                <p className="font-sans text-base leading-[1.7] text-vitrine-text-secondary mb-12 max-w-md">
                   {product.description}
                 </p>
               )}
 
-              {/* CTA WhatsApp */}
+              {/* CTA - Textual button style */}
               <a
                 href={whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-3 bg-vitrine-charcoal text-vitrine-cream px-8 py-4 text-sm tracking-wider uppercase hover:bg-vitrine-charcoal/90 transition-colors w-full sm:w-auto"
+                className="inline-flex items-center justify-center gap-3 bg-vitrine-text text-vitrine-surface px-8 py-4 text-[13px] tracking-[0.12em] uppercase hover:opacity-80 transition-opacity duration-300 w-full sm:w-auto"
               >
-                <MessageCircle className="w-4 h-4" />
+                <MessageCircle className="w-4 h-4" strokeWidth={1.5} />
                 Comprar pelo WhatsApp
               </a>
 
-              <p className="text-xs text-vitrine-charcoal/40 mt-6">
+              <p className="text-[12px] text-vitrine-text/40 mt-6">
                 Atendimento personalizado via WhatsApp
               </p>
             </motion.div>
           </div>
         </div>
-      </motion.main>
+      </main>
 
       <VitrineFooter />
     </div>

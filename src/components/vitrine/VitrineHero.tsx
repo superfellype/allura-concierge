@@ -1,76 +1,45 @@
 import { motion } from "framer-motion";
-import { MessageCircle } from "lucide-react";
-import logoFlower from "@/assets/logo-allura-flower.png";
+import { Link } from "react-router-dom";
 
 const VitrineHero = () => {
-  const whatsappUrl = "https://wa.me/5534999281320?text=Olá! Gostaria de conhecer mais sobre a Allura.";
-
   return (
-    <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden">
-      {/* Subtle gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-vitrine-cream via-vitrine-cream to-vitrine-sand/30" />
-      
-      {/* Decorative flower - subtle */}
-      <motion.img
-        src={logoFlower}
-        alt=""
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] opacity-[0.03] pointer-events-none"
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 0.03, scale: 1 }}
-        transition={{ duration: 1.5, ease: "easeOut" }}
-      />
+    <section className="relative h-[90vh] flex items-end overflow-hidden">
+      {/* Background Image */}
+      <div className="absolute inset-0">
+        <img
+          src="https://images.unsplash.com/photo-1584917865442-de89df76afd3?q=80&w=2670&auto=format&fit=crop"
+          alt="Bolsa de couro premium"
+          className="w-full h-full object-cover"
+        />
+        {/* Subtle gradient overlay for text readability */}
+        <div className="absolute inset-0 bg-gradient-to-t from-vitrine-text/30 via-transparent to-transparent" />
+      </div>
 
-      <div className="relative z-10 container mx-auto px-6 text-center">
+      {/* Content */}
+      <div className="relative z-10 w-full max-w-[1440px] mx-auto px-5 md:px-12 lg:px-24 pb-16 md:pb-24">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 0.8, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+          className="max-w-xl"
         >
-          {/* Brand tagline */}
-          <span className="block text-xs tracking-[0.4em] uppercase text-vitrine-charcoal/40 mb-8">
-            Couro Premium Brasileiro
+          {/* Tag */}
+          <span className="inline-block text-[11px] tracking-[0.2em] uppercase text-white/80 mb-4">
+            Nova Coleção
           </span>
 
-          {/* Main headline */}
-          <h1 className="font-serif text-5xl md:text-7xl lg:text-8xl font-light text-vitrine-charcoal leading-[1.1] tracking-tight mb-8">
-            Elegância
-            <br />
-            <em className="font-normal">que se sente</em>
-          </h1>
-
-          {/* Subline */}
-          <p className="font-sans text-lg md:text-xl text-vitrine-charcoal/50 font-light max-w-md mx-auto mb-12">
-            Bolsas e acessórios pensados para acompanhar momentos reais.
-          </p>
-
-          {/* CTA */}
-          <motion.a
-            href={whatsappUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-3 text-sm tracking-[0.15em] uppercase text-vitrine-charcoal/70 hover:text-vitrine-charcoal transition-colors group"
-            whileHover={{ y: -2 }}
-            transition={{ duration: 0.3 }}
-          >
-            <MessageCircle className="w-4 h-4 opacity-60 group-hover:opacity-100 transition-opacity" />
-            Fale conosco
-          </motion.a>
+          {/* Title with Link */}
+          <h2 className="font-serif text-4xl md:text-5xl lg:text-6xl font-normal text-white leading-[1.1] tracking-[0.02em]">
+            Universal —{" "}
+            <Link
+              to="/vitrine#produtos"
+              className="underline underline-offset-4 decoration-1 hover:opacity-70 transition-opacity duration-300"
+            >
+              Confira os produtos agora
+            </Link>
+          </h2>
         </motion.div>
       </div>
-
-      {/* Scroll indicator */}
-      <motion.div 
-        className="absolute bottom-8 left-1/2 -translate-x-1/2"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.5, duration: 0.8 }}
-      >
-        <motion.div
-          className="w-px h-12 bg-gradient-to-b from-vitrine-charcoal/20 to-transparent"
-          animate={{ scaleY: [1, 0.5, 1] }}
-          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-        />
-      </motion.div>
     </section>
   );
 };
