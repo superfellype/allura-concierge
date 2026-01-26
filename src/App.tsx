@@ -20,6 +20,8 @@ import Sobre from "./pages/Sobre";
 import PedidoSucesso from "./pages/PedidoSucesso";
 import MinhaConta from "./pages/MinhaConta";
 import NotFound from "./pages/NotFound";
+import Vitrine from "./pages/Vitrine";
+import VitrineProduto from "./pages/VitrineProduto";
 
 // Admin Pages
 import Dashboard from "./pages/admin/Dashboard";
@@ -72,6 +74,8 @@ const App = () => (
             <Route path="/pedido/sucesso" element={<PedidoSucesso />} />
             <Route path="/pedido/cancelado" element={<PedidoCancelado />} />
             <Route path="/preview" element={<Preview />} />
+            <Route path="/vitrine" element={<Vitrine />} />
+            <Route path="/vitrine/:slug" element={<VitrineProduto />} />
 
             {/* Protected User Routes */}
             <Route path="/minha-conta" element={<ProtectedRoute><MinhaConta /></ProtectedRoute>} />

@@ -16,6 +16,8 @@ export default {
       fontFamily: {
         display: ['"Playfair Display"', 'Georgia', 'serif'],
         body: ['Inter', 'system-ui', 'sans-serif'],
+        serif: ['"Cormorant Garamond"', 'Georgia', 'serif'],
+        sans: ['Inter', 'system-ui', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -71,6 +73,13 @@ export default {
           300: "hsl(35 28% 90%)",
           400: "hsl(35 25% 85%)",
           500: "hsl(35 22% 78%)",
+        },
+        // Vitrine Premium Colors
+        vitrine: {
+          cream: "hsl(40 30% 96%)",
+          sand: "hsl(35 25% 90%)",
+          charcoal: "hsl(30 10% 18%)",
+          gold: "hsl(38 35% 60%)",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
